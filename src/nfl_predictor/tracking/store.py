@@ -63,10 +63,21 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
+def _require_pre_kickoff(commence_time: str) -> None:
+    """Reject a game snapshot requested at or after its kickoff time."""
+    kickoff = datetime.fromisoformat(commence_time.replace("Z", "+00:00"))
+    if kickoff.tzinfo is None:
+        kickoff = kickoff.replace(tzinfo=timezone.utc)
+    if kickoff <= datetime.now(timezone.utc):
+        raise ValueError("Game predictions must be snapshotted before kickoff")
+
+
 def record_game_predictions(games: list[dict]) -> int:
     """Snapshot game predictions, retaining the first prediction per game."""
     if not games:
         return 0
+    for game in games:
+        _require_pre_kickoff(game["commence_time"])
     now = datetime.now(timezone.utc).isoformat()
     rows = [
         (
@@ -105,15 +116,15 @@ def reconcile_game_predictions(results_df: pd.DataFrame) -> int:
             home_win = row["home_score"] > row["away_score"]
             predicted_home_win = row["home_win_prob"] >= row["away_win_prob"]
             moneyline_hit = int(predicted_home_win == home_win)
-            conn.execute(
+            cursor = conn.execute(
                 """
                 UPDATE game_predictions
                 SET resolved = 1, actual_home_score = ?, actual_away_score = ?, moneyline_hit = ?
-                WHERE game_id = ?
+                WHERE game_id = ? AND resolved = 0
                 """,
                 (int(row["home_score"]), int(row["away_score"]), moneyline_hit, row["game_id"]),
             )
-            resolved_count += 1
+            resolved_count += cursor.rowcount
         return resolved_count
 
 
@@ -182,13 +193,13 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
                 if stat_col not in row or pd.isna(row[stat_col]):
                     continue
                 actual = float(row[stat_col])
-            conn.execute(
+            cursor = conn.execute(
                 """
                 UPDATE player_prop_predictions
                 SET resolved = 1, actual_value = ?
-                WHERE game_id = ? AND player_id = ? AND market = ?
+                WHERE game_id = ? AND player_id = ? AND market = ? AND resolved = 0
                 """,
                 (actual, row["game_id"], row["player_id"], row["market"]),
             )
-            resolved_count += 1
+            resolved_count += cursor.rowcount
         return resolved_count
