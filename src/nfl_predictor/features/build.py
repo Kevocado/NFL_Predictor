@@ -64,7 +64,7 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
             return float("nan"), float("nan")
         return float(recent["scored"].mean()), float(recent["allowed"].mean())
 
-    def _rest_days(team: str) -> float:
+    def _rest_days(team: str) -> float | None:
         appearances = pd.concat(
             [
                 played[played["home_team"] == team][["gameday"]],
@@ -72,7 +72,7 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
             ]
         ).sort_values("gameday")
         if appearances.empty:
-            return 7.0
+            return None
         last_game = pd.to_datetime(appearances.iloc[-1]["gameday"])
         return float((pd.Timestamp.now().normalize() - last_game).days)
 
@@ -80,6 +80,8 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
     away_scored, away_allowed = _recent_form(away_team)
     home_rating = ratings.get(home_team, power_ratings.DEFAULT_START_RATING)
     away_rating = ratings.get(away_team, power_ratings.DEFAULT_START_RATING)
+    home_rest = _rest_days(home_team)
+    away_rest = _rest_days(away_team)
 
     return pd.Series(
         {
@@ -90,8 +92,8 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
             "home_points_allowed_roll": home_allowed,
             "away_points_scored_roll": away_scored,
             "away_points_allowed_roll": away_allowed,
-            "home_rest_days": _rest_days(home_team) or 7.0,
-            "away_rest_days": _rest_days(away_team) or 7.0,
+            "home_rest_days": home_rest if home_rest is not None else 7.0,
+            "away_rest_days": away_rest if away_rest is not None else 7.0,
             "div_game": 0,
         }
     )
