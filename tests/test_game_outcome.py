@@ -82,3 +82,19 @@ def test_margin_to_probabilities_includes_cover_and_total_when_lines_given():
     assert "under_prob" in result
     assert result["over_prob"] + result["under_prob"] == pytest.approx(1.0)
     assert result["over_prob"] > 0.5  # predicted_total (48) is above total_line (45)
+
+
+def test_margin_to_probabilities_spread_line_uses_nflverse_expected_margin_convention():
+    # nflverse's spread_line is the home team's *expected margin*: positive
+    # means home favored by that many points, and home covers only when its
+    # actual margin exceeds spread_line. Here the model predicts home wins
+    # by 3, but the line has home favored by 6 (home needs to beat that
+    # expected margin to cover) -- so home_cover_prob should be well under
+    # 0.5. Under the old (buggy) `margin > -spread_line` convention this
+    # scenario would incorrectly come out well over 0.5 (~0.76 vs. the
+    # correct ~0.41), so this pins the direction against regression.
+    result = game_outcome.margin_to_probabilities(
+        predicted_margin=3.0, sigma=13.0, spread_line=6.0,
+    )
+
+    assert result["home_cover_prob"] < 0.5

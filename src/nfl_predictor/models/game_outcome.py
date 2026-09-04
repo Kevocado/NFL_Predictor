@@ -75,15 +75,16 @@ def margin_to_probabilities(
     total_sigma: float | None = None,
 ) -> dict:
     """margin ~ Normal(predicted_margin, sigma). home_win_prob = P(margin > 0).
-    spread_line follows the schedules.py convention: the home team's
-    closing spread (negative means home favored by that many points) — the
-    home team covers when margin > -spread_line. total_points ~
-    Normal(predicted_total, total_sigma); over_prob = P(total > total_line)."""
+    spread_line follows nflverse's convention: the home team's expected
+    margin (positive means home favored by that many points, negative means
+    home is an underdog by that many points) — the home team covers when
+    margin > spread_line. total_points ~ Normal(predicted_total,
+    total_sigma); over_prob = P(total > total_line)."""
     home_win_prob = float(1.0 - norm.cdf(0.0, loc=predicted_margin, scale=sigma))
     result = {"home_win_prob": home_win_prob, "away_win_prob": 1.0 - home_win_prob}
 
     if spread_line is not None:
-        home_cover_prob = float(1.0 - norm.cdf(-spread_line, loc=predicted_margin, scale=sigma))
+        home_cover_prob = float(1.0 - norm.cdf(spread_line, loc=predicted_margin, scale=sigma))
         result["home_cover_prob"] = home_cover_prob
         result["away_cover_prob"] = 1.0 - home_cover_prob
 
