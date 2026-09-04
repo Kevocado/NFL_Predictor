@@ -16,7 +16,7 @@ from ..features.build import build_training_frame
 from ..models import game_outcome
 
 
-def prepare_folds(games_df: pd.DataFrame, min_train_seasons: int = 4) -> list[dict]:
+def prepare_folds(games_df: pd.DataFrame, min_train_seasons: int = 2) -> list[dict]:
     df, feature_cols = build_training_frame(games_df)
     seasons = sorted(df["season"].unique())
 
@@ -32,28 +32,50 @@ def prepare_folds(games_df: pd.DataFrame, min_train_seasons: int = 4) -> list[di
     return folds
 
 
+def _predict_margin_elo_batch(candidate: dict, df: pd.DataFrame) -> np.ndarray:
+    """Vectorized elo margin prediction over any frame that carries
+    rating_diff/home_rest_days/away_rest_days columns — used both for the
+    val_df predictions and, via _EloModelAdapter below, for the train_df
+    residuals residual_sigma needs. feature_cols always includes these three
+    columns (see features/build.py's FEATURE_COLUMNS), so the X frame
+    residual_sigma hands us has them whether it's the full fold frame or the
+    X_train/X_val feature-only slice."""
+    return np.array(
+        [
+            game_outcome.predict_margin_elo(candidate, r, hr, ar)
+            for r, hr, ar in zip(df["rating_diff"], df["home_rest_days"], df["away_rest_days"])
+        ]
+    )
+
+
+class _EloModelAdapter:
+    """Adapts the elo candidate's dict + free function to the model.predict(X)
+    interface residual_sigma expects, without ignoring the X it's given."""
+
+    def __init__(self, candidate: dict):
+        self.candidate = candidate
+
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        return _predict_margin_elo_batch(self.candidate, X)
+
+
 def _predict_margins(candidate: str, train_df: pd.DataFrame, val_df: pd.DataFrame, feature_cols: list[str]):
     X_train, y_train = train_df[feature_cols], train_df["margin"]
     X_val = val_df[feature_cols]
 
     if candidate == "elo":
         model = game_outcome.fit_elo_candidate(train_df)
-        preds = np.array(
-            [
-                game_outcome.predict_margin_elo(model, r, hr, ar)
-                for r, hr, ar in zip(val_df["rating_diff"], val_df["home_rest_days"], val_df["away_rest_days"])
-            ]
-        )
-        sigma = game_outcome.residual_sigma(
-            type("_", (), {"predict": lambda self, X: np.array(
-                [game_outcome.predict_margin_elo(model, r, hr, ar) for r, hr, ar in
-                 zip(train_df["rating_diff"], train_df["home_rest_days"], train_df["away_rest_days"])]
-            )})(),
-            X_train, y_train,
-        )
+        preds = _predict_margin_elo_batch(model, val_df)
+        sigma = game_outcome.residual_sigma(_EloModelAdapter(model), X_train, y_train)
         return preds, sigma
 
-    fit_fn = game_outcome.fit_margin_regression if candidate == "ridge" else game_outcome.fit_xgb_margin
+    if candidate == "ridge":
+        fit_fn = game_outcome.fit_margin_regression
+    elif candidate == "xgb":
+        fit_fn = game_outcome.fit_xgb_margin
+    else:
+        raise ValueError(f"Unknown candidate: {candidate!r}")
+
     model = fit_fn(X_train, y_train)
     preds = model.predict(X_val.fillna(0))
     sigma = game_outcome.residual_sigma(model, X_train, y_train)
