@@ -61,6 +61,11 @@ def test_train_all_writes_a_manifest_with_chosen_candidate(monkeypatch, tmp_path
     assert (tmp_path / "manifest.json").exists()
     saved = json.loads((tmp_path / "manifest.json").read_text())
     assert saved["chosen_candidate"] == result["chosen_candidate"]
+    assert (tmp_path / "game_outcome_model.pkl").exists()
+    assert (tmp_path / "total_points_model.pkl").exists()
+    assert (tmp_path / "anytime_td_model.pkl").exists()
+    assert (tmp_path / "rushing_yards_model.pkl").exists()
+    assert (tmp_path / "receiving_yards_model.pkl").exists()
 
 
 def test_load_models_round_trips_after_train_all(monkeypatch, tmp_path):
@@ -80,3 +85,30 @@ def test_load_models_round_trips_after_train_all(monkeypatch, tmp_path):
     assert "game_outcome_model" in models
     assert "player_models" in models
     assert "anytime_td" in models["player_models"]
+
+
+def test_train_all_rejects_training_data_without_walk_forward_fold(monkeypatch, tmp_path):
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest.schedules, "load_training_data", lambda s: _fake_games([2024]))
+
+    with pytest.raises(ValueError, match="walk-forward validation fold"):
+        manifest.train_all(seasons=[2024])
+
+
+def test_load_models_ignores_stale_yardage_artifacts_after_retrain(monkeypatch, tmp_path):
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    seasons = [2021, 2022, 2023, 2024]
+    monkeypatch.setattr(manifest.schedules, "load_training_data", lambda s: _fake_games(seasons))
+    monkeypatch.setattr(manifest.player_stats, "fetch_weekly_player_stats", lambda s: _fake_player_stats(seasons))
+    manifest.train_all(seasons=seasons)
+    assert (tmp_path / "receiving_yards_model.pkl").exists()
+
+    without_receiving = _fake_player_stats(seasons)
+    without_receiving["receiving_yards"] = 0
+    monkeypatch.setattr(manifest.player_stats, "fetch_weekly_player_stats", lambda s: without_receiving)
+    manifest.train_all(seasons=seasons)
+
+    assert not (tmp_path / "receiving_yards_model.pkl").exists()
+    assert "receiving_yards" not in manifest.load_models()["player_models"]
