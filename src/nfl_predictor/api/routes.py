@@ -93,6 +93,16 @@ def _load_player_history(season: int) -> pd.DataFrame:
 @router.get("/games")
 def get_games(season: int, week: int):
     games = schedules.fetch_upcoming_games(season, week)
+    # Unplayed games (the entire point of this endpoint) have home_score/
+    # away_score as pandas NaN, not None. Starlette's default JSONResponse
+    # uses json.dumps(..., allow_nan=False), so an unconverted NaN raises
+    # ValueError -> unhandled 500. Swap NaN for None before returning.
+    # NOTE: .where(cond, None) alone is NOT enough here -- on a float64
+    # column pandas re-casts the replacement None right back into NaN to
+    # preserve the column's dtype. astype(object) first forces the frame
+    # into per-cell Python objects so None actually sticks (and other
+    # values, e.g. gameday's pd.Timestamp, pass through unchanged).
+    games = games.astype(object).where(pd.notna(games), None)
     return games.to_dict("records")
 
 

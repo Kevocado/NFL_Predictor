@@ -69,3 +69,27 @@ def test_get_track_record(client):
 
     assert response.status_code == 200
     assert response.json()["n_resolved_games"] == 0
+
+
+def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):
+    # Real upcoming-game data (unplayed games) carries home_score/away_score
+    # as genuine pandas/numpy float NaN, not Python None -- reproduce that
+    # exactly (float("nan") forces a float64 column, matching the real
+    # schedules data) rather than the `client` fixture's None, which pandas
+    # keeps as an object-dtype None and never actually reproduces the bug.
+    monkeypatch.setattr(
+        routes.schedules, "fetch_upcoming_games",
+        lambda season, week: pd.DataFrame(
+            [{"game_id": "2025_01_BAL_KC", "season": season, "week": week,
+              "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+              "home_score": float("nan"), "away_score": float("nan"),
+              "spread_line": -2.5, "total_line": 46.5}]
+        ),
+    )
+
+    response = client.get("/api/games?season=2025&week=1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["home_score"] is None
+    assert body[0]["away_score"] is None
