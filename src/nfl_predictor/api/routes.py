@@ -1,0 +1,145 @@
+"""routes.py — game/player prop/track-record endpoints. Thin HTTP layer
+over data/features/models/tracking, same shape as PL_Predictor's/
+F1_Predictor's own api/routes.py."""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+import pandas as pd
+from fastapi import APIRouter, HTTPException
+
+from ..config import CURRENT_SEASON
+from ..data import odds_api, player_stats, schedules
+from ..features import build as feature_build
+from ..features import player_usage
+from ..models import game_outcome, manifest, player_props
+from ..odds import value_bets
+from ..tracking import store
+
+router = APIRouter(prefix="/api")
+
+
+@lru_cache(maxsize=1)
+def _load_models_cached() -> dict:
+    return manifest.load_models()
+
+
+def _predict_game_from_models(
+    models: dict, home: str, away: str, games_df: pd.DataFrame,
+    spread_line: float | None = None, total_line: float | None = None,
+) -> dict:
+    feature_row = feature_build.build_features_for_game(home, away, games_df)
+    feature_cols = models["feature_cols"]
+    X = feature_row.reindex(feature_cols).fillna(0)
+
+    if models["chosen_candidate"] == "elo":
+        predicted_margin = game_outcome.predict_margin_elo(
+            {"points_per_rating_point": game_outcome.ELO_POINTS_PER_RATING_POINT},
+            feature_row["rating_diff"], feature_row["home_rest_days"], feature_row["away_rest_days"],
+        )
+    else:
+        predicted_margin = float(models["game_outcome_model"].predict(X.to_numpy().reshape(1, -1))[0])
+
+    predicted_total = float(models["total_model"].predict(X.to_numpy().reshape(1, -1))[0])
+
+    return game_outcome.margin_to_probabilities(
+        predicted_margin, models["sigma"],
+        spread_line=spread_line, total_line=total_line,
+        predicted_total=predicted_total, total_sigma=models["total_sigma"],
+    )
+
+
+def _load_game_history(season: int) -> pd.DataFrame:
+    """Historical + requested-season game data for feature building.
+
+    Completed seasons are safe to read through load_training_data()'s
+    per-season parquet cache — a finished season's results never change.
+    But when `season` is CURRENT_SEASON (a season still being played), that
+    same call would cache the season's games-so-far on first request and
+    then return that SAME STALE snapshot on every later request that
+    season, even after more games are played. schedules.py already has a
+    dedicated fetch_current_season_partial() for exactly this case
+    (refetched every call, no per-season cache) — use it instead of
+    folding the current season into load_training_data().
+    """
+    history_seasons = schedules.default_completed_seasons(n=8)
+    if season == CURRENT_SEASON:
+        historical_df = schedules.load_training_data(history_seasons)
+        current_df = schedules.fetch_current_season_partial()
+        return pd.concat([historical_df, current_df], ignore_index=True)
+    return schedules.load_training_data(history_seasons + [season])
+
+
+def _load_player_history(season: int) -> pd.DataFrame:
+    """Historical + requested-season player stats for feature building.
+
+    Same staleness concern as _load_game_history, but player_stats.py has
+    no dedicated "current season, always refetch" helper (only a single
+    fetch_weekly_player_stats(seasons, force_refresh) applying to the
+    whole list). Rather than extend that module (out of scope for this
+    task), fetch the current season on its own with force_refresh=True
+    (cheap — one season/week of data per nfl_data_py call) and merge it
+    with normally-cached historical seasons.
+    """
+    history_seasons = schedules.default_completed_seasons(n=8)
+    if season == CURRENT_SEASON:
+        historical_df = player_stats.fetch_weekly_player_stats(history_seasons)
+        current_df = player_stats.fetch_weekly_player_stats([season], force_refresh=True)
+        return pd.concat([historical_df, current_df], ignore_index=True)
+    return player_stats.fetch_weekly_player_stats(history_seasons + [season])
+
+
+@router.get("/games")
+def get_games(season: int, week: int):
+    games = schedules.fetch_upcoming_games(season, week)
+    return games.to_dict("records")
+
+
+@router.get("/games/{season}/{week}/{game_id}/prediction")
+def get_game_prediction(season: int, week: int, game_id: str):
+    games = schedules.fetch_upcoming_games(season, week)
+    matches = games[games["game_id"] == game_id]
+    if matches.empty:
+        raise HTTPException(status_code=404, detail=f"Unknown game_id: {game_id}")
+    game = matches.iloc[0]
+
+    models = _load_models_cached()
+    history = _load_game_history(season)
+    prediction = _predict_game_from_models(
+        models, game["home_team"], game["away_team"], history,
+        spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+    )
+    return prediction
+
+
+@router.get("/players/{season}/{week}/props")
+def get_player_props(season: int, week: int):
+    models = _load_models_cached()
+    player_history = _load_player_history(season)
+
+    latest_players = (
+        player_history[player_history["season"] == season]
+        [["player_id", "player_name", "position", "recent_team"]]
+        .drop_duplicates("player_id")
+    )
+    results = []
+    for _, player in latest_players.iterrows():
+        feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
+        if feature_row is None:
+            continue
+        props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
+        results.append({"player_id": player["player_id"], "player_name": player["player_name"], **props})
+    return results
+
+
+@router.get("/track-record")
+def get_track_record():
+    return store.get_track_record()
+
+
+@router.post("/retrain")
+def retrain():
+    result = manifest.train_all()
+    _load_models_cached.cache_clear()
+    return {"trained_at": result["trained_at"], "chosen_candidate": result["chosen_candidate"]}
