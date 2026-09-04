@@ -52,7 +52,7 @@ def fetch_schedules(seasons: list[int], force_refresh: bool = False) -> pd.DataF
         for season in missing:
             season_df = fetched[fetched["season"] == season].reset_index(drop=True)
             season_df.to_parquet(_season_cache_path(season))
-            frames.append(season_df)
+            frames.append(pd.read_parquet(_season_cache_path(season)))
 
     if not frames:
         return pd.DataFrame(columns=KEEP_COLUMNS)
