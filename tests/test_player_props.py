@@ -1,0 +1,59 @@
+# tests/test_player_props.py
+import numpy as np
+import pandas as pd
+import pytest
+
+from nfl_predictor.models import player_props
+
+
+def _toy_player_frame(n=80, seed=1):
+    rng = np.random.default_rng(seed)
+    rushing_roll = rng.normal(80, 20, n)
+    return pd.DataFrame(
+        {
+            "passing_yards_roll": rng.normal(250, 40, n),
+            "rushing_yards_roll": rushing_roll,
+            "receiving_yards_roll": rng.normal(50, 20, n),
+            "targets_roll": rng.normal(5, 2, n),
+            "carries_roll": rng.normal(15, 5, n),
+            "rushing_yards": rushing_roll + rng.normal(0, 15, n),
+            "anytime_td": (rng.random(n) < (0.3 + rushing_roll / 500)).astype(int),
+        }
+    )
+
+
+FEATURE_COLS = ["passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll", "targets_roll", "carries_roll"]
+
+
+def test_fit_anytime_td_classifier_predicts_probabilities():
+    df = _toy_player_frame()
+    model = player_props.fit_anytime_td_classifier(df[FEATURE_COLS], df["anytime_td"])
+
+    probs = model.predict_proba(df[FEATURE_COLS])[:, 1]
+    assert ((probs >= 0) & (probs <= 1)).all()
+
+
+def test_fit_yardage_regressor_predicts_reasonable_values():
+    df = _toy_player_frame()
+    model = player_props.fit_yardage_regressor(df[FEATURE_COLS], df["rushing_yards"])
+
+    preds = model.predict(df[FEATURE_COLS])
+    assert np.corrcoef(preds, df["rushing_yards"])[0, 1] > 0.3
+
+
+def test_predict_props_only_returns_relevant_yardage_market_for_position():
+    df = _toy_player_frame()
+    td_model = player_props.fit_anytime_td_classifier(df[FEATURE_COLS], df["anytime_td"])
+    rushing_model = player_props.fit_yardage_regressor(df[FEATURE_COLS], df["rushing_yards"])
+    models = {
+        "anytime_td": td_model,
+        "rushing_yards": rushing_model,
+        "feature_cols": FEATURE_COLS,
+    }
+
+    result = player_props.predict_props(models, df[FEATURE_COLS].iloc[0], position="RB")
+
+    assert "anytime_td_prob" in result
+    assert "rushing_yards" in result
+    assert "passing_yards" not in result
+    assert "receiving_yards" not in result
