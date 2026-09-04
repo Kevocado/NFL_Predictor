@@ -30,7 +30,11 @@ def _margin_multiplier(margin: float, rating_diff: float) -> float:
     """538's NFL Elo margin-of-victory multiplier: log of the margin, damped
     when the favorite already led the ratings by a lot (an autocorrelation
     correction — a huge win over a much weaker team shouldn't move ratings
-    as much as the same margin over an evenly matched one)."""
+    as much as the same margin over an evenly matched one).
+
+    `rating_diff` must be winner-relative (winner's pregame rating minus
+    loser's), not home-minus-away — otherwise the damping inverts for away
+    wins, damping upsets and amplifying expected outcomes backwards."""
     return np.log(max(abs(margin), 1) + 1) * (2.2 / ((rating_diff * 0.001) + 2.2))
 
 
@@ -58,7 +62,8 @@ def compute_pregame_ratings(
         margin = game["home_score"] - game["away_score"]
         actual = 1.0 if margin > 0 else 0.0 if margin < 0 else 0.5
         expected = _expected_home_win_prob(home_rating, away_rating, home_field)
-        multiplier = _margin_multiplier(margin, home_rating - away_rating)
+        winner_relative_diff = (home_rating - away_rating) if margin >= 0 else (away_rating - home_rating)
+        multiplier = _margin_multiplier(margin, winner_relative_diff)
         delta = k * multiplier * (actual - expected)
 
         ratings[home] = home_rating + delta
@@ -91,7 +96,8 @@ def final_ratings(
         margin = game["home_score"] - game["away_score"]
         actual = 1.0 if margin > 0 else 0.0 if margin < 0 else 0.5
         expected = _expected_home_win_prob(home_rating, away_rating, home_field)
-        multiplier = _margin_multiplier(margin, home_rating - away_rating)
+        winner_relative_diff = (home_rating - away_rating) if margin >= 0 else (away_rating - home_rating)
+        multiplier = _margin_multiplier(margin, winner_relative_diff)
         delta = k * multiplier * (actual - expected)
         ratings[home] = home_rating + delta
         ratings[away] = away_rating - delta
