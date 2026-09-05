@@ -6,8 +6,7 @@ import type {
   TrackRecord,
 } from "../types";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? `${window.location.protocol}//${window.location.hostname}:8001/api`;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);

@@ -8,6 +8,7 @@ only fills outcome columns on existing, unresolved rows.
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 from datetime import datetime, timezone
 
@@ -88,7 +89,7 @@ def record_game_predictions(games: list[dict]) -> int:
         )
         for game in games
     ]
-    with _connect() as conn:
+    with contextlib.closing(_connect()) as conn, conn:
         cursor = conn.executemany(
             """
             INSERT OR IGNORE INTO game_predictions
@@ -105,7 +106,7 @@ def reconcile_game_predictions(results_df: pd.DataFrame) -> int:
     """Fill outcomes for existing unresolved game snapshots represented in results."""
     if results_df.empty:
         return 0
-    with _connect() as conn:
+    with contextlib.closing(_connect()) as conn, conn:
         unresolved = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 0", conn)
         if unresolved.empty:
             return 0
@@ -130,7 +131,7 @@ def reconcile_game_predictions(results_df: pd.DataFrame) -> int:
 
 def get_track_record() -> dict:
     """Return aggregate moneyline accuracy for reconciled games."""
-    with _connect() as conn:
+    with contextlib.closing(_connect()) as conn, conn:
         resolved = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
     if resolved.empty:
         return {"n_resolved_games": 0, "pct_moneyline_correct": None}
@@ -149,7 +150,7 @@ def record_player_prop_predictions(props: list[dict]) -> int:
         (prop["game_id"], prop["player_id"], prop["player_name"], prop["market"], float(prop["predicted_value"]), now)
         for prop in props
     ]
-    with _connect() as conn:
+    with contextlib.closing(_connect()) as conn, conn:
         cursor = conn.executemany(
             """
             INSERT OR IGNORE INTO player_prop_predictions
@@ -173,7 +174,7 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
     """Fill outcomes for existing unresolved player-prop snapshots only."""
     if player_stats_df.empty:
         return 0
-    with _connect() as conn:
+    with contextlib.closing(_connect()) as conn, conn:
         unresolved = pd.read_sql("SELECT * FROM player_prop_predictions WHERE resolved = 0", conn)
         if unresolved.empty:
             return 0

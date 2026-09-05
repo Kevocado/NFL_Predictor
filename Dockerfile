@@ -18,4 +18,4 @@ ENV PYTHONPATH=/app/src
 ENV PUBLIC_MODE=true
 
 EXPOSE 8001
-CMD ["uvicorn", "nfl_predictor.api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["sh", "-c", "uvicorn nfl_predictor.api.main:app --host 0.0.0.0 --port ${PORT:-8001}"]

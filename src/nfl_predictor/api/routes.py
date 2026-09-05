@@ -4,12 +4,13 @@ F1_Predictor's own api/routes.py."""
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException
 
-from ..config import CURRENT_SEASON
+from ..config import CURRENT_SEASON, PUBLIC_MODE
 from ..data import odds_api, player_stats, schedules
 from ..features import build as feature_build
 from ..features import player_usage
@@ -18,6 +19,8 @@ from ..odds import value_bets
 from ..tracking import store
 
 router = APIRouter(prefix="/api")
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -150,6 +153,8 @@ def get_track_record():
 
 @router.post("/retrain")
 def retrain():
+    if PUBLIC_MODE:
+        raise HTTPException(status_code=403, detail="Retraining is disabled in public mode")
     result = manifest.train_all()
     _load_models_cached.cache_clear()
     return {"trained_at": result["trained_at"], "chosen_candidate": result["chosen_candidate"]}
@@ -165,16 +170,20 @@ def background_tracking_tick(season: int, week: int) -> None:
         history = _load_game_history(season)
         predictions = []
         for _, game in games.iterrows():
-            pred = _predict_game_from_models(
-                models, game["home_team"], game["away_team"], history,
-                spread_line=game.get("spread_line"), total_line=game.get("total_line"),
-            )
-            predictions.append(
-                {
-                    "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
-                    "commence_time": str(game["gameday"]), **pred,
-                }
-            )
+            try:
+                pred = _predict_game_from_models(
+                    models, game["home_team"], game["away_team"], history,
+                    spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+                )
+                predictions.append(
+                    {
+                        "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
+                        "commence_time": str(game["gameday"]), **pred,
+                    }
+                )
+            except Exception:
+                logger.exception("prediction failed for game_id=%s", game.get("game_id"))
+                continue
         store.record_game_predictions(predictions)
 
     completed = schedules.fetch_current_season_partial()

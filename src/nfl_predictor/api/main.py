@@ -5,6 +5,7 @@ Run with:
 """
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from datetime import date
 
@@ -14,6 +15,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ..config import FRONTEND_DIST_DIR
 from .routes import router, warm_caches, background_tracking_tick
+
+logger = logging.getLogger(__name__)
 
 _TRACKING_INTERVAL_SECONDS = 300
 
@@ -34,8 +37,11 @@ def _current_season_and_week() -> tuple[int, int]:
 async def _tracking_loop():
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
-        season, week = _current_season_and_week()
-        await asyncio.to_thread(background_tracking_tick, season, week)
+        try:
+            season, week = _current_season_and_week()
+            await asyncio.to_thread(background_tracking_tick, season, week)
+        except Exception:
+            logger.exception("background_tracking_tick failed")
 
 
 @asynccontextmanager
