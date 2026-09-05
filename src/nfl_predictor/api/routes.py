@@ -153,3 +153,40 @@ def retrain():
     result = manifest.train_all()
     _load_models_cached.cache_clear()
     return {"trained_at": result["trained_at"], "chosen_candidate": result["chosen_candidate"]}
+
+
+def background_tracking_tick(season: int, week: int) -> None:
+    """Snapshot this week's upcoming-game predictions, then reconcile
+    anything now resolved. Called on a timer from api/main.py's lifespan
+    the same way PL_Predictor's own background_tracking_tick is."""
+    games = schedules.fetch_upcoming_games(season, week)
+    if not games.empty:
+        models = _load_models_cached()
+        history = _load_game_history(season)
+        predictions = []
+        for _, game in games.iterrows():
+            pred = _predict_game_from_models(
+                models, game["home_team"], game["away_team"], history,
+                spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+            )
+            predictions.append(
+                {
+                    "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
+                    "commence_time": str(game["gameday"]), **pred,
+                }
+            )
+        store.record_game_predictions(predictions)
+
+    completed = schedules.fetch_current_season_partial()
+    store.reconcile_game_predictions(completed[["game_id", "home_score", "away_score"]])
+
+
+def warm_caches() -> None:
+    """Pre-fetch schedules/player stats/odds so the first real request
+    after startup isn't slow — best-effort, never raises."""
+    try:
+        schedules.fetch_schedules(schedules.default_completed_seasons(n=8))
+        player_stats.fetch_weekly_player_stats(schedules.default_completed_seasons(n=8))
+        odds_api.fetch_game_odds()
+    except Exception:
+        pass
