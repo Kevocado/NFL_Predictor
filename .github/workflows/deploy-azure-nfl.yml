@@ -59,3 +59,4 @@ jobs:
             --image ghcr.io/kevocado/nfl-predictor:${{ github.sha }} \
             --min-replicas 0 \
             --max-replicas 3 || true
+          az containerapp ingress enable --name nfl-predictor --resource-group predictor-hub-rg --type external --target-port 8001 || true
