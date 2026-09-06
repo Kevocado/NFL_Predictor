@@ -1,0 +1,65 @@
+name: Deploy NFL Predictor to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'NFL_Predictor/**'
+      - '.github/workflows/deploy-azure-nfl.yml'
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Build and push NFL Predictor image
+        working-directory: NFL_Predictor
+        run: |
+          docker build -t ghcr.io/kevocado/nfl-predictor:${{ github.sha }} -t ghcr.io/kevocado/nfl-predictor:latest .
+          docker push ghcr.io/kevocado/nfl-predictor:${{ github.sha }}
+          docker push ghcr.io/kevocado/nfl-predictor:latest
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create / Update NFL Predictor Container App
+        run: |
+          # If the app doesn't exist, create it with external ingress on port 8001
+          az containerapp create \
+            --name nfl-predictor \
+            --resource-group predictor-hub-rg \
+            --environment proudbay-f56b8dfa.eastus2 \
+            --image ghcr.io/kevocado/nfl-predictor:${{ github.sha }} \
+            --target-port 8001 \
+            --ingress external \
+            --min-replicas 0 \
+            --max-replicas 3 \
+            --cpu 0.5 \
+            --memory 1Gi \
+            --env-vars PYTHONPATH=/app/src PUBLIC_MODE=true \
+            --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || true
+
+          # If it already exists, just update the image
+          az containerapp update \
+            --name nfl-predictor \
+            --resource-group predictor-hub-rg \
+            --image ghcr.io/kevocado/nfl-predictor:${{ github.sha }} \
+            --min-replicas 0 \
+            --max-replicas 3 || true
