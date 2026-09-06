@@ -4,8 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'NFL_Predictor/**'
-      - '.github/workflows/deploy-azure-nfl.yml'
+      - '**'
 
 permissions:
   id-token: write
@@ -26,7 +25,6 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       - name: Build and push NFL Predictor image
-        working-directory: NFL_Predictor
         run: |
           docker build -t ghcr.io/kevocado/nfl-predictor:${{ github.sha }} -t ghcr.io/kevocado/nfl-predictor:latest .
           docker push ghcr.io/kevocado/nfl-predictor:${{ github.sha }}
