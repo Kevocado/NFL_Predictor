@@ -93,3 +93,27 @@ def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):
     body = response.json()
     assert body[0]["home_score"] is None
     assert body[0]["away_score"] is None
+
+def test_get_player_props_includes_recent_team_and_position(client, monkeypatch):
+    monkeypatch.setattr(
+        routes, "_load_player_history",
+        lambda season: pd.DataFrame(
+            [{"player_id": "00-001", "player_name": "Pat Mahomes", "position": "QB",
+              "recent_team": "KC", "season": season}]
+        ),
+    )
+    monkeypatch.setattr(
+        routes.player_usage, "build_features_for_player",
+        lambda player_id, history: pd.Series({"dummy_feature": 1.0}),
+    )
+    monkeypatch.setattr(
+        routes.player_props, "predict_props",
+        lambda player_models, feature_row, position: {"anytime_td_prob": 0.42, "passing_yards": 275.0},
+    )
+
+    response = client.get("/api/players/2025/1/props")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body[0]["recent_team"] == "KC"
+    assert body[0]["position"] == "QB"
