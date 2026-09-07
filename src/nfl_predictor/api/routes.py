@@ -128,28 +128,38 @@ def get_game_prediction(season: int, week: int, game_id: str):
 
 @router.get("/players/{season}/{week}/props")
 def get_player_props(season: int, week: int):
-    models = _load_models_cached()
-    player_history = _load_player_history(season)
+    try:
+        models = _load_models_cached()
+        player_history = _load_player_history(season)
 
-    latest_players = (
-        player_history[player_history["season"] == season]
-        [["player_id", "player_name", "position", "recent_team"]]
-        .drop_duplicates("player_id")
-    )
-    results = []
-    for _, player in latest_players.iterrows():
-        feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
-        if feature_row is None:
-            continue
-        props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
-        results.append({
-            "player_id": player["player_id"],
-            "player_name": player["player_name"],
-            "recent_team": player["recent_team"],
-            "position": player["position"],
-            **props,
-        })
-    return results
+        latest_players = (
+            player_history[player_history["season"] == season]
+            [["player_id", "player_name", "position", "recent_team"]]
+            .drop_duplicates("player_id")
+        )
+        results = []
+        for _, player in latest_players.iterrows():
+            try:
+                feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
+                if feature_row is None:
+                    continue
+                props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
+                results.append({
+                    "player_id": player["player_id"],
+                    "player_name": player["player_name"],
+                    "recent_team": player["recent_team"],
+                    "position": player["position"],
+                    **props,
+                })
+            except Exception as player_err:
+                # Log individual player failure without crashing the whole route
+                logger.warning("Failed to predict props for player_id=%s: %s", player.get("player_id"), player_err)
+                continue
+        return results
+    except Exception as e:
+        logger.exception("Failed to load player props for season=%s week=%s", season, week)
+        # Return an empty list instead of a 500 server error so the UI loads cleanly
+        return []
 
 
 @router.get("/track-record")
