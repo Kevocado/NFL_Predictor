@@ -21,3 +21,5 @@ ENV PUBLIC_MODE=true
 
 EXPOSE 8001
 CMD ["sh", "-c", "uvicorn nfl_predictor.api.main:app --host 0.0.0.0 --port ${PORT:-8001}"]
+# Copy trained models into the container
+COPY models/ ./models/
