@@ -10,6 +10,8 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY src/ ./src/
+COPY models/ ./models/
+
 RUN pip install --no-cache-dir -e .
 
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
