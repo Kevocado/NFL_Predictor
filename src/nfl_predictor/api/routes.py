@@ -177,10 +177,14 @@ def get_game_verdict(game_id: str):
 
 @router.get("/predictions/{season}/{week}")
 def get_predictions_for_week(season: int, week: int):
-    games = schedules.fetch_upcoming_games(season, week)
-    if games.empty:
-        games = schedules.load_training_data(seasons=[season])
-        games = games[games["week"] == week]
+    # A union, not an if/else fallback: a week in progress has both
+    # already-final games and still-upcoming ones, and the old if/else
+    # dropped every finished game (and its verdict) whenever any game in
+    # the week was still unplayed (see this plan's final review, finding B3).
+    upcoming = schedules.fetch_upcoming_games(season, week)
+    finished = schedules.load_training_data(seasons=[season])
+    finished = finished[finished["week"] == week]
+    games = pd.concat([finished, upcoming], ignore_index=True).drop_duplicates(subset="game_id")
     return store.get_predictions_for_week(season, week, games)
 
 

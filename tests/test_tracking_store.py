@@ -139,6 +139,32 @@ def test_reconcile_grades_moneyline_ats_and_totals():
     assert row["total_hit"] in (0, 1)
 
 
+def test_reconcile_grades_ats_correctly_when_margin_is_smaller_than_the_spread():
+    """Discriminating case for the ATS sign convention (this plan's final
+    review, finding B1): home_spread_line means "home expected margin"
+    (positive = home favored). Home favored by 6, final margin only 3 --
+    home did NOT cover. The old buggy formula (`margin + spread > 0`, i.e.
+    3 + 6 > 0) claimed home covered; the fixture in
+    test_reconcile_grades_moneyline_ats_and_totals above can't catch this
+    because it happens to agree under both conventions."""
+    import contextlib
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=6.0, home_cover_prob=0.4087, away_cover_prob=0.5913,
+    )])
+    # home wins 24-21 -> home_margin = 3 < spread_line = 6 -> home did not cover.
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 24, "away_score": 21}])
+
+    store.reconcile_game_predictions(results)
+
+    with contextlib.closing(store._connect()) as conn:
+        row = pd.read_sql("SELECT * FROM game_predictions WHERE game_id = '2025_01_BAL_KC'", conn).iloc[0]
+
+    # model predicted away to cover (away_cover_prob > home_cover_prob) and
+    # home indeed did not cover -> the model's call was correct.
+    assert row["ats_hit"] == 1
+
+
 def test_reconcile_leaves_ats_and_total_hit_null_when_lines_were_never_recorded():
     import contextlib
 
