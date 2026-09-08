@@ -177,3 +177,30 @@ def test_backfill_catches_a_prior_season_row_current_season_partial_would_miss(m
     resolved = store.backfill_unresolved_games(schedules)
 
     assert resolved == 1
+
+
+def test_get_game_verdict_returns_none_for_unresolved_game():
+    store.record_game_predictions([_future_game()])
+
+    verdict = store.get_game_verdict("2025_01_BAL_KC")
+
+    assert verdict is None
+
+
+def test_get_game_verdict_summarizes_all_three_markets():
+    store.record_game_predictions([_future_game()])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 20}])
+    store.reconcile_game_predictions(results)
+
+    verdict = store.get_game_verdict("2025_01_BAL_KC")
+
+    assert verdict is not None
+    assert verdict["resolved"] is True
+    assert verdict["game_id"] == "2025_01_BAL_KC"
+    assert verdict["moneyline"]["hit"] == 1
+    assert verdict["moneyline"]["predicted"] == "home_win"
+    assert verdict["moneyline"]["actual"] == "home_win"
+    assert verdict["ats"]["hit"] == 1
+    assert verdict["ats"]["predicted"] == "home_cover"
+    assert verdict["totals"]["hit"] in (0, 1)
+    assert verdict["totals"]["predicted"] == "over"

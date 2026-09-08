@@ -117,3 +117,11 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
     body = response.json()
     assert body[0]["recent_team"] == "KC"
     assert body[0]["position"] == "QB"
+
+
+def test_get_game_verdict_404s_for_untracked_game(client, monkeypatch):
+    monkeypatch.setattr(routes.store, "get_game_verdict", lambda game_id: None)
+
+    response = client.get("/api/games/nope/verdict")
+
+    assert response.status_code == 404
