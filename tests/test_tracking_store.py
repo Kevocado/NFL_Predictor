@@ -204,3 +204,20 @@ def test_get_game_verdict_summarizes_all_three_markets():
     assert verdict["ats"]["predicted"] == "home_cover"
     assert verdict["totals"]["hit"] in (0, 1)
     assert verdict["totals"]["predicted"] == "over"
+
+
+def test_get_predictions_for_week_returns_pending_for_unresolved_and_verdict_for_resolved():
+    store.record_game_predictions([_future_game(game_id="g1"), _future_game(game_id="g2", home_team="DEN", away_team="LAC")])
+    store.reconcile_game_predictions(pd.DataFrame([{"game_id": "g1", "home_score": 30, "away_score": 20}]))
+    games_df = pd.DataFrame([
+        {"game_id": "g1", "home_team": "BAL", "away_team": "KC"},
+        {"game_id": "g2", "home_team": "DEN", "away_team": "LAC"},
+    ])
+
+    week = store.get_predictions_for_week(2025, 1, games_df)
+
+    by_id = {row["game_id"]: row for row in week}
+    assert by_id["g1"]["status"] == "resolved"
+    assert by_id["g1"]["verdict"]["moneyline"]["hit"] is True
+    assert by_id["g2"]["status"] == "pending"
+    assert by_id["g2"]["verdict"] is None

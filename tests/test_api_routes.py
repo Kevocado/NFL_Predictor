@@ -125,3 +125,19 @@ def test_get_game_verdict_404s_for_untracked_game(client, monkeypatch):
     response = client.get("/api/games/nope/verdict")
 
     assert response.status_code == 404
+
+
+def test_get_predictions_for_week_returns_prediction_status(client, monkeypatch):
+    predictions = [
+        {"game_id": "2025_01_BAL_KC", "status": "pending", "home_win_prob": 0.6, "away_win_prob": 0.4, "verdict": None},
+    ]
+    monkeypatch.setattr(routes.store, "get_predictions_for_week", lambda season, week, games: predictions)
+
+    response = client.get("/api/predictions/2025/1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["game_id"] == "2025_01_BAL_KC"
+    assert body[0]["status"] == "pending"
+    assert body[0]["home_win_prob"] == 0.6
