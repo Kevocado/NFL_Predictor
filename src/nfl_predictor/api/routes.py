@@ -194,7 +194,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                 predictions.append(
                     {
                         "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
-                        "commence_time": str(game["gameday"]),
+                        "commence_time": str(game["gameday"]), "season": season,
                         "home_spread_line": game.get("spread_line"), "total_line": game.get("total_line"),
                         **pred,
                     }
@@ -206,6 +206,11 @@ def background_tracking_tick(season: int, week: int) -> None:
 
     completed = schedules.fetch_current_season_partial()
     store.reconcile_game_predictions(completed[["game_id", "home_score", "away_score"]])
+
+    try:
+        store.backfill_unresolved_games(schedules)
+    except Exception:
+        logger.exception("backfill_unresolved_games failed")
 
 
 def warm_caches() -> None:
