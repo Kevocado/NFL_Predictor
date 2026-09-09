@@ -25,14 +25,26 @@ logger = logging.getLogger(__name__)
 _TRACKING_INTERVAL_SECONDS = 300
 
 
+async def _run_tracking_tick():
+    try:
+        season, week = current_season_and_week()
+        await asyncio.to_thread(background_tracking_tick, season, week)
+    except Exception:
+        logger.exception("background_tracking_tick failed")
+
+
 async def _tracking_loop():
+    # Tick once immediately, THEN sleep -- this app scales to zero between
+    # requests, so a sleep-first loop risks never running at all if the
+    # container doesn't stay warm continuously for a full interval
+    # (confirmed live on CFB_Predictor's identical loop: games had long
+    # since finished, but nothing had ever reconciled them). Ticking on
+    # every cold start instead means every burst of traffic gets at least
+    # one real reconciliation pass.
+    await _run_tracking_tick()
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
-        try:
-            season, week = current_season_and_week()
-            await asyncio.to_thread(background_tracking_tick, season, week)
-        except Exception:
-            logger.exception("background_tracking_tick failed")
+        await _run_tracking_tick()
 
 
 async def _public_snapshot_poll_loop():
