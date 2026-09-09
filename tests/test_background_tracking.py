@@ -5,7 +5,7 @@ from nfl_predictor.api import routes
 
 
 def test_background_tracking_tick_records_and_reconciles(monkeypatch):
-    calls = {"recorded": 0, "reconciled": 0}
+    calls = {"recorded": 0, "reconciled": 0, "backfilled": 0}
 
     monkeypatch.setattr(
         routes.schedules, "fetch_upcoming_games",
@@ -39,8 +39,13 @@ def test_background_tracking_tick_records_and_reconciles(monkeypatch):
         lambda results_df: calls.__setitem__("reconciled", calls["reconciled"] + 1) or 0,
     )
     monkeypatch.setattr(routes.schedules, "fetch_current_season_partial", lambda: pd.DataFrame(columns=["game_id", "home_score", "away_score"]))
+    monkeypatch.setattr(
+        routes.store, "backfill_unresolved_games",
+        lambda schedules_module: calls.__setitem__("backfilled", calls["backfilled"] + 1) or 0,
+    )
 
     routes.background_tracking_tick(season=2025, week=1)
 
     assert calls["recorded"] == 1
     assert calls["reconciled"] == 1
+    assert calls["backfilled"] == 1
