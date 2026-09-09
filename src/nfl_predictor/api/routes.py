@@ -88,7 +88,14 @@ def _load_player_history(season: int) -> pd.DataFrame:
     history_seasons = schedules.default_completed_seasons(n=8)
     if season == CURRENT_SEASON:
         historical_df = player_stats.fetch_weekly_player_stats(history_seasons)
-        current_df = player_stats.fetch_weekly_player_stats([season], force_refresh=True)
+        try:
+            current_df = player_stats.fetch_weekly_player_stats([season], force_refresh=True)
+        except Exception:
+            # nflverse doesn't publish a weekly-stats file for the current
+            # season until its first games are played (404 before then) —
+            # historical-only is the correct fallback, not a hard failure.
+            logger.info("No weekly player stats available yet for season=%s", season)
+            current_df = historical_df.iloc[0:0]
         return pd.concat([historical_df, current_df], ignore_index=True)
     return player_stats.fetch_weekly_player_stats(history_seasons + [season])
 
@@ -147,19 +154,37 @@ def get_player_props(season: int, week: int):
         # 2. Filter players only belonging to the active teams playing this week
         latest_players = (
             player_history[
-                (player_history["season"] == season) & 
+                (player_history["season"] == season) &
                 (player_history["recent_team"].isin(active_teams))
             ]
             [["player_id", "player_name", "position", "recent_team"]]
             .drop_duplicates("player_id")
         )
 
+        # 3. Fallback: a team with no current-season stats yet (week 1, or a
+        # bye-to-opener gap) has no rows above even though its roster exists —
+        # pull the season roster for just those teams so props aren't empty.
+        found_teams = set(latest_players["recent_team"].unique())
+        missing_teams = active_teams - found_teams
+        if missing_teams:
+            try:
+                roster = player_stats.fetch_seasonal_roster(season)
+                fallback = roster[
+                    roster["recent_team"].isin(missing_teams) & roster["position"].isin(player_props.POSITION_YARDAGE_MARKET)
+                ]
+                latest_players = pd.concat([latest_players, fallback], ignore_index=True).drop_duplicates("player_id")
+            except Exception as roster_err:
+                logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)
+
         results = []
         for _, player in latest_players.iterrows():
             try:
                 feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
                 if feature_row is None:
-                    continue
+                    # No usage history anywhere in player_history (true rookie,
+                    # or a player the roster fallback pulled in) — predict off
+                    # a neutral zero-usage baseline rather than skipping them.
+                    feature_row = pd.Series({col: 0.0 for col in player_usage.PLAYER_FEATURE_COLUMNS})
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
                 results.append({
                     "player_id": player["player_id"],
