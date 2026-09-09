@@ -11,9 +11,7 @@ from datetime import date
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
-from ..config import FRONTEND_DIST_DIR
 from .routes import router, warm_caches, background_tracking_tick
 
 logger = logging.getLogger(__name__)
@@ -22,12 +20,7 @@ _TRACKING_INTERVAL_SECONDS = 300
 
 
 def _current_season_and_week() -> tuple[int, int]:
-    """A simple calendar-based estimate: NFL seasons are named by the year
-    they start (September) and run through the following February — good
-    enough for the background tracking tick to know which week to snapshot
-    without hardcoding a schedule. Off by a week or two around the very
-    start/end of a season doesn't matter here since fetch_upcoming_games
-    just returns an empty frame for a week with nothing unplayed."""
+    """Calendar-based estimate for current NFL season and week."""
     today = date.today()
     season = today.year if today.month >= 3 else today.year - 1
     week = max(1, min(22, ((today - date(season, 9, 1)).days // 7) + 1))
@@ -54,9 +47,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="NFL Predictor API", lifespan=lifespan)
 
-# Same wide-open CORS as PL_Predictor/F1_Predictor: this server is only ever
-# reached over a private network or this project's own public read-only
-# deployment, never with a login to protect.
+# Allow cross-origin requests from the Sports_Predictor frontend dashboard
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -66,10 +57,11 @@ app.add_middleware(
 
 app.include_router(router)
 
-if FRONTEND_DIST_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True), name="frontend")
-else:
 
-    @app.get("/")
-    def root():
-        return {"status": "ok", "docs": "/docs"}
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "service": "NFL Predictor API",
+        "docs": "/docs",
+    }
