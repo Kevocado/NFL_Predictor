@@ -7,31 +7,22 @@ Run with:
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from datetime import date
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import router, warm_caches, background_tracking_tick
+from .routes import current_season_and_week, router, warm_caches, background_tracking_tick
 
 logger = logging.getLogger(__name__)
 
 _TRACKING_INTERVAL_SECONDS = 300
 
 
-def _current_season_and_week() -> tuple[int, int]:
-    """Calendar-based estimate for current NFL season and week."""
-    today = date.today()
-    season = today.year if today.month >= 3 else today.year - 1
-    week = max(1, min(22, ((today - date(season, 9, 1)).days // 7) + 1))
-    return season, week
-
-
 async def _tracking_loop():
     while True:
         await asyncio.sleep(_TRACKING_INTERVAL_SECONDS)
         try:
-            season, week = _current_season_and_week()
+            season, week = current_season_and_week()
             await asyncio.to_thread(background_tracking_tick, season, week)
         except Exception:
             logger.exception("background_tracking_tick failed")
