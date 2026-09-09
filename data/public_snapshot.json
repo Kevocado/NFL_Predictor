@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-09T16:49:39.810086+00:00",
+  "generated_at": "2026-09-09T21:03:51.166660+00:00",
   "season": 2026,
-  "current_week": 2,
+  "current_week": 1,
   "weeks": {
     "1": {
       "games": [
@@ -60,7 +60,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 46.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_01_TB_CIN",
@@ -230,7 +230,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.5,
+          "spread_line": 3.0,
           "total_line": 40.5
         },
         {
@@ -306,7 +306,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 3.0,
           "total_line": 43.5
         }
       ],
@@ -332,8 +332,8 @@
           "away_win_prob": 0.6443182215405032,
           "home_cover_prob": 0.44308560746074244,
           "away_cover_prob": 0.5569143925392576,
-          "over_prob": 0.326742317647687,
-          "under_prob": 0.673257682352313
+          "over_prob": 0.29839861639833,
+          "under_prob": 0.70160138360167
         },
         "2026_01_TB_CIN": {
           "home_win_prob": 0.5537875533994164,
@@ -402,8 +402,8 @@
         "2026_01_MIA_LV": {
           "home_win_prob": 0.2613881176785078,
           "away_win_prob": 0.7386118823214922,
-          "home_cover_prob": 0.1830615979174064,
-          "away_cover_prob": 0.8169384020825936,
+          "home_cover_prob": 0.19325973485268988,
+          "away_cover_prob": 0.8067402651473101,
           "over_prob": 0.5592358084004885,
           "under_prob": 0.4407641915995115
         },
@@ -434,8 +434,8 @@
         "2026_01_DEN_KC": {
           "home_win_prob": 0.3187552266242448,
           "away_win_prob": 0.6812447733757552,
-          "home_cover_prob": 0.25454838695667226,
-          "away_cover_prob": 0.7454516130433277,
+          "home_cover_prob": 0.24257070500243882,
+          "away_cover_prob": 0.7574292949975612,
           "over_prob": 0.42601692486486775,
           "under_prob": 0.5739830751351322
         }
@@ -638,7 +638,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -1190,7 +1190,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -1814,7 +1814,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2454,7 +2454,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -2790,7 +2790,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2798,7 +2798,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2926,7 +2926,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -7841,7 +7841,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 1.5,
-          "total_line": 44.5
+          "total_line": 43.5
         },
         {
           "game_id": "2026_02_NO_BAL",
@@ -8124,8 +8124,8 @@
           "away_win_prob": 0.458356794234553,
           "home_cover_prob": 0.4964641960529875,
           "away_cover_prob": 0.5035358039470125,
-          "over_prob": 0.49651691253728425,
-          "under_prob": 0.5034830874627158
+          "over_prob": 0.5284421371882908,
+          "under_prob": 0.4715578628117092
         },
         "2026_02_NO_BAL": {
           "home_win_prob": 0.6136726800788042,
@@ -8192,16 +8192,16 @@
           "under_prob": 0.5783044713728839
         },
         "2026_02_LV_LAC": {
-          "home_win_prob": 0.8547719195617645,
-          "away_win_prob": 0.14522808043823554,
+          "home_win_prob": 0.8547719195617646,
+          "away_win_prob": 0.14522808043823543,
           "home_cover_prob": 0.6606763051311175,
           "away_cover_prob": 0.3393236948688825,
           "over_prob": 0.5696514559473878,
           "under_prob": 0.43034854405261225
         },
         "2026_02_SEA_ARI": {
-          "home_win_prob": 0.09729181688630473,
-          "away_win_prob": 0.9027081831136953,
+          "home_win_prob": 0.09729181688630462,
+          "away_win_prob": 0.9027081831136954,
           "home_cover_prob": 0.2942920575277248,
           "away_cover_prob": 0.7057079424722752,
           "over_prob": 0.8055650595704434,
@@ -8438,7 +8438,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -8990,7 +8990,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -9614,7 +9614,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -10254,7 +10254,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -10590,7 +10590,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -10598,7 +10598,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -10726,7 +10726,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -16238,7 +16238,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -16790,7 +16790,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -17414,7 +17414,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -18054,7 +18054,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -18390,7 +18390,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -18398,7 +18398,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -18526,7 +18526,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -24038,7 +24038,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -24590,7 +24590,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -25214,7 +25214,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -25854,7 +25854,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -26190,7 +26190,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -26198,7 +26198,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -26326,7 +26326,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -31316,7 +31316,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 1.5,
+          "spread_line": 2.5,
           "total_line": 39.5
         },
         {
@@ -31373,7 +31373,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 1.5,
+          "spread_line": 2.5,
           "total_line": 48.5
         },
         {
@@ -31535,8 +31535,8 @@
         "2026_05_CLE_NYJ": {
           "home_win_prob": 0.2910914712037307,
           "away_win_prob": 0.7089085287962693,
-          "home_cover_prob": 0.2534615559139225,
-          "away_cover_prob": 0.7465384440860775,
+          "home_cover_prob": 0.22987419178491364,
+          "away_cover_prob": 0.7701258082150864,
           "over_prob": 0.7559089533389385,
           "under_prob": 0.24409104666106152
         },
@@ -31559,8 +31559,8 @@
         "2026_05_NYG_WAS": {
           "home_win_prob": 0.4807490959085152,
           "away_win_prob": 0.5192509040914848,
-          "home_cover_prob": 0.43576672469962197,
-          "away_cover_prob": 0.564233275300378,
+          "home_cover_prob": 0.4061981007642972,
+          "away_cover_prob": 0.5938018992357028,
           "over_prob": 0.2353937522202132,
           "under_prob": 0.7646062477797868
         },
@@ -31795,7 +31795,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -32331,7 +32331,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -32939,7 +32939,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -33539,7 +33539,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -33859,7 +33859,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -33867,7 +33867,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -33979,7 +33979,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
