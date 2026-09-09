@@ -46,8 +46,8 @@ def test_reconcile_game_predictions_fills_actual_outcome():
     n = store.reconcile_game_predictions(results)
 
     assert n == 1
-    record = store.get_track_record()
-    assert record["n_resolved_games"] == 1
+    record = store.get_track_record()["games"]
+    assert record["n_resolved"] == 1
     assert record["pct_moneyline_correct"] == 1.0  # predicted home win, home won
 
 
@@ -61,7 +61,7 @@ def test_reconcile_game_predictions_counts_duplicate_results_once():
     )
 
     assert store.reconcile_game_predictions(results) == 1
-    assert store.get_track_record()["n_resolved_games"] == 1
+    assert store.get_track_record()["games"]["n_resolved"] == 1
 
 
 def test_record_and_reconcile_player_prop_predictions():
