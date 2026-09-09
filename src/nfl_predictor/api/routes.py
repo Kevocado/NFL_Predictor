@@ -81,10 +81,21 @@ def _snapshot_week(season: int, week: int) -> dict | None:
 
 
 def current_season_and_week() -> tuple[int, int]:
-    """Calendar-based estimate for current NFL season and week."""
+    """Current NFL season/week, anchored to the real schedule's own week-1
+    kickoff date rather than a hardcoded month/day guess. A fixed
+    `date(season, 9, 1)` anchor drifts every year the season's actual
+    opening week doesn't start exactly then (confirmed live: it was a full
+    week ahead of the real week 1, which kicks off whenever the schedule
+    says it does, not on a fixed calendar date)."""
     today = date.today()
     season = today.year if today.month >= 3 else today.year - 1
-    week = max(1, min(22, ((today - date(season, 9, 1)).days // 7) + 1))
+    try:
+        schedule = schedules.fetch_schedules([season])
+        week1_start = schedule.loc[schedule["week"] == 1, "gameday"].min()
+        anchor = week1_start.date() if pd.notna(week1_start) else date(season, 9, 1)
+    except Exception:
+        anchor = date(season, 9, 1)
+    week = max(1, min(22, ((today - anchor).days // 7) + 1))
     return season, week
 
 
