@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-09T21:03:51.166660+00:00",
+  "generated_at": "2026-09-09T23:24:00.468568+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -60,7 +60,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 47.5
+          "total_line": 46.5
         },
         {
           "game_id": "2026_01_TB_CIN",
@@ -332,8 +332,8 @@
           "away_win_prob": 0.6443182215405032,
           "home_cover_prob": 0.44308560746074244,
           "away_cover_prob": 0.5569143925392576,
-          "over_prob": 0.29839861639833,
-          "under_prob": 0.70160138360167
+          "over_prob": 0.326742317647687,
+          "under_prob": 0.673257682352313
         },
         "2026_01_TB_CIN": {
           "home_win_prob": 0.5537875533994164,
@@ -7822,7 +7822,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 52.5
+          "total_line": 51.5
         },
         {
           "game_id": "2026_02_CAR_ATL",
@@ -8011,7 +8011,7 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": 8.5,
+          "spread_line": 9.5,
           "total_line": 42.5
         },
         {
@@ -8116,8 +8116,8 @@
           "away_win_prob": 0.34221788775838513,
           "home_cover_prob": 0.5712442607643985,
           "away_cover_prob": 0.4287557392356015,
-          "over_prob": 0.35993918774629985,
-          "under_prob": 0.6400608122537002
+          "over_prob": 0.39030044338499204,
+          "under_prob": 0.609699556615008
         },
         "2026_02_CAR_ATL": {
           "home_win_prob": 0.541643205765447,
@@ -8194,8 +8194,8 @@
         "2026_02_LV_LAC": {
           "home_win_prob": 0.8547719195617646,
           "away_win_prob": 0.14522808043823543,
-          "home_cover_prob": 0.6606763051311175,
-          "away_cover_prob": 0.3393236948688825,
+          "home_cover_prob": 0.632576353811596,
+          "away_cover_prob": 0.36742364618840395,
           "over_prob": 0.5696514559473878,
           "under_prob": 0.43034854405261225
         },
