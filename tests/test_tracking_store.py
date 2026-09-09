@@ -30,11 +30,14 @@ def test_record_game_predictions_is_idempotent():
     assert n2 == 0  # already logged, INSERT OR IGNORE
 
 
-def test_record_game_predictions_rejects_snapshots_after_kickoff():
-    game = _game() | {"commence_time": "2000-09-04T20:20:00"}
+def test_record_game_predictions_skips_snapshots_after_kickoff():
+    already_kicked_off = _game() | {"commence_time": "2000-09-04T20:20:00"}
+    still_upcoming = _game() | {"game_id": "2025_01_SF_LA", "home_team": "LA", "away_team": "SF"}
 
-    with pytest.raises(ValueError, match="before kickoff"):
-        store.record_game_predictions([game])
+    n = store.record_game_predictions([already_kicked_off, still_upcoming])
+
+    assert n == 1  # only the still-upcoming game got snapshotted
+    assert store.get_track_record()["games"]["n_resolved"] == 0
 
 
 def test_reconcile_game_predictions_fills_actual_outcome():

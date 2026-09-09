@@ -418,6 +418,41 @@ def background_tracking_tick(season: int, week: int) -> None:
     completed = schedules.fetch_current_season_partial()
     store.reconcile_game_predictions(completed[["game_id", "home_score", "away_score"]])
 
+    # Backfill games that finished before this tracker ever ran once
+    # (e.g. background_tracking_tick wasn't wired up / wasn't running
+    # yet) -- reconcile only ever updates an EXISTING snapshot, so a game
+    # with no snapshot at all would otherwise never get a verdict.
+    # Excludes each game from its own history so the prediction still
+    # reflects strictly pre-game information, not this game's own result.
+    try:
+        if not completed.empty:
+            untracked_ids = store.get_untracked_game_ids(list(completed["game_id"]))
+            if untracked_ids:
+                models = _load_models_cached()
+                history_all = _load_game_history(season)
+                backfill_games = []
+                for _, game in completed[completed["game_id"].isin(untracked_ids)].iterrows():
+                    try:
+                        history_excl = history_all[history_all["game_id"] != game["game_id"]]
+                        pred = _predict_game_from_models(
+                            models, game["home_team"], game["away_team"], history_excl,
+                            spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+                        )
+                        backfill_games.append({
+                            "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
+                            "commence_time": str(game["gameday"]), "season": season,
+                            "week": int(game["week"]) if pd.notna(game.get("week")) else None,
+                            "home_spread_line": game.get("spread_line"), "total_line": game.get("total_line"),
+                            "actual_home_score": game["home_score"], "actual_away_score": game["away_score"],
+                            **pred,
+                        })
+                    except Exception:
+                        logger.exception("backfill prediction failed for game_id=%s", game.get("game_id"))
+                        continue
+                store.record_resolved_game_predictions(backfill_games)
+    except Exception:
+        logger.exception("backfill of untracked finished games failed")
+
     try:
         if not completed.empty:
             actual_stats = player_stats.fetch_weekly_player_stats([season])
