@@ -14,6 +14,13 @@ COPY models/ ./models/
 
 RUN pip install --no-cache-dir -e .
 
+# The precomputed games/predictions/player-props this deployment actually
+# serves (see public_snapshot.py's module docstring) -- generated locally
+# or by .github/workflows/refresh-public-snapshot.yml
+# (`python -m nfl_predictor.public_snapshot`) and committed, not built in
+# this image. Must exist before building.
+COPY data/public_snapshot.json ./data/public_snapshot.json
+
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 ENV PYTHONPATH=/app/src

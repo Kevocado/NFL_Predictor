@@ -1,0 +1,61 @@
+name: Refresh public snapshot
+
+# Runs public_snapshot.py on GitHub's own infrastructure and pushes
+# data/public_snapshot.json if it changed. The deploy workflow ignores
+# this path (see deploy-azure-nfl.yml's paths-ignore) -- the running
+# container instead picks the new snapshot up within
+# PUBLIC_SNAPSHOT_POLL_SECONDS by polling this file's raw GitHub URL (see
+# api/routes.py::refresh_public_snapshot_from_remote), no redeploy needed.
+
+on:
+  schedule:
+    # NFL kickoffs run Thu evening through Mon evening (and the odd
+    # Saturday in December); every 3 hours during the day, any day, covers
+    # a full week without needing a day-of-week split.
+    - cron: "20 */3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      # data/cache/ (schedules, player stats -- all gitignored) is what
+      # makes repeated runs fast: each season's fetch is cached to its own
+      # parquet file. A fresh checkout starts with none of that.
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: data-cache-${{ github.run_id }}
+          restore-keys: |
+            data-cache-
+
+      - name: Build snapshot
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python -m nfl_predictor.public_snapshot
+
+      - name: Commit and push if changed
+        run: |
+          if git diff --quiet -- data/public_snapshot.json; then
+            echo "No change, nothing to push."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/public_snapshot.json
+          git commit -m "Refresh public snapshot [automated]"
+          git push
