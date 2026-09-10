@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T11:33:32.304014+00:00",
+  "generated_at": "2026-09-10T16:34:08.486891+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -98,7 +98,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 49.5
+          "total_line": 50.5
         },
         {
           "game_id": "2026_01_BUF_HOU",
@@ -155,7 +155,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 8.5,
-          "total_line": 40.5
+          "total_line": 39.5
         },
         {
           "game_id": "2026_01_ATL_PIT",
@@ -306,7 +306,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 43.5
         }
       ],
@@ -348,8 +348,8 @@
           "away_win_prob": 0.42648976238605596,
           "home_cover_prob": 0.3654019534635691,
           "away_cover_prob": 0.6345980465364309,
-          "over_prob": 0.2993901162116255,
-          "under_prob": 0.7006098837883745
+          "over_prob": 0.2721774666585939,
+          "under_prob": 0.7278225333414061
         },
         "2026_01_BUF_HOU": {
           "home_win_prob": 0.49449770769275714,
@@ -372,8 +372,8 @@
           "away_win_prob": 0.13141951617741365,
           "home_cover_prob": 0.6832812760066413,
           "away_cover_prob": 0.31671872399335865,
-          "over_prob": 0.641892810263628,
-          "under_prob": 0.358107189736372
+          "over_prob": 0.6713370226313187,
+          "under_prob": 0.32866297736868133
         },
         "2026_01_ATL_PIT": {
           "home_win_prob": 0.517146009430349,
@@ -434,8 +434,8 @@
         "2026_01_DEN_KC": {
           "home_win_prob": 0.3187552266242448,
           "away_win_prob": 0.6812447733757552,
-          "home_cover_prob": 0.24257070500243882,
-          "away_cover_prob": 0.7574292949975612,
+          "home_cover_prob": 0.25454838695667226,
+          "away_cover_prob": 0.7454516130433277,
           "over_prob": 0.4371195974267259,
           "under_prob": 0.5628804025732741
         }
@@ -1672,6 +1672,14 @@
           "position": "WR",
           "anytime_td_prob": 0.3187139332294464,
           "receiving_yards": 63.34196090698242
+        },
+        {
+          "player_id": "00-0036415",
+          "player_name": "Van Jefferson",
+          "recent_team": "WAS",
+          "position": "WR",
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.0332088470459
         },
         {
           "player_id": "00-0036422",
@@ -3828,7 +3836,7 @@
         {
           "player_id": "00-0039386",
           "player_name": "Bub Means",
-          "recent_team": "NO",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.17667768895626068,
           "receiving_yards": 32.21208190917969
@@ -5468,7 +5476,7 @@
         {
           "player_id": "00-0040633",
           "player_name": "Kyrese Rowan",
-          "recent_team": "DEN",
+          "recent_team": "NO",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -6396,7 +6404,7 @@
         {
           "player_id": "00-0041139",
           "player_name": "Damon Bankston",
-          "recent_team": "NYG",
+          "recent_team": "GB",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -6420,7 +6428,7 @@
         {
           "player_id": "00-0041156",
           "player_name": "Mark Gronowski",
-          "recent_team": "MIA",
+          "recent_team": "HOU",
           "position": "QB",
           "anytime_td_prob": 0.11184605211019516,
           "passing_yards": 62.59242630004883
@@ -6684,7 +6692,7 @@
         {
           "player_id": "00-0041252",
           "player_name": "Kenny Fletcher Jr.",
-          "recent_team": "TB",
+          "recent_team": "IND",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -9082,6 +9090,14 @@
           "receiving_yards": 63.34196090698242
         },
         {
+          "player_id": "00-0036415",
+          "player_name": "Van Jefferson",
+          "recent_team": "WAS",
+          "position": "WR",
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.0332088470459
+        },
+        {
           "player_id": "00-0036422",
           "player_name": "Adam Trautman",
           "recent_team": "DEN",
@@ -11380,7 +11396,7 @@
         {
           "player_id": "00-0039386",
           "player_name": "Bub Means",
-          "recent_team": "NO",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.17667768895626068,
           "receiving_yards": 32.21208190917969
@@ -13116,7 +13132,7 @@
         {
           "player_id": "00-0040633",
           "player_name": "Kyrese Rowan",
-          "recent_team": "DEN",
+          "recent_team": "NO",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -14116,7 +14132,7 @@
         {
           "player_id": "00-0041139",
           "player_name": "Damon Bankston",
-          "recent_team": "NYG",
+          "recent_team": "GB",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -14140,7 +14156,7 @@
         {
           "player_id": "00-0041156",
           "player_name": "Mark Gronowski",
-          "recent_team": "MIA",
+          "recent_team": "HOU",
           "position": "QB",
           "anytime_td_prob": 0.11184605211019516,
           "passing_yards": 62.59242630004883
@@ -14404,7 +14420,7 @@
         {
           "player_id": "00-0041252",
           "player_name": "Kenny Fletcher Jr.",
-          "recent_team": "TB",
+          "recent_team": "IND",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -16882,6 +16898,14 @@
           "receiving_yards": 63.34196090698242
         },
         {
+          "player_id": "00-0036415",
+          "player_name": "Van Jefferson",
+          "recent_team": "WAS",
+          "position": "WR",
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.0332088470459
+        },
+        {
           "player_id": "00-0036422",
           "player_name": "Adam Trautman",
           "recent_team": "DEN",
@@ -19180,7 +19204,7 @@
         {
           "player_id": "00-0039386",
           "player_name": "Bub Means",
-          "recent_team": "NO",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.17667768895626068,
           "receiving_yards": 32.21208190917969
@@ -20916,7 +20940,7 @@
         {
           "player_id": "00-0040633",
           "player_name": "Kyrese Rowan",
-          "recent_team": "DEN",
+          "recent_team": "NO",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -21916,7 +21940,7 @@
         {
           "player_id": "00-0041139",
           "player_name": "Damon Bankston",
-          "recent_team": "NYG",
+          "recent_team": "GB",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -21940,7 +21964,7 @@
         {
           "player_id": "00-0041156",
           "player_name": "Mark Gronowski",
-          "recent_team": "MIA",
+          "recent_team": "HOU",
           "position": "QB",
           "anytime_td_prob": 0.11184605211019516,
           "passing_yards": 62.59242630004883
@@ -22204,7 +22228,7 @@
         {
           "player_id": "00-0041252",
           "player_name": "Kenny Fletcher Jr.",
-          "recent_team": "TB",
+          "recent_team": "IND",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -24682,6 +24706,14 @@
           "receiving_yards": 63.34196090698242
         },
         {
+          "player_id": "00-0036415",
+          "player_name": "Van Jefferson",
+          "recent_team": "WAS",
+          "position": "WR",
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.0332088470459
+        },
+        {
           "player_id": "00-0036422",
           "player_name": "Adam Trautman",
           "recent_team": "DEN",
@@ -26980,7 +27012,7 @@
         {
           "player_id": "00-0039386",
           "player_name": "Bub Means",
-          "recent_team": "NO",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.17667768895626068,
           "receiving_yards": 32.21208190917969
@@ -28716,7 +28748,7 @@
         {
           "player_id": "00-0040633",
           "player_name": "Kyrese Rowan",
-          "recent_team": "DEN",
+          "recent_team": "NO",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -29716,7 +29748,7 @@
         {
           "player_id": "00-0041139",
           "player_name": "Damon Bankston",
-          "recent_team": "NYG",
+          "recent_team": "GB",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -29740,7 +29772,7 @@
         {
           "player_id": "00-0041156",
           "player_name": "Mark Gronowski",
-          "recent_team": "MIA",
+          "recent_team": "HOU",
           "position": "QB",
           "anytime_td_prob": 0.11184605211019516,
           "passing_yards": 62.59242630004883
@@ -30004,7 +30036,7 @@
         {
           "player_id": "00-0041252",
           "player_name": "Kenny Fletcher Jr.",
-          "recent_team": "TB",
+          "recent_team": "IND",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -32407,6 +32439,14 @@
           "receiving_yards": 63.34196090698242
         },
         {
+          "player_id": "00-0036415",
+          "player_name": "Van Jefferson",
+          "recent_team": "WAS",
+          "position": "WR",
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.0332088470459
+        },
+        {
           "player_id": "00-0036422",
           "player_name": "Adam Trautman",
           "recent_team": "DEN",
@@ -34537,7 +34577,7 @@
         {
           "player_id": "00-0039386",
           "player_name": "Bub Means",
-          "recent_team": "NO",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.17667768895626068,
           "receiving_yards": 32.21208190917969
@@ -36129,7 +36169,7 @@
         {
           "player_id": "00-0040633",
           "player_name": "Kyrese Rowan",
-          "recent_team": "DEN",
+          "recent_team": "NO",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -37025,7 +37065,7 @@
         {
           "player_id": "00-0041139",
           "player_name": "Damon Bankston",
-          "recent_team": "NYG",
+          "recent_team": "GB",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -37041,7 +37081,7 @@
         {
           "player_id": "00-0041156",
           "player_name": "Mark Gronowski",
-          "recent_team": "MIA",
+          "recent_team": "HOU",
           "position": "QB",
           "anytime_td_prob": 0.11184605211019516,
           "passing_yards": 62.59242630004883
@@ -37305,7 +37345,7 @@
         {
           "player_id": "00-0041252",
           "player_name": "Kenny Fletcher Jr.",
-          "recent_team": "TB",
+          "recent_team": "IND",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
