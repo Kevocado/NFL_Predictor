@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T16:34:08.486891+00:00",
+  "generated_at": "2026-09-10T20:59:26.413563+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -173,8 +173,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.5,
-          "total_line": 42.5
+          "spread_line": 5.5,
+          "total_line": 41.5
         },
         {
           "game_id": "2026_01_NYJ_TEN",
@@ -378,10 +378,10 @@
         "2026_01_ATL_PIT": {
           "home_win_prob": 0.517146009430349,
           "away_win_prob": 0.48285399056965095,
-          "home_cover_prob": 0.41227553473501777,
-          "away_cover_prob": 0.5877244652649822,
-          "over_prob": 0.5063714750125166,
-          "under_prob": 0.49362852498748344
+          "home_cover_prob": 0.354594624341093,
+          "away_cover_prob": 0.645405375658907,
+          "over_prob": 0.5382623025228013,
+          "under_prob": 0.4617376974771987
         },
         "2026_01_NYJ_TEN": {
           "home_win_prob": 0.465439247857626,
