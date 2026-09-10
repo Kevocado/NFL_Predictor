@@ -17,6 +17,14 @@ def client(monkeypatch):
         ),
     )
     monkeypatch.setattr(
+        routes.schedules, "fetch_week_games",
+        lambda season, week: pd.DataFrame(
+            [{"game_id": "2025_01_BAL_KC", "season": season, "week": week,
+              "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+              "home_score": None, "away_score": None, "spread_line": -2.5, "total_line": 46.5}]
+        ),
+    )
+    monkeypatch.setattr(
         routes.schedules, "load_training_data",
         lambda seasons: pd.DataFrame(
             [{"game_id": "g0", "season": seasons[0], "week": 1, "gameday": "2025-08-01",
@@ -78,7 +86,7 @@ def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):
     # schedules data) rather than the `client` fixture's None, which pandas
     # keeps as an object-dtype None and never actually reproduces the bug.
     monkeypatch.setattr(
-        routes.schedules, "fetch_upcoming_games",
+        routes.schedules, "fetch_week_games",
         lambda season, week: pd.DataFrame(
             [{"game_id": "2025_01_BAL_KC", "season": season, "week": week,
               "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
@@ -93,6 +101,32 @@ def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):
     body = response.json()
     assert body[0]["home_score"] is None
     assert body[0]["away_score"] is None
+
+
+def test_get_games_includes_finished_games(client, monkeypatch):
+    # A week with a mix of finished and still-upcoming games must return
+    # both -- fetch_upcoming_games alone would silently drop the finished
+    # one, which is exactly the bug this route must not have.
+    monkeypatch.setattr(
+        routes.schedules, "fetch_week_games",
+        lambda season, week: pd.DataFrame(
+            [
+                {"game_id": "2025_01_BAL_KC", "season": season, "week": week,
+                 "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+                 "home_score": 27, "away_score": 20, "spread_line": -2.5, "total_line": 46.5},
+                {"game_id": "2025_01_PHI_GB", "season": season, "week": week,
+                 "gameday": "2025-09-05", "home_team": "GB", "away_team": "PHI",
+                 "home_score": None, "away_score": None, "spread_line": 1.5, "total_line": 45.0},
+            ]
+        ),
+    )
+
+    response = client.get("/api/games?season=2025&week=1")
+
+    assert response.status_code == 200
+    game_ids = {g["game_id"] for g in response.json()}
+    assert game_ids == {"2025_01_BAL_KC", "2025_01_PHI_GB"}
+
 
 def test_get_player_props_includes_recent_team_and_position(client, monkeypatch):
     monkeypatch.setattr(

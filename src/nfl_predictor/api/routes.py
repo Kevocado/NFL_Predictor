@@ -192,7 +192,7 @@ def get_games(season: int, week: int):
 
 
 def _get_games_live(season: int, week: int):
-    games = schedules.fetch_upcoming_games(season, week)
+    games = schedules.fetch_week_games(season, week)
     # Unplayed games (the entire point of this endpoint) have home_score/
     # away_score as pandas NaN, not None. Starlette's default JSONResponse
     # uses json.dumps(..., allow_nan=False), so an unconverted NaN raises
@@ -222,14 +222,21 @@ def get_game_prediction(season: int, week: int, game_id: str):
 
 
 def _get_game_prediction_live(season: int, week: int, game_id: str):
-    games = schedules.fetch_upcoming_games(season, week)
+    games = schedules.fetch_week_games(season, week)
     matches = games[games["game_id"] == game_id]
     if matches.empty:
         raise HTTPException(status_code=404, detail=f"Unknown game_id: {game_id}")
     game = matches.iloc[0]
 
     models = _load_models_cached()
+    # Exclude the game's own row from its feature history -- fetch_week_games
+    # (unlike the old fetch_upcoming_games) makes already-finished games
+    # reachable here too, and without this exclusion a finished game's
+    # prediction would leak its own result into its own features. Mirrors
+    # the same exclusion background_tracking_tick's backfill path already
+    # does for exactly this reason.
     history = _load_game_history(season)
+    history = history[history["game_id"] != game_id]
     prediction = _predict_game_from_models(
         models, game["home_team"], game["away_team"], history,
         spread_line=game.get("spread_line"), total_line=game.get("total_line"),

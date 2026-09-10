@@ -83,3 +83,11 @@ def fetch_upcoming_games(season: int, week: int) -> pd.DataFrame:
     df = fetch_schedules([season], force_refresh=(season == CURRENT_SEASON))
     week_df = df[df["week"] == week]
     return week_df[week_df["home_score"].isna()].reset_index(drop=True)
+
+
+def fetch_week_games(season: int, week: int) -> pd.DataFrame:
+    """Every game in a season/week, finished and upcoming together -- unlike
+    fetch_upcoming_games, a game that has since been played still shows up
+    here instead of silently vanishing from the week."""
+    df = fetch_schedules([season], force_refresh=(season == CURRENT_SEASON))
+    return df[df["week"] == week].reset_index(drop=True)

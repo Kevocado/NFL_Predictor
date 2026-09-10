@@ -67,3 +67,12 @@ def test_fetch_upcoming_games_filters_season_week(monkeypatch, tmp_path):
     upcoming = schedules.fetch_upcoming_games(2025, 1)
 
     assert list(upcoming["game_id"]) == ["2025_01_PHI_GB"]
+
+
+def test_fetch_week_games_includes_finished_and_upcoming(monkeypatch, tmp_path):
+    monkeypatch.setattr(schedules, "SCHEDULES_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(schedules, "_import_schedules", lambda years: _raw_schedule_frame())
+
+    week_games = schedules.fetch_week_games(2025, 1)
+
+    assert set(week_games["game_id"]) == {"2025_01_KC_BAL", "2025_01_PHI_GB"}
