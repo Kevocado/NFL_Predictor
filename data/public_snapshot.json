@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T21:45:33.308768+00:00",
+  "generated_at": "2026-09-10T23:15:30.899357+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -41,7 +41,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.5,
-          "total_line": 48.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_01_CHI_CAR",
@@ -324,8 +324,8 @@
           "away_win_prob": 0.40873330142210895,
           "home_cover_prob": 0.48648537168054407,
           "away_cover_prob": 0.5135146283194559,
-          "over_prob": 0.4684450567814722,
-          "under_prob": 0.5315549432185278
+          "over_prob": 0.500361488059494,
+          "under_prob": 0.499638511940506
         },
         "2026_01_CHI_CAR": {
           "home_win_prob": 0.3556817784594968,
