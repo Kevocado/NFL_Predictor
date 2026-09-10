@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-10T20:59:26.413563+00:00",
+  "generated_at": "2026-09-10T21:45:33.308768+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -7468,8 +7468,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 4.5,
+          "total_line": 43.5
         },
         {
           "game_id": "2026_02_GB_NYJ",
@@ -7706,10 +7706,10 @@
         "2026_02_PIT_NE": {
           "home_win_prob": 0.5228940178042406,
           "away_win_prob": 0.4771059821957594,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": 0.38862911012763046,
+          "away_cover_prob": 0.6113708898723695,
+          "over_prob": 0.333228943206894,
+          "under_prob": 0.666771056793106
         },
         "2026_02_GB_NYJ": {
           "home_win_prob": 0.16316361038037797,
