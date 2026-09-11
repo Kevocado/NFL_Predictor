@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T04:30:49.334149+00:00",
+  "generated_at": "2026-09-11T04:53:01.940187+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -392,14 +392,14 @@
           "predicted_total": 45.0391960144043
         },
         "2026_01_ATL_PIT": {
-          "home_win_prob": 0.517146009430349,
-          "away_win_prob": 0.48285399056965095,
-          "home_cover_prob": 0.354594624341093,
-          "away_cover_prob": 0.645405375658907,
-          "over_prob": 0.5382623025228013,
-          "under_prob": 0.4617376974771987,
-          "predicted_margin": 0.5684886574745178,
-          "predicted_total": 42.699432373046875
+          "home_win_prob": 0.48335538030795355,
+          "away_win_prob": 0.5166446196920464,
+          "home_cover_prob": 0.32359438656917405,
+          "away_cover_prob": 0.676405613430826,
+          "over_prob": 0.4652054786216653,
+          "under_prob": 0.5347945213783347,
+          "predicted_margin": -0.5518549084663391,
+          "predicted_total": 40.40956497192383
         },
         "2026_01_NYJ_TEN": {
           "home_win_prob": 0.465439247857626,
@@ -638,7 +638,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -1102,7 +1102,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -1678,7 +1678,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2270,7 +2270,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -2550,7 +2550,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2558,7 +2558,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -2678,7 +2678,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -7372,8 +7372,8 @@
           "predicted_total": 41.03315734863281
         },
         "2026_02_LV_LAC": {
-          "home_win_prob": 0.8547719195617645,
-          "away_win_prob": 0.14522808043823554,
+          "home_win_prob": 0.8547719195617646,
+          "away_win_prob": 0.14522808043823543,
           "home_cover_prob": 0.632576353811596,
           "away_cover_prob": 0.36742364618840395,
           "over_prob": 0.5408065971491153,
@@ -7630,7 +7630,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -8182,7 +8182,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -8814,7 +8814,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -9454,7 +9454,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -9790,7 +9790,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -9798,7 +9798,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -9926,7 +9926,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -15192,14 +15192,14 @@
           "predicted_total": 47.40538787841797
         },
         "2026_03_CIN_PIT": {
-          "home_win_prob": 0.576134498530964,
-          "away_win_prob": 0.423865501469036,
-          "home_cover_prob": 0.6199889202568223,
-          "away_cover_prob": 0.3800110797431777,
-          "over_prob": 0.34811038782637227,
-          "under_prob": 0.6518896121736277,
-          "predicted_margin": 2.539034605026245,
-          "predicted_total": 41.62485885620117
+          "home_win_prob": 0.5427199257687312,
+          "away_win_prob": 0.4572800742312688,
+          "home_cover_prob": 0.5873470432667958,
+          "away_cover_prob": 0.41265295673320423,
+          "over_prob": 0.2830475979289866,
+          "under_prob": 0.7169524020710134,
+          "predicted_margin": 1.418691635131836,
+          "predicted_total": 39.334991455078125
         },
         "2026_03_SEA_WAS": {
           "home_win_prob": 0.4530759188311563,
@@ -15470,7 +15470,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -16022,7 +16022,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -16654,7 +16654,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -17294,7 +17294,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -17630,7 +17630,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -17638,7 +17638,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -17766,7 +17766,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -22952,13 +22952,13 @@
       ],
       "predictions": {
         "2026_04_PIT_CLE": {
-          "home_win_prob": 0.3550350466285118,
-          "away_win_prob": 0.6449649533714882,
-          "home_cover_prob": 0.4275168486637144,
-          "away_cover_prob": 0.5724831513362856,
+          "home_win_prob": 0.3507812346728487,
+          "away_win_prob": 0.6492187653271513,
+          "home_cover_prob": 0.4230292792442857,
+          "away_cover_prob": 0.5769707207557143,
           "over_prob": 0.6353171153496578,
           "under_prob": 0.36468288465034215,
-          "predicted_margin": -4.915865421295166,
+          "predicted_margin": -5.067273139953613,
           "predicted_total": 44.820011138916016
         },
         "2026_04_IND_WAS": {
@@ -23310,7 +23310,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -23862,7 +23862,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -24494,7 +24494,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -25134,7 +25134,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -25470,7 +25470,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -25478,7 +25478,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -25606,7 +25606,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -30803,8 +30803,8 @@
           "predicted_total": 41.89374923706055
         },
         "2026_05_LV_NE": {
-          "home_win_prob": 0.8786970790558645,
-          "away_win_prob": 0.12130292094413553,
+          "home_win_prob": 0.8786970790558646,
+          "away_win_prob": 0.12130292094413542,
           "home_cover_prob": NaN,
           "away_cover_prob": NaN,
           "over_prob": NaN,
@@ -30833,14 +30833,14 @@
           "predicted_total": 48.15581130981445
         },
         "2026_05_IND_PIT": {
-          "home_win_prob": 0.5725829140694384,
-          "away_win_prob": 0.4274170859305616,
-          "home_cover_prob": 0.49756312065668473,
-          "away_cover_prob": 0.5024368793433153,
-          "over_prob": 0.3864808536533645,
-          "under_prob": 0.6135191463466355,
-          "predicted_margin": 2.4192278385162354,
-          "predicted_total": 43.897552490234375
+          "home_win_prob": 0.5391244070568316,
+          "away_win_prob": 0.4608755929431684,
+          "home_cover_prob": 0.4638121543785658,
+          "away_cover_prob": 0.5361878456214342,
+          "over_prob": 0.31850346727335954,
+          "under_prob": 0.6814965327266405,
+          "predicted_margin": 1.2988849878311157,
+          "predicted_total": 41.60768508911133
         },
         "2026_05_HOU_TEN": {
           "home_win_prob": 0.22052508191094866,
@@ -31105,7 +31105,7 @@
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 37.01800537109375
         },
         {
@@ -31641,7 +31641,7 @@
           "player_name": "Foster Moreau",
           "recent_team": "HOU",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -32257,7 +32257,7 @@
           "player_name": "Rashod Bateman",
           "recent_team": "BAL",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -32857,7 +32857,7 @@
           "player_name": "Jalen Nailor",
           "recent_team": "LV",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 34.50564193725586
         },
         {
@@ -33177,7 +33177,7 @@
           "player_name": "Calvin Austin III",
           "recent_team": "NYG",
           "position": "WR",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -33185,7 +33185,7 @@
           "player_name": "Isaiah Likely",
           "recent_team": "NYG",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.894798278808594
         },
         {
@@ -33297,7 +33297,7 @@
           "player_name": "Cade Otton",
           "recent_team": "TB",
           "position": "TE",
-          "anytime_td_prob": 0.21261447668075562,
+          "anytime_td_prob": 0.21261444687843323,
           "receiving_yards": 35.52659225463867
         },
         {
@@ -131963,9 +131963,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 118.5,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 1
     },
     {
       "team": "NE",
@@ -131995,9 +131995,9 @@
       "projected_wins": 7.4,
       "projected_losses": 9.6,
       "projected_point_diff": -39.5,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": -2
+      "division_rank_delta": 0
     },
     {
       "team": "NYJ",
@@ -132011,9 +132011,9 @@
       "projected_wins": 4.3,
       "projected_losses": 12.7,
       "projected_point_diff": -159.9,
-      "current_division_rank": 2,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": -3
     },
     {
       "team": "BAL",
@@ -132026,9 +132026,25 @@
       "point_diff": 0.0,
       "projected_wins": 10.4,
       "projected_losses": 6.6,
-      "projected_point_diff": 67.4,
-      "current_division_rank": 3,
+      "projected_point_diff": 67.2,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
+      "division_rank_delta": 1
+    },
+    {
+      "team": "CIN",
+      "conference": "AFC",
+      "division": "AFC North",
+      "played": 0,
+      "wins": 0,
+      "losses": 0,
+      "ties": 0,
+      "point_diff": 0.0,
+      "projected_wins": 8.6,
+      "projected_losses": 8.4,
+      "projected_point_diff": 2.0,
+      "current_division_rank": 4,
+      "projected_division_rank": 2,
       "division_rank_delta": 2
     },
     {
@@ -132040,28 +132056,12 @@
       "losses": 0,
       "ties": 0,
       "point_diff": 0.0,
-      "projected_wins": 8.7,
-      "projected_losses": 8.3,
-      "projected_point_diff": 6.6,
-      "current_division_rank": 4,
-      "projected_division_rank": 2,
-      "division_rank_delta": 2
-    },
-    {
-      "team": "CIN",
-      "conference": "AFC",
-      "division": "AFC North",
-      "played": 0,
-      "wins": 0,
-      "losses": 0,
-      "ties": 0,
-      "point_diff": 0.0,
-      "projected_wins": 8.5,
-      "projected_losses": 8.5,
-      "projected_point_diff": 1.1,
-      "current_division_rank": 2,
+      "projected_wins": 8.6,
+      "projected_losses": 8.4,
+      "projected_point_diff": 1.8,
+      "current_division_rank": 1,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": -2
     },
     {
       "team": "CLE",
@@ -132074,10 +132074,10 @@
       "point_diff": 0.0,
       "projected_wins": 7.1,
       "projected_losses": 9.9,
-      "projected_point_diff": -50.3,
-      "current_division_rank": 1,
+      "projected_point_diff": -49.3,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": -1
     },
     {
       "team": "JAX",
@@ -132091,9 +132091,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 126.5,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 1
     },
     {
       "team": "HOU",
@@ -132107,9 +132107,9 @@
       "projected_wins": 11.0,
       "projected_losses": 6.0,
       "projected_point_diff": 87.0,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 2
     },
     {
       "team": "IND",
@@ -132122,10 +132122,10 @@
       "point_diff": 0.0,
       "projected_wins": 6.6,
       "projected_losses": 10.4,
-      "projected_point_diff": -71.4,
-      "current_division_rank": 4,
+      "projected_point_diff": -70.3,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "TEN",
@@ -132138,10 +132138,10 @@
       "point_diff": 0.0,
       "projected_wins": 5.2,
       "projected_losses": 11.8,
-      "projected_point_diff": -120.3,
-      "current_division_rank": 2,
+      "projected_point_diff": -120.4,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": -3
     },
     {
       "team": "DEN",
@@ -132171,9 +132171,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 4.0,
-      "current_division_rank": 3,
+      "current_division_rank": 4,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": 2
     },
     {
       "team": "KC",
@@ -132187,9 +132187,9 @@
       "projected_wins": 8.2,
       "projected_losses": 8.8,
       "projected_point_diff": -12.3,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "LV",
@@ -132203,9 +132203,9 @@
       "projected_wins": 5.4,
       "projected_losses": 11.6,
       "projected_point_diff": -115.5,
-      "current_division_rank": 4,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -2
     },
     {
       "team": "PHI",
@@ -132219,9 +132219,9 @@
       "projected_wins": 10.6,
       "projected_losses": 6.4,
       "projected_point_diff": 72.5,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 0
     },
     {
       "team": "NYG",
@@ -132235,9 +132235,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -27.7,
-      "current_division_rank": 4,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": 2
+      "division_rank_delta": 0
     },
     {
       "team": "DAL",
@@ -132251,9 +132251,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -29.4,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "WAS",
@@ -132267,9 +132267,9 @@
       "projected_wins": 7.2,
       "projected_losses": 9.8,
       "projected_point_diff": -49.3,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": -1
     },
     {
       "team": "MIN",
@@ -132299,9 +132299,9 @@
       "projected_wins": 10.2,
       "projected_losses": 6.8,
       "projected_point_diff": 61.6,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 2,
-      "division_rank_delta": 2
+      "division_rank_delta": 1
     },
     {
       "team": "GB",
@@ -132315,9 +132315,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 4.2,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 3,
-      "division_rank_delta": 0
+      "division_rank_delta": -2
     },
     {
       "team": "CHI",
@@ -132331,9 +132331,9 @@
       "projected_wins": 8.5,
       "projected_losses": 8.5,
       "projected_point_diff": 1.7,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": 0
     },
     {
       "team": "NO",
@@ -132347,9 +132347,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 8.2,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 2
     },
     {
       "team": "TB",
@@ -132362,10 +132362,10 @@
       "point_diff": 0.0,
       "projected_wins": 8.3,
       "projected_losses": 8.7,
-      "projected_point_diff": -7.7,
-      "current_division_rank": 3,
+      "projected_point_diff": -7.9,
+      "current_division_rank": 1,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": -1
     },
     {
       "team": "ATL",
@@ -132378,10 +132378,10 @@
       "point_diff": 0.0,
       "projected_wins": 7.8,
       "projected_losses": 9.2,
-      "projected_point_diff": -24.7,
-      "current_division_rank": 2,
+      "projected_point_diff": -23.6,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "CAR",
@@ -132394,10 +132394,10 @@
       "point_diff": 0.0,
       "projected_wins": 6.3,
       "projected_losses": 10.7,
-      "projected_point_diff": -76.0,
-      "current_division_rank": 1,
+      "projected_point_diff": -74.9,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": -2
     },
     {
       "team": "SEA",
