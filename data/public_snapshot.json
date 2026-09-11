@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-11T21:08:26.356895+00:00",
+  "generated_at": "2026-09-11T23:22:44.306350+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -131963,9 +131963,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 118.5,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 2
     },
     {
       "team": "NE",
@@ -132011,9 +132011,9 @@
       "projected_wins": 4.3,
       "projected_losses": 12.7,
       "projected_point_diff": -159.9,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -1
+      "division_rank_delta": -3
     },
     {
       "team": "BAL",
@@ -132027,9 +132027,9 @@
       "projected_wins": 10.4,
       "projected_losses": 6.6,
       "projected_point_diff": 67.2,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 0
     },
     {
       "team": "CIN",
@@ -132059,9 +132059,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 1.8,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "CLE",
@@ -132075,9 +132075,9 @@
       "projected_wins": 7.1,
       "projected_losses": 9.9,
       "projected_point_diff": -49.3,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": 0
     },
     {
       "team": "JAX",
@@ -132091,9 +132091,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 126.5,
-      "current_division_rank": 2,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "HOU",
@@ -132139,9 +132139,9 @@
       "projected_wins": 5.2,
       "projected_losses": 11.8,
       "projected_point_diff": -120.4,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": -3
+      "division_rank_delta": -2
     },
     {
       "team": "DEN",
@@ -132155,9 +132155,9 @@
       "projected_wins": 11.2,
       "projected_losses": 5.8,
       "projected_point_diff": 98.7,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 2
     },
     {
       "team": "LAC",
@@ -132171,9 +132171,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 4.0,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": -1
     },
     {
       "team": "KC",
@@ -132187,9 +132187,9 @@
       "projected_wins": 8.2,
       "projected_losses": 8.8,
       "projected_point_diff": -12.3,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "LV",
@@ -132203,9 +132203,9 @@
       "projected_wins": 5.4,
       "projected_losses": 11.6,
       "projected_point_diff": -115.5,
-      "current_division_rank": 4,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -2
     },
     {
       "team": "PHI",
@@ -132251,9 +132251,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -29.4,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "WAS",
@@ -132267,9 +132267,9 @@
       "projected_wins": 7.2,
       "projected_losses": 9.8,
       "projected_point_diff": -49.3,
-      "current_division_rank": 4,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -2
     },
     {
       "team": "MIN",
@@ -132283,9 +132283,9 @@
       "projected_wins": 11.0,
       "projected_losses": 6.0,
       "projected_point_diff": 92.2,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 2
     },
     {
       "team": "DET",
@@ -132331,9 +132331,9 @@
       "projected_wins": 8.5,
       "projected_losses": 8.5,
       "projected_point_diff": 1.7,
-      "current_division_rank": 3,
+      "current_division_rank": 4,
       "projected_division_rank": 4,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "NO",
@@ -132347,9 +132347,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 8.2,
-      "current_division_rank": 4,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 0
     },
     {
       "team": "TB",
@@ -132363,9 +132363,9 @@
       "projected_wins": 8.3,
       "projected_losses": 8.7,
       "projected_point_diff": -7.9,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 2
     },
     {
       "team": "ATL",
