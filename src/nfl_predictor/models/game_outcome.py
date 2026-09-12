@@ -87,6 +87,12 @@ def margin_to_probabilities(
         home_cover_prob = float(1.0 - norm.cdf(spread_line, loc=predicted_margin, scale=sigma))
         result["home_cover_prob"] = home_cover_prob
         result["away_cover_prob"] = 1.0 - home_cover_prob
+    else:
+        # Use model's predicted margin as default spread if no odds provided
+        effective_spread = predicted_margin
+        home_cover_prob = float(1.0 - norm.cdf(effective_spread, loc=predicted_margin, scale=sigma))
+        result["home_cover_prob"] = home_cover_prob
+        result["away_cover_prob"] = 1.0 - home_cover_prob
 
     if total_line is not None and predicted_total is not None and total_sigma is not None:
         over_prob = float(1.0 - norm.cdf(total_line, loc=predicted_total, scale=total_sigma))
