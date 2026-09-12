@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-12T10:59:48.929915+00:00",
+  "generated_at": "2026-09-12T15:39:48.875131+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -2828,7 +2828,7 @@
         {
           "player_id": "00-0038496",
           "player_name": "Xavier Gipson",
-          "recent_team": "NYG",
+          "recent_team": "PHI",
           "position": "WR",
           "anytime_td_prob": 0.10049273073673248,
           "receiving_yards": 16.718019485473633
@@ -7228,7 +7228,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 11.5,
+          "spread_line": 12.5,
           "total_line": 45.5
         },
         {
@@ -7404,8 +7404,8 @@
         "2026_02_MIA_SF": {
           "home_win_prob": 0.6617732368819311,
           "away_win_prob": 0.3382267631180689,
-          "home_cover_prob": 0.32549792583679615,
-          "away_cover_prob": 0.6745020741632038,
+          "home_cover_prob": 0.29874824753076834,
+          "away_cover_prob": 0.7012517524692317,
           "over_prob": 0.48723285026040764,
           "under_prob": 0.5127671497395924,
           "predicted_margin": 5.518120765686035,
@@ -10100,7 +10100,7 @@
         {
           "player_id": "00-0038496",
           "player_name": "Xavier Gipson",
-          "recent_team": "NYG",
+          "recent_team": "PHI",
           "position": "WR",
           "anytime_td_prob": 0.10049273073673248,
           "receiving_yards": 16.718019485473633
@@ -17940,7 +17940,7 @@
         {
           "player_id": "00-0038496",
           "player_name": "Xavier Gipson",
-          "recent_team": "NYG",
+          "recent_team": "PHI",
           "position": "WR",
           "anytime_td_prob": 0.10049273073673248,
           "receiving_yards": 16.718019485473633
@@ -25780,7 +25780,7 @@
         {
           "player_id": "00-0038496",
           "player_name": "Xavier Gipson",
-          "recent_team": "NYG",
+          "recent_team": "PHI",
           "position": "WR",
           "anytime_td_prob": 0.10049273073673248,
           "receiving_yards": 16.718019485473633
@@ -33439,7 +33439,7 @@
         {
           "player_id": "00-0038496",
           "player_name": "Xavier Gipson",
-          "recent_team": "NYG",
+          "recent_team": "PHI",
           "position": "WR",
           "anytime_td_prob": 0.10049273073673248,
           "receiving_yards": 16.718019485473633
@@ -131963,9 +131963,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 118.5,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 1
     },
     {
       "team": "NE",
@@ -132011,9 +132011,9 @@
       "projected_wins": 4.3,
       "projected_losses": 12.7,
       "projected_point_diff": -158.3,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": -1
     },
     {
       "team": "BAL",
@@ -132059,9 +132059,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 2.0,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 3,
-      "division_rank_delta": -2
+      "division_rank_delta": -1
     },
     {
       "team": "CLE",
@@ -132075,9 +132075,9 @@
       "projected_wins": 7.1,
       "projected_losses": 9.9,
       "projected_point_diff": -48.3,
-      "current_division_rank": 2,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": -3
     },
     {
       "team": "JAX",
@@ -132091,9 +132091,9 @@
       "projected_wins": 11.7,
       "projected_losses": 5.3,
       "projected_point_diff": 126.5,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 0
     },
     {
       "team": "HOU",
@@ -132107,9 +132107,9 @@
       "projected_wins": 11.0,
       "projected_losses": 6.0,
       "projected_point_diff": 87.0,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 2
     },
     {
       "team": "IND",
@@ -132139,9 +132139,9 @@
       "projected_wins": 5.2,
       "projected_losses": 11.8,
       "projected_point_diff": -120.4,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "DEN",
@@ -132155,9 +132155,9 @@
       "projected_wins": 10.9,
       "projected_losses": 6.1,
       "projected_point_diff": 84.2,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 1
     },
     {
       "team": "LAC",
@@ -132171,9 +132171,9 @@
       "projected_wins": 8.7,
       "projected_losses": 8.3,
       "projected_point_diff": 8.0,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": -1
     },
     {
       "team": "KC",
@@ -132187,9 +132187,9 @@
       "projected_wins": 8.2,
       "projected_losses": 8.8,
       "projected_point_diff": -10.7,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "LV",
@@ -132203,9 +132203,9 @@
       "projected_wins": 5.5,
       "projected_losses": 11.5,
       "projected_point_diff": -113.9,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "PHI",
@@ -132219,9 +132219,9 @@
       "projected_wins": 10.6,
       "projected_losses": 6.4,
       "projected_point_diff": 72.5,
-      "current_division_rank": 4,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 0
     },
     {
       "team": "NYG",
@@ -132235,9 +132235,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -27.7,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "DAL",
@@ -132251,9 +132251,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -29.4,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": -2
+      "division_rank_delta": 0
     },
     {
       "team": "WAS",
@@ -132267,9 +132267,9 @@
       "projected_wins": 7.2,
       "projected_losses": 9.8,
       "projected_point_diff": -49.3,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": 0
     },
     {
       "team": "MIN",
@@ -132283,9 +132283,9 @@
       "projected_wins": 11.0,
       "projected_losses": 6.0,
       "projected_point_diff": 93.4,
-      "current_division_rank": 4,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 0
     },
     {
       "team": "DET",
@@ -132299,9 +132299,9 @@
       "projected_wins": 10.2,
       "projected_losses": 6.8,
       "projected_point_diff": 61.6,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "GB",
@@ -132315,9 +132315,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 5.9,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "CHI",
@@ -132347,9 +132347,9 @@
       "projected_wins": 8.7,
       "projected_losses": 8.3,
       "projected_point_diff": 8.7,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 1
+      "division_rank_delta": 2
     },
     {
       "team": "TB",
@@ -132363,9 +132363,9 @@
       "projected_wins": 7.9,
       "projected_losses": 9.1,
       "projected_point_diff": -18.9,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "ATL",
