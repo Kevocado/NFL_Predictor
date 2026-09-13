@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-13T12:04:27.541676+00:00",
+  "generated_at": "2026-09-13T16:29:47.114629+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -135,8 +135,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -3.5,
-          "total_line": 47.5
+          "spread_line": -3.0,
+          "total_line": 48.5
         },
         {
           "game_id": "2026_01_CLE_JAX",
@@ -155,7 +155,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 8.5,
-          "total_line": 39.5
+          "total_line": 40.5
         },
         {
           "game_id": "2026_01_ATL_PIT",
@@ -249,7 +249,7 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 1.5,
           "total_line": 46.5
         },
         {
@@ -288,7 +288,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 48.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_01_DEN_KC",
@@ -374,10 +374,10 @@
         "2026_01_BAL_IND": {
           "home_win_prob": 0.23709550201776763,
           "away_win_prob": 0.7629044979822324,
-          "home_cover_prob": 0.3259985734571509,
-          "away_cover_prob": 0.6740014265428491,
-          "over_prob": 0.40737777867873437,
-          "under_prob": 0.5926222213212656,
+          "home_cover_prob": 0.31249096911620056,
+          "away_cover_prob": 0.6875090308837994,
+          "over_prob": 0.3766159134447076,
+          "under_prob": 0.6233840865552924,
           "predicted_margin": -9.463502883911133,
           "predicted_total": 44.574424743652344
         },
@@ -386,8 +386,8 @@
           "away_win_prob": 0.13141951617741365,
           "home_cover_prob": 0.6832812760066413,
           "away_cover_prob": 0.31671872399335865,
-          "over_prob": 0.6713370226313187,
-          "under_prob": 0.32866297736868133,
+          "over_prob": 0.641892810263628,
+          "under_prob": 0.358107189736372,
           "predicted_margin": 14.806045532226562,
           "predicted_total": 45.0391960144043
         },
@@ -434,8 +434,8 @@
         "2026_01_GB_MIN": {
           "home_win_prob": 0.6781151565700538,
           "away_win_prob": 0.32188484342994617,
-          "home_cover_prob": 0.6077164761373501,
-          "away_cover_prob": 0.39228352386264986,
+          "home_cover_prob": 0.63645430147691,
+          "away_cover_prob": 0.36354569852309004,
           "over_prob": 0.4287202970113584,
           "under_prob": 0.5712797029886416,
           "predicted_margin": 6.114843845367432,
@@ -456,8 +456,8 @@
           "away_win_prob": 0.523554401272296,
           "home_cover_prob": 0.566629020617778,
           "away_cover_prob": 0.433370979382222,
-          "over_prob": 0.4870066420639845,
-          "under_prob": 0.5129933579360155,
+          "over_prob": 0.518946622268425,
+          "under_prob": 0.48105337773157497,
           "predicted_margin": -0.781177282333374,
           "predicted_total": 48.09324264526367
         },
@@ -6982,7 +6982,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 51.5
+          "total_line": 52.5
         },
         {
           "game_id": "2026_02_CAR_ATL",
@@ -7276,8 +7276,8 @@
           "away_win_prob": 0.34221788775838513,
           "home_cover_prob": 0.5712442607643985,
           "away_cover_prob": 0.4287557392356015,
-          "over_prob": 0.39936746791088107,
-          "under_prob": 0.6006325320891189,
+          "over_prob": 0.36878615646567603,
+          "under_prob": 0.631213843534324,
           "predicted_margin": 5.374122619628906,
           "predicted_total": 48.31608581542969
         },
@@ -132091,9 +132091,9 @@
       "projected_wins": 11.9,
       "projected_losses": 5.1,
       "projected_point_diff": 133.4,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 1
     },
     {
       "team": "HOU",
@@ -132123,9 +132123,9 @@
       "projected_wins": 6.7,
       "projected_losses": 10.3,
       "projected_point_diff": -67.4,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "TEN",
@@ -132139,9 +132139,9 @@
       "projected_wins": 5.2,
       "projected_losses": 11.8,
       "projected_point_diff": -123.4,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -1
+      "division_rank_delta": -3
     },
     {
       "team": "DEN",
@@ -132155,9 +132155,9 @@
       "projected_wins": 11.1,
       "projected_losses": 5.9,
       "projected_point_diff": 93.4,
-      "current_division_rank": 2,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "LAC",
@@ -132171,9 +132171,9 @@
       "projected_wins": 8.9,
       "projected_losses": 8.1,
       "projected_point_diff": 15.3,
-      "current_division_rank": 1,
+      "current_division_rank": 3,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "KC",
@@ -132187,9 +132187,9 @@
       "projected_wins": 8.1,
       "projected_losses": 8.9,
       "projected_point_diff": -14.1,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 3,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "LV",
@@ -132219,9 +132219,9 @@
       "projected_wins": 10.8,
       "projected_losses": 6.2,
       "projected_point_diff": 84.2,
-      "current_division_rank": 4,
+      "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 3
+      "division_rank_delta": 0
     },
     {
       "team": "DAL",
@@ -132235,9 +132235,9 @@
       "projected_wins": 7.4,
       "projected_losses": 9.6,
       "projected_point_diff": -38.1,
-      "current_division_rank": 1,
+      "current_division_rank": 4,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 2
     },
     {
       "team": "NYG",
@@ -132251,9 +132251,9 @@
       "projected_wins": 7.4,
       "projected_losses": 9.6,
       "projected_point_diff": -38.6,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "WAS",
@@ -132267,9 +132267,9 @@
       "projected_wins": 7.1,
       "projected_losses": 9.9,
       "projected_point_diff": -50.7,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 4,
-      "division_rank_delta": -1
+      "division_rank_delta": -2
     },
     {
       "team": "MIN",
@@ -132283,9 +132283,9 @@
       "projected_wins": 10.9,
       "projected_losses": 6.1,
       "projected_point_diff": 86.2,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 1
     },
     {
       "team": "DET",
@@ -132299,9 +132299,9 @@
       "projected_wins": 10.0,
       "projected_losses": 7.0,
       "projected_point_diff": 54.1,
-      "current_division_rank": 3,
+      "current_division_rank": 1,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": -1
     },
     {
       "team": "GB",
@@ -132315,9 +132315,9 @@
       "projected_wins": 8.8,
       "projected_losses": 8.2,
       "projected_point_diff": 10.8,
-      "current_division_rank": 2,
+      "current_division_rank": 4,
       "projected_division_rank": 3,
-      "division_rank_delta": -1
+      "division_rank_delta": 1
     },
     {
       "team": "CHI",
@@ -132331,9 +132331,9 @@
       "projected_wins": 8.6,
       "projected_losses": 8.4,
       "projected_point_diff": 3.6,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "TB",
@@ -132347,9 +132347,9 @@
       "projected_wins": 8.5,
       "projected_losses": 8.5,
       "projected_point_diff": 1.4,
-      "current_division_rank": 3,
+      "current_division_rank": 4,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 3
     },
     {
       "team": "NO",
@@ -132363,9 +132363,9 @@
       "projected_wins": 8.4,
       "projected_losses": 8.6,
       "projected_point_diff": -0.9,
-      "current_division_rank": 1,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": -1
+      "division_rank_delta": 0
     },
     {
       "team": "ATL",
@@ -132379,9 +132379,9 @@
       "projected_wins": 7.7,
       "projected_losses": 9.3,
       "projected_point_diff": -27.7,
-      "current_division_rank": 4,
+      "current_division_rank": 3,
       "projected_division_rank": 3,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "CAR",
@@ -132395,9 +132395,9 @@
       "projected_wins": 6.5,
       "projected_losses": 10.5,
       "projected_point_diff": -69.1,
-      "current_division_rank": 2,
+      "current_division_rank": 1,
       "projected_division_rank": 4,
-      "division_rank_delta": -2
+      "division_rank_delta": -3
     },
     {
       "team": "SEA",
