@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-14T13:05:21.241606+00:00",
+  "generated_at": "2026-09-14T19:54:31.057636+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -957,7 +957,7 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.5,
+          "spread_line": 4.5,
           "total_line": 53.5
         },
         {
@@ -977,7 +977,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -1.5,
-          "total_line": 43.5
+          "total_line": 44.5
         },
         {
           "game_id": "2026_02_NO_BAL",
@@ -1129,7 +1129,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 43.5
+          "total_line": 44.5
         },
         {
           "game_id": "2026_02_LV_LAC",
@@ -1148,7 +1148,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 44.5
+          "total_line": 43.5
         },
         {
           "game_id": "2026_02_SEA_ARI",
@@ -1204,8 +1204,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 12.5,
-          "total_line": 46.5
+          "spread_line": 13.5,
+          "total_line": 45.5
         },
         {
           "game_id": "2026_02_IND_KC",
@@ -1250,8 +1250,8 @@
         "2026_02_DET_BUF": {
           "home_win_prob": 0.5865288934158488,
           "away_win_prob": 0.4134711065841512,
-          "home_cover_prob": 0.4816303034873157,
-          "away_cover_prob": 0.5183696965126843,
+          "home_cover_prob": 0.4515733718078757,
+          "away_cover_prob": 0.5484266281921243,
           "over_prob": 0.3862361851997964,
           "under_prob": 0.6137638148002036,
           "predicted_margin": 2.890911340713501,
@@ -1262,8 +1262,8 @@
           "away_win_prob": 0.47522493633775786,
           "home_cover_prob": 0.5696877410947075,
           "away_cover_prob": 0.43031225890529246,
-          "over_prob": 0.5987989807506604,
-          "under_prob": 0.4012010192493396,
+          "over_prob": 0.5675556228489387,
+          "under_prob": 0.4324443771510613,
           "predicted_margin": 0.8217111825942993,
           "predicted_total": 46.624664306640625
         },
@@ -1342,8 +1342,8 @@
           "away_win_prob": 0.4646887314884689,
           "home_cover_prob": 0.45999981096206377,
           "away_cover_prob": 0.5400001890379362,
-          "over_prob": 0.5620169095357734,
-          "under_prob": 0.43798309046422657,
+          "over_prob": 0.530290257187785,
+          "under_prob": 0.469709742812215,
           "predicted_margin": 1.171943187713623,
           "predicted_total": 45.44898223876953
         },
@@ -1352,8 +1352,8 @@
           "away_win_prob": 0.31345314626181164,
           "home_cover_prob": 0.4827357330765786,
           "away_cover_prob": 0.5172642669234214,
-          "over_prob": 0.4567712106898216,
-          "under_prob": 0.5432287893101784,
+          "over_prob": 0.4886372086341195,
+          "under_prob": 0.5113627913658805,
           "predicted_margin": 6.427587985992432,
           "predicted_total": 43.14430236816406
         },
@@ -1380,10 +1380,10 @@
         "2026_02_MIA_SF": {
           "home_win_prob": 0.7217341527777636,
           "away_win_prob": 0.27826584722223635,
-          "home_cover_prob": 0.3604296213757988,
-          "away_cover_prob": 0.6395703786242012,
-          "over_prob": 0.372462668682779,
-          "under_prob": 0.627537331317221,
+          "home_cover_prob": 0.332530779798452,
+          "away_cover_prob": 0.667469220201548,
+          "over_prob": 0.40313041331276167,
+          "under_prob": 0.5968695866872383,
           "predicted_margin": 7.77522611618042,
           "predicted_total": 42.43760681152344
         },
@@ -126131,9 +126131,9 @@
       "projected_wins": 10.5,
       "projected_losses": 6.5,
       "projected_point_diff": 70.2,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 1,
-      "division_rank_delta": 1
+      "division_rank_delta": 2
     },
     {
       "team": "KC",
@@ -126147,9 +126147,9 @@
       "projected_wins": 8.4,
       "projected_losses": 8.6,
       "projected_point_diff": -3.0,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "LAC",
