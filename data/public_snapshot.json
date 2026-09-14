@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-14T19:54:31.057636+00:00",
+  "generated_at": "2026-09-14T23:59:12.090433+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -307,7 +307,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 43.5
+          "total_line": 42.5
         }
       ],
       "predictions": {
@@ -466,8 +466,8 @@
           "away_win_prob": 0.6411695014257192,
           "home_cover_prob": 0.2909371940002904,
           "away_cover_prob": 0.7090628059997096,
-          "over_prob": 0.4669186969520813,
-          "under_prob": 0.5330813030479187,
+          "over_prob": 0.49883010135381045,
+          "under_prob": 0.5011698986461895,
           "predicted_margin": -4.781314849853516,
           "predicted_total": 42.463382720947266
         }
@@ -1110,7 +1110,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -7.0,
-          "total_line": 40.5
+          "total_line": 39.5
         },
         {
           "game_id": "2026_02_JAX_DEN",
@@ -1332,8 +1332,8 @@
           "away_win_prob": 0.5430405164588372,
           "home_cover_prob": 0.6632238625568785,
           "away_cover_prob": 0.3367761374431215,
-          "over_prob": 0.6061296029818823,
-          "under_prob": 0.39387039701811766,
+          "over_prob": 0.6365794929148898,
+          "under_prob": 0.3634205070851102,
           "predicted_margin": -1.4293795824050903,
           "predicted_total": 43.86198425292969
         },
@@ -126131,9 +126131,9 @@
       "projected_wins": 10.5,
       "projected_losses": 6.5,
       "projected_point_diff": 70.2,
-      "current_division_rank": 3,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 2
+      "division_rank_delta": 1
     },
     {
       "team": "KC",
@@ -126147,9 +126147,9 @@
       "projected_wins": 8.4,
       "projected_losses": 8.6,
       "projected_point_diff": -3.0,
-      "current_division_rank": 2,
+      "current_division_rank": 3,
       "projected_division_rank": 2,
-      "division_rank_delta": 0
+      "division_rank_delta": 1
     },
     {
       "team": "LAC",
