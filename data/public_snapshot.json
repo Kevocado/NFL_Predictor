@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T05:06:00.117261+00:00",
+  "generated_at": "2026-09-15T11:57:31.071201+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -303,9 +303,9 @@
           "away_rest": 7,
           "div_game": 1,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 91.0,
+          "wind": 13.0,
           "spread_line": 2.5,
           "total_line": 42.5
         }
