@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-15T11:57:31.071201+00:00",
+  "generated_at": "2026-09-15T17:08:58.115744+00:00",
   "season": 2026,
   "current_week": 1,
   "weeks": {
@@ -4748,7 +4748,7 @@
         {
           "player_id": "00-0040021",
           "player_name": "Phil Mafah",
-          "recent_team": "DAL",
+          "recent_team": "NYG",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -5268,7 +5268,7 @@
         {
           "player_id": "00-0040323",
           "player_name": "Chandler Brayboy",
-          "recent_team": "JAX",
+          "recent_team": "NE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -5652,7 +5652,7 @@
         {
           "player_id": "00-0040567",
           "player_name": "Brock Lampe",
-          "recent_team": "SEA",
+          "recent_team": "BUF",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -7880,7 +7880,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": -2.5,
           "total_line": 43.5
         },
         {
@@ -7919,7 +7919,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 5.5,
-          "total_line": 49.5
+          "total_line": 48.5
         },
         {
           "game_id": "2026_02_CIN_HOU",
@@ -7937,7 +7937,7 @@
           "surface": "astroturf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 46.5
         },
         {
@@ -7957,7 +7957,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 5.5,
-          "total_line": 42.5
+          "total_line": 41.5
         },
         {
           "game_id": "2026_02_GB_NYJ",
@@ -8033,7 +8033,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 44.5
+          "total_line": 43.5
         },
         {
           "game_id": "2026_02_LV_LAC",
@@ -8108,7 +8108,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 13.5,
+          "spread_line": 12.5,
           "total_line": 45.5
         },
         {
@@ -8164,8 +8164,8 @@
         "2026_02_CAR_ATL": {
           "home_win_prob": 0.5247750636622421,
           "away_win_prob": 0.47522493633775786,
-          "home_cover_prob": 0.5696877410947075,
-          "away_cover_prob": 0.43031225890529246,
+          "home_cover_prob": 0.5991718653407798,
+          "away_cover_prob": 0.4008281346592202,
           "over_prob": 0.5987989807506604,
           "under_prob": 0.4012010192493396,
           "predicted_margin": 0.8217111825942993,
@@ -8186,16 +8186,16 @@
           "away_win_prob": 0.4628198300684001,
           "home_cover_prob": 0.3734972420449204,
           "away_cover_prob": 0.6265027579550796,
-          "over_prob": 0.4079156152679939,
-          "under_prob": 0.5920843847320061,
+          "over_prob": 0.43926822168697766,
+          "under_prob": 0.5607317783130223,
           "predicted_margin": 1.2341458797454834,
           "predicted_total": 46.59172439575195
         },
         "2026_02_CIN_HOU": {
           "home_win_prob": 0.6324352720831558,
           "away_win_prob": 0.36756472791684425,
-          "home_cover_prob": 0.5443644557000116,
-          "away_cover_prob": 0.4556355442999884,
+          "home_cover_prob": 0.5593209735104012,
+          "away_cover_prob": 0.4406790264895988,
           "over_prob": 0.6243882348284805,
           "under_prob": 0.3756117651715195,
           "predicted_margin": 4.473527431488037,
@@ -8206,8 +8206,8 @@
           "away_win_prob": 0.4298848761316423,
           "home_cover_prob": 0.4054481835284167,
           "away_cover_prob": 0.5945518164715833,
-          "over_prob": 0.3996324718181339,
-          "under_prob": 0.6003675281818661,
+          "over_prob": 0.4308489425455486,
+          "under_prob": 0.5691510574544514,
           "predicted_margin": 2.3360984325408936,
           "predicted_total": 39.32465362548828
         },
@@ -8246,8 +8246,8 @@
           "away_win_prob": 0.49989621208430224,
           "home_cover_prob": 0.4251239415276541,
           "away_cover_prob": 0.5748760584723459,
-          "over_prob": 0.2848537658750705,
-          "under_prob": 0.7151462341249295,
+          "over_prob": 0.3126343334855586,
+          "under_prob": 0.6873656665144414,
           "predicted_margin": 0.003440105589106679,
           "predicted_total": 37.40153884887695
         },
@@ -8284,8 +8284,8 @@
         "2026_02_MIA_SF": {
           "home_win_prob": 0.7217341527777636,
           "away_win_prob": 0.27826584722223635,
-          "home_cover_prob": 0.332530779798452,
-          "away_cover_prob": 0.667469220201548,
+          "home_cover_prob": 0.3604296213757988,
+          "away_cover_prob": 0.6395703786242012,
           "over_prob": 0.40313041331276167,
           "under_prob": 0.5968695866872383,
           "predicted_margin": 7.77522611618042,
@@ -12588,7 +12588,7 @@
         {
           "player_id": "00-0040021",
           "player_name": "Phil Mafah",
-          "recent_team": "DAL",
+          "recent_team": "NYG",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -13108,7 +13108,7 @@
         {
           "player_id": "00-0040323",
           "player_name": "Chandler Brayboy",
-          "recent_team": "JAX",
+          "recent_team": "NE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -13492,7 +13492,7 @@
         {
           "player_id": "00-0040567",
           "player_name": "Brock Lampe",
-          "recent_team": "SEA",
+          "recent_team": "BUF",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -20428,7 +20428,7 @@
         {
           "player_id": "00-0040021",
           "player_name": "Phil Mafah",
-          "recent_team": "DAL",
+          "recent_team": "NYG",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -20948,7 +20948,7 @@
         {
           "player_id": "00-0040323",
           "player_name": "Chandler Brayboy",
-          "recent_team": "JAX",
+          "recent_team": "NE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -21332,7 +21332,7 @@
         {
           "player_id": "00-0040567",
           "player_name": "Brock Lampe",
-          "recent_team": "SEA",
+          "recent_team": "BUF",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -28268,7 +28268,7 @@
         {
           "player_id": "00-0040021",
           "player_name": "Phil Mafah",
-          "recent_team": "DAL",
+          "recent_team": "NYG",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -28788,7 +28788,7 @@
         {
           "player_id": "00-0040323",
           "player_name": "Chandler Brayboy",
-          "recent_team": "JAX",
+          "recent_team": "NE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -29172,7 +29172,7 @@
         {
           "player_id": "00-0040567",
           "player_name": "Brock Lampe",
-          "recent_team": "SEA",
+          "recent_team": "BUF",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -35823,7 +35823,7 @@
         {
           "player_id": "00-0040021",
           "player_name": "Phil Mafah",
-          "recent_team": "DAL",
+          "recent_team": "NYG",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
@@ -36271,7 +36271,7 @@
         {
           "player_id": "00-0040323",
           "player_name": "Chandler Brayboy",
-          "recent_team": "JAX",
+          "recent_team": "NE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -36623,7 +36623,7 @@
         {
           "player_id": "00-0040567",
           "player_name": "Brock Lampe",
-          "recent_team": "SEA",
+          "recent_team": "BUF",
           "position": "RB",
           "anytime_td_prob": 0.11184605211019516,
           "rushing_yards": 10.05435848236084
