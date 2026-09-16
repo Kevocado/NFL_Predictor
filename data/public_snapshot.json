@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-16T11:53:35.164244+00:00",
+  "generated_at": "2026-09-16T17:10:28.679506+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -664,6 +664,14 @@
           "position": "QB",
           "anytime_td_prob": 0.4544869363307953,
           "passing_yards": 138.6554718017578
+        },
+        {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
         },
         {
           "player_id": "00-0032392",
@@ -1714,6 +1722,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -1800,6 +1816,14 @@
           "position": "RB",
           "anytime_td_prob": 0.1144564300775528,
           "rushing_yards": 16.637319564819336
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -2332,7 +2356,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -3036,7 +3060,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -5196,7 +5220,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -7861,7 +7885,7 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": 5.5,
+          "spread_line": 4.5,
           "total_line": 54.5
         },
         {
@@ -7899,8 +7923,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 7.5,
-          "total_line": 47.5
+          "spread_line": 8.5,
+          "total_line": 46.5
         },
         {
           "game_id": "2026_02_MIN_CHI",
@@ -7956,7 +7980,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 4.5,
+          "spread_line": 5.5,
           "total_line": 41.5
         },
         {
@@ -8154,8 +8178,8 @@
         "2026_02_DET_BUF": {
           "home_win_prob": 0.5865288934158488,
           "away_win_prob": 0.4134711065841512,
-          "home_cover_prob": 0.42179164220510557,
-          "away_cover_prob": 0.5782083577948944,
+          "home_cover_prob": 0.4515733718078757,
+          "away_cover_prob": 0.5484266281921243,
           "over_prob": 0.35597899258523125,
           "under_prob": 0.6440210074147688,
           "predicted_margin": 2.890911340713501,
@@ -8174,10 +8198,10 @@
         "2026_02_NO_BAL": {
           "home_win_prob": 0.700216619273917,
           "away_win_prob": 0.299783380726083,
-          "home_cover_prob": 0.4831842582170419,
-          "away_cover_prob": 0.5168157417829581,
-          "over_prob": 0.4831945575022627,
-          "under_prob": 0.5168054424977373,
+          "home_cover_prob": 0.45311772864430433,
+          "away_cover_prob": 0.5468822713556957,
+          "over_prob": 0.5151353577090677,
+          "under_prob": 0.4848646422909323,
           "predicted_margin": 6.942468166351318,
           "predicted_total": 46.97384262084961
         },
@@ -8204,8 +8228,8 @@
         "2026_02_PIT_NE": {
           "home_win_prob": 0.5701151238683577,
           "away_win_prob": 0.4298848761316423,
-          "home_cover_prob": 0.4350053505324206,
-          "away_cover_prob": 0.5649946494675794,
+          "home_cover_prob": 0.4054481835284167,
+          "away_cover_prob": 0.5945518164715833,
           "over_prob": 0.4190010881111379,
           "under_prob": 0.5809989118888621,
           "predicted_margin": 2.3360984325408936,
@@ -8504,6 +8528,14 @@
           "position": "QB",
           "anytime_td_prob": 0.4544869363307953,
           "passing_yards": 138.6554718017578
+        },
+        {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
         },
         {
           "player_id": "00-0032392",
@@ -9554,6 +9586,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -9640,6 +9680,14 @@
           "position": "RB",
           "anytime_td_prob": 0.1144564300775528,
           "rushing_yards": 16.637319564819336
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -10172,7 +10220,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -10876,7 +10924,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -13036,7 +13084,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -16346,6 +16394,14 @@
           "passing_yards": 138.6554718017578
         },
         {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
+        },
+        {
           "player_id": "00-0032392",
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
@@ -17394,6 +17450,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -17480,6 +17544,14 @@
           "position": "RB",
           "anytime_td_prob": 0.1144564300775528,
           "rushing_yards": 16.637319564819336
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -18012,7 +18084,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -18716,7 +18788,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -20876,7 +20948,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -24186,6 +24258,14 @@
           "passing_yards": 138.6554718017578
         },
         {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
+        },
+        {
           "player_id": "00-0032392",
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
@@ -25234,6 +25314,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -25320,6 +25408,14 @@
           "position": "RB",
           "anytime_td_prob": 0.1144564300775528,
           "rushing_yards": 16.637319564819336
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -25852,7 +25948,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -26556,7 +26652,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -28716,7 +28812,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -31981,6 +32077,14 @@
           "passing_yards": 138.6554718017578
         },
         {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
+        },
+        {
           "player_id": "00-0032392",
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
@@ -32997,6 +33101,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -33083,6 +33195,14 @@
           "position": "RB",
           "anytime_td_prob": 0.1144564300775528,
           "rushing_yards": 16.637319564819336
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -33575,7 +33695,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -34231,7 +34351,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -36223,7 +36343,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -39259,6 +39379,14 @@
           "passing_yards": 138.6554718017578
         },
         {
+          "player_id": "00-0032385",
+          "player_name": "Sterling Shepard",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.17464157938957214,
+          "receiving_yards": 34.667728424072266
+        },
+        {
           "player_id": "00-0032392",
           "player_name": "Austin Hooper",
           "recent_team": "ATL",
@@ -40179,6 +40307,14 @@
           "receiving_yards": 26.15204620361328
         },
         {
+          "player_id": "00-0036332",
+          "player_name": "Josiah Deguara",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0036345",
           "player_name": "K.J. Osborn",
           "recent_team": "TEN",
@@ -40241,6 +40377,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11356198787689209,
           "receiving_yards": 22.830402374267578
+        },
+        {
+          "player_id": "00-0036427",
+          "player_name": "Tyler Johnson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
         },
         {
           "player_id": "00-0036429",
@@ -40717,7 +40861,7 @@
         {
           "player_id": "00-0037120",
           "player_name": "Tyler Goodson",
-          "recent_team": "ATL",
+          "recent_team": "DAL",
           "position": "RB",
           "anytime_td_prob": 0.1105007752776146,
           "rushing_yards": 15.023674011230469
@@ -41341,7 +41485,7 @@
         {
           "player_id": "00-0038396",
           "player_name": "Eric Gray",
-          "recent_team": "NYG",
+          "recent_team": "CLE",
           "position": "RB",
           "anytime_td_prob": 0.10174814611673355,
           "rushing_yards": 10.081430435180664
@@ -43261,7 +43405,7 @@
         {
           "player_id": "00-0040259",
           "player_name": "Gage Larvadain",
-          "recent_team": "CLE",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
