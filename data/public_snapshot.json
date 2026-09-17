@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-17T11:54:17.552720+00:00",
+  "generated_at": "2026-09-17T17:10:11.138218+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -7975,7 +7975,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 4.5,
-          "total_line": 48.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_02_CIN_HOU",
@@ -8203,7 +8203,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 47.5
+          "total_line": 48.5
         }
       ],
       "predictions": {
@@ -8242,8 +8242,8 @@
           "away_win_prob": 0.4628198300684001,
           "home_cover_prob": 0.40246186173662246,
           "away_cover_prob": 0.5975381382633775,
-          "over_prob": 0.43926822168697766,
-          "under_prob": 0.5607317783130223,
+          "over_prob": 0.4710067034469677,
+          "under_prob": 0.5289932965530323,
           "predicted_margin": 1.2341458797454834,
           "predicted_total": 46.59172439575195
         },
@@ -8362,8 +8362,8 @@
           "away_win_prob": 0.33392107009396477,
           "home_cover_prob": 0.46006774480886514,
           "away_cover_prob": 0.5399322551911349,
-          "over_prob": 0.4504598393518626,
-          "under_prob": 0.5495401606481374,
+          "over_prob": 0.41894821389892356,
+          "under_prob": 0.5810517861010764,
           "predicted_margin": 5.674206256866455,
           "predicted_total": 45.945411682128906
         }
