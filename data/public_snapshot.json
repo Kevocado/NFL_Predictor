@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-17T05:03:11.133787+00:00",
+  "generated_at": "2026-09-17T11:54:17.552720+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -1026,6 +1026,14 @@
           "receiving_yards": 43.06517791748047
         },
         {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
+        },
+        {
           "player_id": "00-0034348",
           "player_name": "Courtland Sutton",
           "recent_team": "DEN",
@@ -2002,6 +2010,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036754",
           "player_name": "Brock Wright",
           "recent_team": "DET",
@@ -2120,6 +2136,14 @@
           "position": "WR",
           "anytime_td_prob": 0.5142577290534973,
           "receiving_yards": 80.96705627441406
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -2488,6 +2512,14 @@
           "position": "RB",
           "anytime_td_prob": 0.2517225444316864,
           "rushing_yards": 39.496829986572266
+        },
+        {
+          "player_id": "00-0037267",
+          "player_name": "Jerome Ford",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.32161828875541687,
+          "rushing_yards": 47.871185302734375
         },
         {
           "player_id": "00-0037276",
@@ -5635,8 +5667,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -7885,7 +7917,7 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": 4.5,
+          "spread_line": 5.5,
           "total_line": 54.5
         },
         {
@@ -8095,7 +8127,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.5,
-          "total_line": 40.5
+          "total_line": 41.5
         },
         {
           "game_id": "2026_02_WAS_DAL",
@@ -8178,8 +8210,8 @@
         "2026_02_DET_BUF": {
           "home_win_prob": 0.5865288934158488,
           "away_win_prob": 0.4134711065841512,
-          "home_cover_prob": 0.4515733718078757,
-          "away_cover_prob": 0.5484266281921243,
+          "home_cover_prob": 0.42179164220510557,
+          "away_cover_prob": 0.5782083577948944,
           "over_prob": 0.35597899258523125,
           "under_prob": 0.6440210074147688,
           "predicted_margin": 2.890911340713501,
@@ -8290,8 +8322,8 @@
           "away_win_prob": 0.7708560069744712,
           "home_cover_prob": 0.31668760086150016,
           "away_cover_prob": 0.6833123991384998,
-          "over_prob": 0.6724259452563099,
-          "under_prob": 0.32757405474369006,
+          "over_prob": 0.6430176370978544,
+          "under_prob": 0.3569823629021456,
           "predicted_margin": -9.807201385498047,
           "predicted_total": 46.07682800292969
         },
@@ -8888,6 +8920,14 @@
           "position": "TE",
           "anytime_td_prob": 0.24659761786460876,
           "receiving_yards": 43.06517791748047
+        },
+        {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
         },
         {
           "player_id": "00-0034348",
@@ -9866,6 +9906,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036754",
           "player_name": "Brock Wright",
           "recent_team": "DET",
@@ -9984,6 +10032,14 @@
           "position": "WR",
           "anytime_td_prob": 0.5142577290534973,
           "receiving_yards": 80.96705627441406
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -10352,6 +10408,14 @@
           "position": "RB",
           "anytime_td_prob": 0.2517225444316864,
           "rushing_yards": 39.496829986572266
+        },
+        {
+          "player_id": "00-0037267",
+          "player_name": "Jerome Ford",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.32161828875541687,
+          "rushing_yards": 47.871185302734375
         },
         {
           "player_id": "00-0037276",
@@ -13499,8 +13563,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -16754,6 +16818,14 @@
           "receiving_yards": 43.06517791748047
         },
         {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
+        },
+        {
           "player_id": "00-0034348",
           "player_name": "Courtland Sutton",
           "recent_team": "DEN",
@@ -17730,6 +17802,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036754",
           "player_name": "Brock Wright",
           "recent_team": "DET",
@@ -17848,6 +17928,14 @@
           "position": "WR",
           "anytime_td_prob": 0.5142577290534973,
           "receiving_yards": 80.96705627441406
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -18216,6 +18304,14 @@
           "position": "RB",
           "anytime_td_prob": 0.2517225444316864,
           "rushing_yards": 39.496829986572266
+        },
+        {
+          "player_id": "00-0037267",
+          "player_name": "Jerome Ford",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.32161828875541687,
+          "rushing_yards": 47.871185302734375
         },
         {
           "player_id": "00-0037276",
@@ -21363,8 +21459,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -24618,6 +24714,14 @@
           "receiving_yards": 43.06517791748047
         },
         {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
+        },
+        {
           "player_id": "00-0034348",
           "player_name": "Courtland Sutton",
           "recent_team": "DEN",
@@ -25594,6 +25698,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036754",
           "player_name": "Brock Wright",
           "recent_team": "DET",
@@ -25712,6 +25824,14 @@
           "position": "WR",
           "anytime_td_prob": 0.5142577290534973,
           "receiving_yards": 80.96705627441406
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -26080,6 +26200,14 @@
           "position": "RB",
           "anytime_td_prob": 0.2517225444316864,
           "rushing_yards": 39.496829986572266
+        },
+        {
+          "player_id": "00-0037267",
+          "player_name": "Jerome Ford",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.32161828875541687,
+          "rushing_yards": 47.871185302734375
         },
         {
           "player_id": "00-0037276",
@@ -29227,8 +29355,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -32421,6 +32549,14 @@
           "receiving_yards": 43.06517791748047
         },
         {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
+        },
+        {
           "player_id": "00-0034348",
           "player_name": "Courtland Sutton",
           "recent_team": "DEN",
@@ -33365,6 +33501,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036754",
           "player_name": "Brock Wright",
           "recent_team": "DET",
@@ -33475,6 +33619,14 @@
           "position": "WR",
           "anytime_td_prob": 0.5142577290534973,
           "receiving_yards": 80.96705627441406
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -33827,6 +33979,14 @@
           "position": "RB",
           "anytime_td_prob": 0.2517225444316864,
           "rushing_yards": 39.496829986572266
+        },
+        {
+          "player_id": "00-0037267",
+          "player_name": "Jerome Ford",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.32161828875541687,
+          "rushing_yards": 47.871185302734375
         },
         {
           "player_id": "00-0037276",
@@ -36702,8 +36862,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -39683,6 +39843,14 @@
           "rushing_yards": 14.676713943481445
         },
         {
+          "player_id": "00-0034272",
+          "player_name": "Marquez Valdes-Scantling",
+          "recent_team": "LAC",
+          "position": "WR",
+          "anytime_td_prob": 0.24399453401565552,
+          "receiving_yards": 42.845726013183594
+        },
+        {
           "player_id": "00-0034348",
           "player_name": "Courtland Sutton",
           "recent_team": "DEN",
@@ -40539,6 +40707,14 @@
           "rushing_yards": 9.770332336425781
         },
         {
+          "player_id": "00-0036741",
+          "player_name": "Jack Stoll",
+          "recent_team": "SF",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.679656982421875
+        },
+        {
           "player_id": "00-0036775",
           "player_name": "Brandon Smith",
           "recent_team": "PIT",
@@ -40641,6 +40817,14 @@
           "position": "QB",
           "anytime_td_prob": 0.37552082538604736,
           "passing_yards": 116.73767852783203
+        },
+        {
+          "player_id": "00-0036906",
+          "player_name": "Khalil Herbert",
+          "recent_team": "ATL",
+          "position": "RB",
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 27.092166900634766
         },
         {
           "player_id": "00-0036912",
@@ -43724,8 +43908,8 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner Jr.",
-          "recent_team": "NYJ",
+          "player_name": "Quincy Skinner",
+          "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
