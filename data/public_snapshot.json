@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T04:55:02.699081+00:00",
+  "generated_at": "2026-09-18T11:31:05.843684+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -5667,7 +5667,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -7914,9 +7914,9 @@
           "away_rest": 4,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 67.0,
+          "wind": 4.0,
           "spread_line": 5.5,
           "total_line": 54.5
         },
@@ -13227,7 +13227,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -15424,8 +15424,8 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 4.5,
+          "total_line": 50.5
         },
         {
           "game_id": "2026_03_CAR_CLE",
@@ -15462,8 +15462,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 7.5,
+          "total_line": 48.5
         },
         {
           "game_id": "2026_03_HOU_IND",
@@ -15708,10 +15708,10 @@
         "2026_03_LAC_BUF": {
           "home_win_prob": 0.8240108839153873,
           "away_win_prob": 0.17598911608461265,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.7225544481119758,
+          "away_cover_prob": 0.2774455518880242,
+          "over_prob": 0.3593608290542436,
+          "under_prob": 0.6406391709457564,
           "predicted_margin": 12.30756950378418,
           "predicted_total": 46.0026969909668
         },
@@ -15728,10 +15728,10 @@
         "2026_03_NYJ_DET": {
           "home_win_prob": 0.7284162178702904,
           "away_win_prob": 0.27158378212970957,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.5162895032636978,
+          "away_cover_prob": 0.4837104967363022,
+          "over_prob": 0.4542651432068656,
+          "under_prob": 0.5457348567931344,
           "predicted_margin": 8.040074348449707,
           "predicted_total": 47.065372467041016
         },
@@ -21051,7 +21051,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -28947,7 +28947,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -36454,7 +36454,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -43500,7 +43500,7 @@
         },
         {
           "player_id": "00-0040553",
-          "player_name": "Quincy Skinner",
+          "player_name": "Quincy Skinner Jr.",
           "recent_team": "GB",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
