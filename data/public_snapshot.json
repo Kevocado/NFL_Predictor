@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T16:37:14.223006+00:00",
+  "generated_at": "2026-09-18T21:05:31.759283+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -7955,7 +7955,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 7.5,
+          "spread_line": 8.5,
           "total_line": 46.5
         },
         {
@@ -7994,7 +7994,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 46.5
+          "total_line": 45.5
         },
         {
           "game_id": "2026_02_PIT_NE",
@@ -8145,7 +8145,7 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.5,
+          "spread_line": 4.5,
           "total_line": 50.5
         },
         {
@@ -8164,7 +8164,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 12.5,
+          "spread_line": 13.5,
           "total_line": 44.5
         },
         {
@@ -8230,8 +8230,8 @@
         "2026_02_NO_BAL": {
           "home_win_prob": 0.700216619273917,
           "away_win_prob": 0.299783380726083,
-          "home_cover_prob": 0.4831842582170419,
-          "away_cover_prob": 0.5168157417829581,
+          "home_cover_prob": 0.45311772864430433,
+          "away_cover_prob": 0.5468822713556957,
           "over_prob": 0.5151353577090677,
           "under_prob": 0.4848646422909323,
           "predicted_margin": 6.942468166351318,
@@ -8252,8 +8252,8 @@
           "away_win_prob": 0.36756472791684425,
           "home_cover_prob": 0.5593209735104012,
           "away_cover_prob": 0.4406790264895988,
-          "over_prob": 0.6243882348284805,
-          "under_prob": 0.3756117651715195,
+          "over_prob": 0.654357467687801,
+          "under_prob": 0.345642532312199,
           "predicted_margin": 4.473527431488037,
           "predicted_total": 50.45861053466797
         },
@@ -8330,8 +8330,8 @@
         "2026_02_WAS_DAL": {
           "home_win_prob": 0.5050778172230836,
           "away_win_prob": 0.49492218277691635,
-          "home_cover_prob": 0.40053649591479157,
-          "away_cover_prob": 0.5994635040852084,
+          "home_cover_prob": 0.3716132548720974,
+          "away_cover_prob": 0.6283867451279026,
           "over_prob": 0.30182052197005305,
           "under_prob": 0.698179478029947,
           "predicted_margin": 0.1683114916086197,
@@ -8340,8 +8340,8 @@
         "2026_02_MIA_SF": {
           "home_win_prob": 0.737471798214149,
           "away_win_prob": 0.262528201785851,
-          "home_cover_prob": 0.3783789364664356,
-          "away_cover_prob": 0.6216210635335644,
+          "home_cover_prob": 0.3499831386897898,
+          "away_cover_prob": 0.6500168613102102,
           "over_prob": 0.43440613308230636,
           "under_prob": 0.5655938669176936,
           "predicted_margin": 8.40424633026123,
