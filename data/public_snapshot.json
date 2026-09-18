@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-18T11:31:05.843684+00:00",
+  "generated_at": "2026-09-18T16:37:14.223006+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -4380,7 +4380,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -6548,7 +6548,7 @@
         {
           "player_id": "00-0041011",
           "player_name": "E.J. Williams Jr.",
-          "recent_team": "LV",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -7975,7 +7975,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 4.5,
-          "total_line": 48.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_02_CIN_HOU",
@@ -8164,7 +8164,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 13.5,
+          "spread_line": 12.5,
           "total_line": 44.5
         },
         {
@@ -8242,8 +8242,8 @@
           "away_win_prob": 0.4628198300684001,
           "home_cover_prob": 0.40246186173662246,
           "away_cover_prob": 0.5975381382633775,
-          "over_prob": 0.43926822168697766,
-          "under_prob": 0.5607317783130223,
+          "over_prob": 0.4710067034469677,
+          "under_prob": 0.5289932965530323,
           "predicted_margin": 1.2341458797454834,
           "predicted_total": 46.59172439575195
         },
@@ -8340,8 +8340,8 @@
         "2026_02_MIA_SF": {
           "home_win_prob": 0.737471798214149,
           "away_win_prob": 0.262528201785851,
-          "home_cover_prob": 0.3499831386897898,
-          "away_cover_prob": 0.6500168613102102,
+          "home_cover_prob": 0.3783789364664356,
+          "away_cover_prob": 0.6216210635335644,
           "over_prob": 0.43440613308230636,
           "under_prob": 0.5655938669176936,
           "predicted_margin": 8.40424633026123,
@@ -12020,7 +12020,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -14084,7 +14084,7 @@
         {
           "player_id": "00-0041011",
           "player_name": "E.J. Williams Jr.",
-          "recent_team": "LV",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -19764,7 +19764,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -21932,7 +21932,7 @@
         {
           "player_id": "00-0041011",
           "player_name": "E.J. Williams Jr.",
-          "recent_team": "LV",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -27660,7 +27660,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -29828,7 +29828,7 @@
         {
           "player_id": "00-0041011",
           "player_name": "E.J. Williams Jr.",
-          "recent_team": "LV",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -35295,7 +35295,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -37247,14 +37247,6 @@
         {
           "player_id": "00-0041005",
           "player_name": "Corey Rucker",
-          "recent_team": "LV",
-          "position": "WR",
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 16.004743576049805
-        },
-        {
-          "player_id": "00-0041011",
-          "player_name": "E.J. Williams Jr.",
           "recent_team": "LV",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
@@ -42429,7 +42421,7 @@
         {
           "player_id": "00-0039650",
           "player_name": "Bryce Oliver",
-          "recent_team": "CLE",
+          "recent_team": "HOU",
           "position": "WR",
           "anytime_td_prob": 0.1162913516163826,
           "receiving_yards": 21.076345443725586
@@ -44325,7 +44317,7 @@
         {
           "player_id": "00-0041011",
           "player_name": "E.J. Williams Jr.",
-          "recent_team": "LV",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
