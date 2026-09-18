@@ -19,7 +19,7 @@ from ..config import (
     PUBLIC_SNAPSHOT_PATH,
     PUBLIC_SNAPSHOT_REFRESH_URL,
 )
-from ..data import odds_api, player_stats, schedules, teams as teams_data
+from ..data import player_stats, schedules, teams as teams_data
 from ..features import build as feature_build
 from ..features import player_usage
 from ..models import game_outcome, manifest, player_props, season_projection
@@ -508,11 +508,16 @@ def background_tracking_tick(season: int, week: int) -> None:
 
 
 def warm_caches() -> None:
-    """Pre-fetch schedules/player stats/odds so the first real request
-    after startup isn't slow — best-effort, never raises."""
+    """Pre-fetch schedules/player stats so the first real request after
+    startup isn't slow — best-effort, never raises. Deliberately doesn't
+    touch odds_api: NFL's own spread_line/total_line already come straight
+    off nfl_data_py's own schedule data (see _predict_game_from_models'
+    every caller passing game.get("spread_line")/game.get("total_line")),
+    so odds_api.fetch_game_odds() was pure dead weight here -- a real
+    network call every warm-up, against a quota shared with other
+    projects that genuinely need it, for a value nothing ever read."""
     try:
         schedules.fetch_schedules(schedules.default_completed_seasons(n=8))
         player_stats.fetch_weekly_player_stats(schedules.default_completed_seasons(n=8))
-        odds_api.fetch_game_odds()
     except Exception:
         pass
