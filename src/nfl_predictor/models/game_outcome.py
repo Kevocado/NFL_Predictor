@@ -79,7 +79,19 @@ def margin_to_probabilities(
     margin (positive means home favored by that many points, negative means
     home is an underdog by that many points) — the home team covers when
     margin > spread_line. total_points ~ Normal(predicted_total,
-    total_sigma); over_prob = P(total > total_line)."""
+    total_sigma); over_prob = P(total > total_line).
+
+    home_cover_prob/away_cover_prob are omitted (None) entirely when no
+    real market spread_line is available -- there is no "cover" question
+    to answer without a real line to cover. A previous version of this
+    branch used the model's own predicted_margin as a stand-in spread when
+    none was supplied, which is a degenerate choice: P(margin >
+    predicted_margin) for margin ~ Normal(predicted_margin, sigma) is
+    always exactly 0.5 by construction, for every single game, regardless
+    of how lopsided the model's actual prediction is. Confirmed live on
+    CFB_Predictor's identical bug: every game showed a fake 50/50 covers
+    market, traced to the shared Odds API key being out of quota so
+    spread_line was always None."""
     home_win_prob = float(1.0 - norm.cdf(0.0, loc=predicted_margin, scale=sigma))
     result = {"home_win_prob": home_win_prob, "away_win_prob": 1.0 - home_win_prob}
 
@@ -88,11 +100,8 @@ def margin_to_probabilities(
         result["home_cover_prob"] = home_cover_prob
         result["away_cover_prob"] = 1.0 - home_cover_prob
     else:
-        # Use model's predicted margin as default spread if no odds provided
-        effective_spread = predicted_margin
-        home_cover_prob = float(1.0 - norm.cdf(effective_spread, loc=predicted_margin, scale=sigma))
-        result["home_cover_prob"] = home_cover_prob
-        result["away_cover_prob"] = 1.0 - home_cover_prob
+        result["home_cover_prob"] = None
+        result["away_cover_prob"] = None
 
     if total_line is not None and predicted_total is not None and total_sigma is not None:
         over_prob = float(1.0 - norm.cdf(total_line, loc=predicted_total, scale=total_sigma))
