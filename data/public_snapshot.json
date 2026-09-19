@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-19T11:12:53.474458+00:00",
+  "generated_at": "2026-09-19T15:59:47.727800+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -7975,7 +7975,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 4.5,
-          "total_line": 48.5
+          "total_line": 47.5
         },
         {
           "game_id": "2026_02_CIN_HOU",
@@ -8183,7 +8183,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 6.5,
+          "spread_line": 6.0,
           "total_line": 46.5
         },
         {
@@ -8242,8 +8242,8 @@
           "away_win_prob": 0.44763359533716696,
           "home_cover_prob": 0.41735300179522394,
           "away_cover_prob": 0.5826469982047761,
-          "over_prob": 0.43926822168697766,
-          "under_prob": 0.5607317783130223,
+          "over_prob": 0.4710067034469677,
+          "under_prob": 0.5289932965530323,
           "predicted_margin": 1.7407269477844238,
           "predicted_total": 46.59172439575195
         },
@@ -8350,8 +8350,8 @@
         "2026_02_IND_KC": {
           "home_win_prob": 0.6464829851851461,
           "away_win_prob": 0.35351701481485387,
-          "home_cover_prob": 0.4539373996426058,
-          "away_cover_prob": 0.5460626003573942,
+          "home_cover_prob": 0.4689509745370417,
+          "away_cover_prob": 0.5310490254629583,
           "over_prob": 0.4662850924971883,
           "under_prob": 0.5337149075028117,
           "predicted_margin": 4.969822406768799,
