@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-19T04:47:31.682653+00:00",
+  "generated_at": "2026-09-19T11:12:53.474458+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -5148,7 +5148,7 @@
         {
           "player_id": "00-0040218",
           "player_name": "Jimmy Horn Jr.",
-          "recent_team": "CAR",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -12756,7 +12756,7 @@
         {
           "player_id": "00-0040218",
           "player_name": "Jimmy Horn Jr.",
-          "recent_team": "CAR",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -20532,7 +20532,7 @@
         {
           "player_id": "00-0040218",
           "player_name": "Jimmy Horn Jr.",
-          "recent_team": "CAR",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -28428,7 +28428,7 @@
         {
           "player_id": "00-0040218",
           "player_name": "Jimmy Horn Jr.",
-          "recent_team": "CAR",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -35997,6 +35997,14 @@
           "receiving_yards": 16.004743576049805
         },
         {
+          "player_id": "00-0040218",
+          "player_name": "Jimmy Horn Jr.",
+          "recent_team": "CLE",
+          "position": "WR",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
           "player_id": "00-0040222",
           "player_name": "Cam Miller",
           "recent_team": "MIA",
@@ -43085,7 +43093,7 @@
         {
           "player_id": "00-0040218",
           "player_name": "Jimmy Horn Jr.",
-          "recent_team": "CAR",
+          "recent_team": "CLE",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
