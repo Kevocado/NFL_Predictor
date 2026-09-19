@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-19T15:59:47.727800+00:00",
+  "generated_at": "2026-09-19T20:51:50.183227+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -8203,7 +8203,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 48.5
+          "total_line": 47.5
         }
       ],
       "predictions": {
@@ -8362,8 +8362,8 @@
           "away_win_prob": 0.33197025642306643,
           "home_cover_prob": 0.46219899570582024,
           "away_cover_prob": 0.5378010042941798,
-          "over_prob": 0.41894821389892356,
-          "under_prob": 0.5810517861010764,
+          "over_prob": 0.4504598393518626,
+          "under_prob": 0.5495401606481374,
           "predicted_margin": 5.745184898376465,
           "predicted_total": 45.945411682128906
         }
