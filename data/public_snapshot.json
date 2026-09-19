@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-19T20:51:50.183227+00:00",
+  "generated_at": "2026-09-19T23:18:48.094193+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -8088,7 +8088,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 3.0,
           "total_line": 45.5
         },
         {
@@ -8300,8 +8300,8 @@
         "2026_02_JAX_DEN": {
           "home_win_prob": 0.5001037879156978,
           "away_win_prob": 0.49989621208430224,
-          "home_cover_prob": 0.4251239415276541,
-          "away_cover_prob": 0.5748760584723459,
+          "home_cover_prob": 0.4103617125782154,
+          "away_cover_prob": 0.5896382874217846,
           "over_prob": 0.2583089616558144,
           "under_prob": 0.7416910383441856,
           "predicted_margin": 0.003440105589106679,
