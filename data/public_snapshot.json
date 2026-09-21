@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T05:09:14.059291+00:00",
+  "generated_at": "2026-09-21T13:04:06.687954+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -7933,7 +7933,7 @@
           "away_rest": 7,
           "div_game": 1,
           "roof": "closed",
-          "surface": null,
+          "surface": "fieldturf",
           "temp": null,
           "wind": null,
           "spread_line": -2.5,
@@ -7952,9 +7952,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 79.0,
+          "wind": 10.0,
           "spread_line": 8.5,
           "total_line": 45.5
         },
@@ -7971,9 +7971,9 @@
           "away_rest": 7,
           "div_game": 1,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 68.0,
+          "wind": 8.0,
           "spread_line": 4.5,
           "total_line": 46.5
         },
@@ -7990,7 +7990,7 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "closed",
-          "surface": null,
+          "surface": "astroturf",
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
@@ -8009,9 +8009,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "fieldturf",
+          "temp": 63.0,
+          "wind": 7.0,
           "spread_line": 4.5,
           "total_line": 41.5
         },
@@ -8028,9 +8028,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "fieldturf",
+          "temp": 69.0,
+          "wind": 7.0,
           "spread_line": -3.5,
           "total_line": 44.5
         },
@@ -8047,9 +8047,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 86.0,
+          "wind": 4.0,
           "spread_line": 8.5,
           "total_line": 41.5
         },
@@ -8066,9 +8066,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 92.0,
+          "wind": 5.0,
           "spread_line": -7.0,
           "total_line": 39.5
         },
@@ -8085,9 +8085,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 73.0,
+          "wind": 12.0,
           "spread_line": 2.5,
           "total_line": 45.5
         },
@@ -8104,7 +8104,7 @@
           "away_rest": 7,
           "div_game": 1,
           "roof": "dome",
-          "surface": null,
+          "surface": "matrixturf",
           "temp": null,
           "wind": null,
           "spread_line": 6.5,
@@ -8123,7 +8123,7 @@
           "away_rest": 11,
           "div_game": 1,
           "roof": "closed",
-          "surface": null,
+          "surface": "grass",
           "temp": null,
           "wind": null,
           "spread_line": -3.5,
@@ -8142,7 +8142,7 @@
           "away_rest": 7,
           "div_game": 1,
           "roof": "closed",
-          "surface": null,
+          "surface": "matrixturf",
           "temp": null,
           "wind": null,
           "spread_line": 3.5,
@@ -8161,9 +8161,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 69.0,
+          "wind": 5.0,
           "spread_line": 12.5,
           "total_line": 44.5
         },
@@ -8180,9 +8180,9 @@
           "away_rest": 7,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 71.0,
+          "wind": 10.0,
           "spread_line": 6.0,
           "total_line": 46.5
         },
@@ -8202,7 +8202,7 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": 7.0,
+          "spread_line": 6.5,
           "total_line": 47.5
         }
       ],
@@ -8360,8 +8360,8 @@
         "2026_02_NYG_LA": {
           "home_win_prob": 0.663256618697218,
           "away_win_prob": 0.33674338130278203,
-          "home_cover_prob": 0.4569950715662231,
-          "away_cover_prob": 0.5430049284337769,
+          "home_cover_prob": 0.472019412835633,
+          "away_cover_prob": 0.527980587164367,
           "over_prob": 0.42553823675757685,
           "under_prob": 0.5744617632424232,
           "predicted_margin": 5.571806907653809,
@@ -8851,7 +8851,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -3.0,
+          "spread_line": -2.5,
           "total_line": 41.5
         },
         {
@@ -8889,8 +8889,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
-          "total_line": 45.5
+          "spread_line": -1.5,
+          "total_line": 43.5
         },
         {
           "game_id": "2026_03_NE_JAX",
@@ -9060,8 +9060,8 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.5,
-          "total_line": 44.5
+          "spread_line": 3.0,
+          "total_line": 43.5
         },
         {
           "game_id": "2026_03_LA_DEN",
@@ -9099,7 +9099,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -4.5,
-          "total_line": 43.5
+          "total_line": 44.5
         }
       ],
       "predictions": {
@@ -9126,8 +9126,8 @@
         "2026_03_CAR_CLE": {
           "home_win_prob": 0.5322389350707555,
           "away_win_prob": 0.4677610649292445,
-          "home_cover_prob": 0.620872830448747,
-          "away_cover_prob": 0.37912716955125303,
+          "home_cover_prob": 0.6064050617548223,
+          "away_cover_prob": 0.39359493824517766,
           "over_prob": 0.37736086787451895,
           "under_prob": 0.622639132125481,
           "predicted_margin": 1.0697423219680786,
@@ -9146,10 +9146,10 @@
         "2026_03_HOU_IND": {
           "home_win_prob": 0.2954260889601903,
           "away_win_prob": 0.7045739110398097,
-          "home_cover_prob": 0.36371763554287073,
-          "away_cover_prob": 0.6362823644571293,
-          "over_prob": 0.512489774155199,
-          "under_prob": 0.48751022584480097,
+          "home_cover_prob": 0.3357230569046985,
+          "away_cover_prob": 0.6642769430953015,
+          "over_prob": 0.5759263644984012,
+          "under_prob": 0.4240736355015988,
           "predicted_margin": -7.108787536621094,
           "predicted_total": 45.890987396240234
         },
@@ -9236,10 +9236,10 @@
         "2026_03_LV_NO": {
           "home_win_prob": 0.552064133819433,
           "away_win_prob": 0.447935866180567,
-          "home_cover_prob": 0.446776754298023,
-          "away_cover_prob": 0.553223245701977,
-          "over_prob": 0.4861766393083534,
-          "under_prob": 0.5138233606916466,
+          "home_cover_prob": 0.46176161022008977,
+          "away_cover_prob": 0.5382383897799102,
+          "over_prob": 0.5181170465800887,
+          "under_prob": 0.4818829534199113,
           "predicted_margin": 1.730621337890625,
           "predicted_total": 44.0672492980957
         },
@@ -9258,8 +9258,8 @@
           "away_win_prob": 0.5065561899260452,
           "home_cover_prob": 0.6269846072424675,
           "away_cover_prob": 0.3730153927575325,
-          "over_prob": 0.6687725282019479,
-          "under_prob": 0.3312274717980521,
+          "over_prob": 0.6392448296924389,
+          "under_prob": 0.3607551703075611,
           "predicted_margin": -0.21731817722320557,
           "predicted_total": 48.950767517089844
         }
