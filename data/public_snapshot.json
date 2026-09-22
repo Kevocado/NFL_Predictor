@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-21T20:03:48.250164+00:00",
+  "generated_at": "2026-09-22T00:13:41.866714+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -8268,13 +8268,13 @@
           "predicted_total": 38.04423141479492
         },
         "2026_02_GB_NYJ": {
-          "home_win_prob": 0.30123543478744486,
-          "away_win_prob": 0.6987645652125551,
-          "home_cover_prob": 0.3989123590561341,
-          "away_cover_prob": 0.6010876409438659,
+          "home_win_prob": 0.3077820721254767,
+          "away_win_prob": 0.6922179278745233,
+          "home_cover_prob": 0.40615007832234584,
+          "away_cover_prob": 0.5938499216776542,
           "over_prob": 0.4752316942245254,
           "under_prob": 0.5247683057754746,
-          "predicted_margin": -6.887287139892578,
+          "predicted_margin": -6.6399664878845215,
           "predicted_total": 43.724266052246094
         },
         "2026_02_CLE_TB": {
@@ -8282,40 +8282,40 @@
           "away_win_prob": 0.2985469981556963,
           "home_cover_prob": 0.4545286203538046,
           "away_cover_prob": 0.5454713796461954,
-          "over_prob": 0.4289033128395655,
-          "under_prob": 0.5710966871604345,
+          "over_prob": 0.468959374967714,
+          "under_prob": 0.531040625032286,
           "predicted_margin": 6.989548683166504,
-          "predicted_total": 39.26279830932617
+          "predicted_total": 40.527462005615234
         },
         "2026_02_PHI_TEN": {
-          "home_win_prob": 0.4514394812714607,
-          "away_win_prob": 0.5485605187285393,
-          "home_cover_prob": 0.6581242159026193,
-          "away_cover_prob": 0.34187578409738073,
+          "home_win_prob": 0.4588538196237919,
+          "away_win_prob": 0.5411461803762081,
+          "home_cover_prob": 0.6649652978964313,
+          "away_cover_prob": 0.33503470210356867,
           "over_prob": 0.6370505404881663,
           "under_prob": 0.36294945951183366,
-          "predicted_margin": -1.613559603691101,
+          "predicted_margin": -1.3662389516830444,
           "predicted_total": 43.87765884399414
         },
         "2026_02_JAX_DEN": {
-          "home_win_prob": 0.5238820001490978,
-          "away_win_prob": 0.4761179998509022,
-          "home_cover_prob": 0.448614250811027,
-          "away_cover_prob": 0.551385749188973,
-          "over_prob": 0.2590947233869325,
-          "under_prob": 0.7409052766130675,
-          "predicted_margin": 0.7920549511909485,
-          "predicted_total": 37.43186569213867
+          "home_win_prob": 0.5135830409214419,
+          "away_win_prob": 0.4864169590785581,
+          "home_cover_prob": 0.43840746697784416,
+          "away_cover_prob": 0.5615925330221558,
+          "over_prob": 0.22629306446842656,
+          "under_prob": 0.7737069355315734,
+          "predicted_margin": 0.4503041207790375,
+          "predicted_total": 36.121116638183594
         },
         "2026_02_LV_LAC": {
-          "home_win_prob": 0.6878744868492521,
-          "away_win_prob": 0.3121255131507479,
-          "home_cover_prob": 0.4993108166009679,
-          "away_cover_prob": 0.5006891833990321,
-          "over_prob": 0.4846001186508575,
-          "under_prob": 0.5153998813491425,
-          "predicted_margin": 6.477156639099121,
-          "predicted_total": 43.01787185668945
+          "home_win_prob": 0.694461983293028,
+          "away_win_prob": 0.305538016706972,
+          "home_cover_prob": 0.5067721501101465,
+          "away_cover_prob": 0.49322784988985346,
+          "over_prob": 0.5249851903989817,
+          "under_prob": 0.4750148096010183,
+          "predicted_margin": 6.724477291107178,
+          "predicted_total": 44.282535552978516
         },
         "2026_02_SEA_ARI": {
           "home_win_prob": 0.27939012813705366,
@@ -8348,14 +8348,14 @@
           "predicted_total": 45.665008544921875
         },
         "2026_02_IND_KC": {
-          "home_win_prob": 0.6652604407324817,
-          "away_win_prob": 0.3347395592675183,
-          "home_cover_prob": 0.48927510951159625,
-          "away_cover_prob": 0.5107248904884037,
-          "over_prob": 0.4346395035063333,
-          "under_prob": 0.5653604964936667,
-          "predicted_margin": 5.644474983215332,
-          "predicted_total": 44.445011138916016
+          "home_win_prob": 0.6575603373348258,
+          "away_win_prob": 0.3424396626651742,
+          "home_cover_prob": 0.4808837743463179,
+          "away_cover_prob": 0.5191162256536821,
+          "over_prob": 0.42576972275138936,
+          "under_prob": 0.5742302772486106,
+          "predicted_margin": 5.366139888763428,
+          "predicted_total": 44.16305923461914
         },
         "2026_02_NYG_LA": {
           "home_win_prob": 0.663256618697218,
@@ -8813,8 +8813,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 7.0,
-          "total_line": 43.5
+          "spread_line": 6.5,
+          "total_line": 44.5
         },
         {
           "game_id": "2026_03_LAC_BUF",
@@ -8851,7 +8851,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -3.0,
+          "spread_line": -2.5,
           "total_line": 42.5
         },
         {
@@ -8947,7 +8947,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 6.0,
-          "total_line": 43.5
+          "total_line": 42.5
         },
         {
           "game_id": "2026_03_CIN_PIT",
@@ -9079,7 +9079,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
+          "spread_line": -1.5,
           "total_line": 45.5
         },
         {
@@ -9106,10 +9106,10 @@
         "2026_03_ATL_GB": {
           "home_win_prob": 0.6843666583557046,
           "away_win_prob": 0.31563334164429535,
-          "home_cover_prob": 0.48028841823829027,
-          "away_cover_prob": 0.5197115817617097,
-          "over_prob": 0.478903129577097,
-          "under_prob": 0.521096870422903,
+          "home_cover_prob": 0.495365485286575,
+          "away_cover_prob": 0.504634514713425,
+          "over_prob": 0.447099866132066,
+          "under_prob": 0.552900133867934,
           "predicted_margin": 6.346383094787598,
           "predicted_total": 42.83937072753906
         },
@@ -9126,8 +9126,8 @@
         "2026_03_CAR_CLE": {
           "home_win_prob": 0.5322389350707555,
           "away_win_prob": 0.4677610649292445,
-          "home_cover_prob": 0.620872830448747,
-          "away_cover_prob": 0.37912716955125303,
+          "home_cover_prob": 0.6064050617548223,
+          "away_cover_prob": 0.39359493824517766,
           "over_prob": 0.3473426397708247,
           "under_prob": 0.6526573602291753,
           "predicted_margin": 1.0697423219680786,
@@ -9178,8 +9178,8 @@
           "away_win_prob": 0.09166863850387696,
           "home_cover_prob": 0.8097023564343186,
           "away_cover_prob": 0.19029764356568135,
-          "over_prob": 0.6287518290881635,
-          "under_prob": 0.3712481709118365,
+          "over_prob": 0.6585960931086633,
+          "under_prob": 0.3414039068913367,
           "predicted_margin": 17.59406089782715,
           "predicted_total": 47.60249328613281
         },
@@ -9246,8 +9246,8 @@
         "2026_03_LA_DEN": {
           "home_win_prob": 0.56249202456314,
           "away_win_prob": 0.43750797543686004,
-          "home_cover_prob": 0.6354611874556282,
-          "away_cover_prob": 0.3645388125443718,
+          "home_cover_prob": 0.6066998153488683,
+          "away_cover_prob": 0.3933001846511317,
           "over_prob": 0.30364282332328885,
           "under_prob": 0.6963571766767112,
           "predicted_margin": 2.0798757076263428,
@@ -126374,7 +126374,7 @@
       "point_diff": -21.0,
       "projected_wins": 5.9,
       "projected_losses": 11.1,
-      "projected_point_diff": -78.3,
+      "projected_point_diff": -77.5,
       "current_division_rank": 4,
       "projected_division_rank": 3,
       "division_rank_delta": 1
@@ -126486,7 +126486,7 @@
       "point_diff": 8.0,
       "projected_wins": 9.8,
       "projected_losses": 7.2,
-      "projected_point_diff": 38.5,
+      "projected_point_diff": 37.6,
       "current_division_rank": 3,
       "projected_division_rank": 2,
       "division_rank_delta": 1
