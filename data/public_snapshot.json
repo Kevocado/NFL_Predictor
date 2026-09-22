@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-22T05:11:07.054834+00:00",
+  "generated_at": "2026-09-22T11:51:50.262471+00:00",
   "season": 2026,
   "current_week": 2,
   "weeks": {
@@ -8199,7 +8199,7 @@
           "away_rest": 8,
           "div_game": 0,
           "roof": "dome",
-          "surface": null,
+          "surface": "matrixturf",
           "temp": null,
           "wind": null,
           "spread_line": 6.5,
@@ -15946,8 +15946,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 3.5,
+          "total_line": 40.5
         },
         {
           "game_id": "2026_03_CIN_PIT",
@@ -16176,10 +16176,10 @@
         "2026_03_TEN_NYG": {
           "home_win_prob": 0.8732259192777378,
           "away_win_prob": 0.12677408072226215,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.8097801194382559,
+          "away_cover_prob": 0.1902198805617441,
+          "over_prob": 0.7456968597999005,
+          "under_prob": 0.2543031402000995,
           "predicted_margin": 15.097846984863281,
           "predicted_total": 48.75381851196289
         },
