@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-23T17:15:04.220371+00:00",
+  "generated_at": "2026-09-23T21:39:12.412872+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -15953,7 +15953,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -3.0,
+          "spread_line": -2.5,
           "total_line": 42.5
         },
         {
@@ -16125,7 +16125,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 44.5
+          "total_line": 43.5
         },
         {
           "game_id": "2026_03_LA_DEN",
@@ -16218,8 +16218,8 @@
         "2026_03_HOU_IND": {
           "home_win_prob": 0.2954260889601903,
           "away_win_prob": 0.7045739110398097,
-          "home_cover_prob": 0.3780041801730072,
-          "away_cover_prob": 0.6219958198269928,
+          "home_cover_prob": 0.36371763554287073,
+          "away_cover_prob": 0.6362823644571293,
           "over_prob": 0.6070229701643195,
           "under_prob": 0.3929770298356805,
           "predicted_margin": -7.108787536621094,
@@ -16328,8 +16328,8 @@
           "away_win_prob": 0.447935866180567,
           "home_cover_prob": 0.46176161022008977,
           "away_cover_prob": 0.5382383897799102,
-          "over_prob": 0.4861766393083534,
-          "under_prob": 0.5138233606916466,
+          "over_prob": 0.5181170465800887,
+          "under_prob": 0.4818829534199113,
           "predicted_margin": 1.730621337890625,
           "predicted_total": 44.0672492980957,
           "sigma": 13.223153618916728,
@@ -23913,7 +23913,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 3.5,
           "total_line": 43.5
         },
         {
@@ -23989,7 +23989,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
+          "spread_line": -1.5,
           "total_line": 45.5
         },
         {
@@ -24178,8 +24178,8 @@
         "2026_04_NYJ_CHI": {
           "home_win_prob": 0.7875777027199979,
           "away_win_prob": 0.21242229728000206,
-          "home_cover_prob": 0.7160577430734805,
-          "away_cover_prob": 0.28394225692651953,
+          "home_cover_prob": 0.7031068952610994,
+          "away_cover_prob": 0.2968931047389006,
           "over_prob": 0.5137963201406368,
           "under_prob": 0.4862036798593632,
           "predicted_margin": 10.552666664123535,
@@ -24226,8 +24226,8 @@
         "2026_04_LA_PHI": {
           "home_win_prob": 0.5353287687176306,
           "away_win_prob": 0.4646712312823694,
-          "home_cover_prob": 0.6093918999575221,
-          "away_cover_prob": 0.3906081000424779,
+          "home_cover_prob": 0.5800844559179752,
+          "away_cover_prob": 0.4199155440820248,
           "over_prob": 0.33734108485885916,
           "under_prob": 0.6626589151411408,
           "predicted_margin": 1.1725255250930786,
