@@ -328,3 +328,97 @@ def test_get_predictions_batch_skips_one_failing_game_without_failing_the_rest(c
     assert response.status_code == 200
     body = response.json()
     assert set(body.keys()) == {"good_game"}
+
+
+def test_get_team_form_returns_last_n_games_with_result(client, monkeypatch):
+    monkeypatch.setattr(
+        routes.schedules, "load_training_data",
+        lambda seasons: pd.DataFrame(
+            [
+                {"game_id": "g1", "season": 2025, "week": 1, "gameday": "2025-09-04",
+                 "home_team": "BAL", "away_team": "KC", "home_score": 27, "away_score": 20},
+                {"game_id": "g2", "season": 2025, "week": 2, "gameday": "2025-09-11",
+                 "home_team": "KC", "away_team": "BAL", "home_score": 24, "away_score": 10},
+            ]
+        ),
+    )
+
+    response = client.get("/api/teams/BAL/form?season=2025&n=5")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["team"] == "BAL"
+    form = body["recent_form"]
+    assert len(form) == 2
+    # g1: BAL home, won 27-20
+    assert form[0]["opponent"] == "KC"
+    assert form[0]["is_home"] is True
+    assert form[0]["result"] == "W"
+    assert form[0]["team_score"] == 27
+    # g2: BAL away, lost 10-24
+    assert form[1]["opponent"] == "KC"
+    assert form[1]["is_home"] is False
+    assert form[1]["result"] == "L"
+    assert form[1]["team_score"] == 10
+
+
+def test_get_team_form_respects_n_limit(client, monkeypatch):
+    monkeypatch.setattr(
+        routes.schedules, "load_training_data",
+        lambda seasons: pd.DataFrame(
+            [
+                {"game_id": f"g{i}", "season": 2025, "week": i, "gameday": f"2025-09-{i:02d}",
+                 "home_team": "BAL", "away_team": "KC", "home_score": 20 + i, "away_score": 10}
+                for i in range(1, 8)
+            ]
+        ),
+    )
+
+    response = client.get("/api/teams/BAL/form?season=2025&n=3")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["recent_form"]) == 3
+    # Should be the last 3 chronologically (g5, g6, g7)
+    assert [f["game_id"] for f in body["recent_form"]] == ["g5", "g6", "g7"]
+
+
+def test_get_head_to_head_returns_past_meetings(client, monkeypatch):
+    monkeypatch.setattr(
+        routes.schedules, "fetch_week_games",
+        lambda season, week: pd.DataFrame(
+            [{"game_id": "2025_09_LV_KC", "season": season, "week": week,
+              "gameday": "2025-11-02", "home_team": "KC", "away_team": "LV",
+              "home_score": None, "away_score": None}]
+        ),
+    )
+    monkeypatch.setattr(
+        routes.schedules, "load_training_data",
+        lambda seasons: pd.DataFrame(
+            [
+                {"game_id": "g_old", "season": 2024, "week": 15, "gameday": "2024-12-14",
+                 "home_team": "LV", "away_team": "KC", "home_score": 17, "away_score": 24},
+                {"game_id": "g_unrelated", "season": 2024, "week": 15, "gameday": "2024-12-14",
+                 "home_team": "DEN", "away_team": "LAC", "home_score": 10, "away_score": 3},
+            ]
+        ),
+    )
+
+    response = client.get("/api/games/2025_09_LV_KC/head-to-head?season=2025&week=9&n_seasons=8")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["game_id"] == "2025_09_LV_KC"
+    meetings = body["meetings"]
+    assert len(meetings) == 1
+    assert meetings[0]["game_id"] == "g_old"
+    assert meetings[0]["home_team"] == "LV"
+    assert meetings[0]["away_team"] == "KC"
+
+
+def test_get_head_to_head_404s_for_unknown_game(client, monkeypatch):
+    monkeypatch.setattr(routes.schedules, "fetch_week_games", lambda season, week: pd.DataFrame(columns=["game_id", "home_team", "away_team"]))
+
+    response = client.get("/api/games/nope/head-to-head?season=2025&week=9")
+
+    assert response.status_code == 404

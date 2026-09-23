@@ -217,6 +217,85 @@ def _get_games_live(season: int, week: int):
     return games.to_dict("records")
 
 
+@router.get("/teams/{team}/form")
+def get_team_form(team: str, season: int = CURRENT_SEASON, n: int = 5):
+    history = _load_game_history(season)
+    return {"team": team, "recent_form": _team_recent_form(team, history, n)}
+
+
+def _team_recent_form(team: str, history: pd.DataFrame, n: int) -> list[dict]:
+    played = history[
+        history["home_score"].notna() & history["away_score"].notna()
+        & ((history["home_team"] == team) | (history["away_team"] == team))
+    ].sort_values("gameday")
+    recent = played.tail(n)
+
+    entries = []
+    for _, g in recent.iterrows():
+        is_home = g["home_team"] == team
+        team_score = g["home_score"] if is_home else g["away_score"]
+        opponent_score = g["away_score"] if is_home else g["home_score"]
+        opponent = g["away_team"] if is_home else g["home_team"]
+        if team_score > opponent_score:
+            result = "W"
+        elif team_score < opponent_score:
+            result = "L"
+        else:
+            result = "T"
+        entries.append({
+            "game_id": g["game_id"],
+            "opponent": opponent,
+            "is_home": bool(is_home),
+            "result": result,
+            "team_score": int(team_score),
+            "opponent_score": int(opponent_score),
+            "gameday": g["gameday"],
+        })
+    return entries
+
+
+@router.get("/games/{game_id}/head-to-head")
+def get_head_to_head(game_id: str, season: int = CURRENT_SEASON, week: int = 1, n_seasons: int = 8):
+    teams = _resolve_game_teams(game_id, season, week)
+    if teams is None:
+        raise HTTPException(status_code=404, detail=f"Unknown game_id: {game_id}")
+    home_team, away_team = teams
+
+    history = _load_game_history(season)
+    cutoff_season = season - n_seasons
+    history = history[history["season"] >= cutoff_season]
+    played = history[history["home_score"].notna() & history["away_score"].notna()]
+    meetings = played[
+        ((played["home_team"] == home_team) & (played["away_team"] == away_team))
+        | ((played["home_team"] == away_team) & (played["away_team"] == home_team))
+    ].sort_values("gameday", ascending=False)
+
+    return {
+        "game_id": game_id,
+        "meetings": [
+            {
+                "game_id": g["game_id"],
+                "season": int(g["season"]),
+                "gameday": g["gameday"],
+                "home_team": g["home_team"],
+                "away_team": g["away_team"],
+                "home_score": int(g["home_score"]),
+                "away_score": int(g["away_score"]),
+            }
+            for _, g in meetings.iterrows()
+        ],
+    }
+
+
+def _resolve_game_teams(game_id: str, season: int, week: int) -> tuple[str, str] | None:
+    games = schedules.fetch_week_games(season, week)
+    matches = games[games["game_id"] == game_id]
+    if matches.empty:
+        return None
+    game = matches.iloc[0]
+    return game["home_team"], game["away_team"]
+
+
 @router.get("/games/{season}/{week}/{game_id}/prediction")
 def get_game_prediction(season: int, week: int, game_id: str):
     if PUBLIC_MODE:
