@@ -330,6 +330,39 @@ def test_get_predictions_batch_skips_one_failing_game_without_failing_the_rest(c
     assert set(body.keys()) == {"good_game"}
 
 
+def test_get_predictions_batch_loads_history_once_for_the_whole_week(client, monkeypatch):
+    """The plan requires the live batch fallback to load games/models/history
+    once and call _predict_game_from_models per game -- not re-fetch and
+    re-load history inside the loop for every game."""
+    load_calls = []
+    real_load_game_history = routes._load_game_history
+
+    def counting_load(season):
+        load_calls.append(season)
+        return real_load_game_history(season)
+
+    monkeypatch.setattr(routes, "_load_game_history", counting_load)
+    monkeypatch.setattr(
+        routes.schedules, "fetch_week_games",
+        lambda season, week: pd.DataFrame(
+            [
+                {"game_id": "g1", "season": season, "week": week,
+                 "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+                 "home_score": None, "away_score": None, "spread_line": -2.5, "total_line": 46.5},
+                {"game_id": "g2", "season": season, "week": week,
+                 "gameday": "2025-09-05", "home_team": "GB", "away_team": "PHI",
+                 "home_score": None, "away_score": None, "spread_line": 1.5, "total_line": 45.0},
+            ]
+        ),
+    )
+
+    response = client.get("/api/predictions/2025/1/batch")
+
+    assert response.status_code == 200
+    assert set(response.json().keys()) == {"g1", "g2"}
+    assert load_calls == [2025]
+
+
 def test_get_team_form_returns_last_n_games_with_result(client, monkeypatch):
     monkeypatch.setattr(
         routes.schedules, "load_training_data",

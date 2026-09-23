@@ -345,10 +345,21 @@ def get_predictions_batch(season: int, week: int):
 
 def _get_predictions_batch_live(season: int, week: int) -> dict:
     games = schedules.fetch_week_games(season, week)
+    models = _load_models_cached()
+    history = _load_game_history(season)
     predictions: dict[str, dict] = {}
     for _, game in games.iterrows():
         try:
-            predictions[game["game_id"]] = _get_game_prediction_live(season, week, game["game_id"])
+            # Exclude the game's own row from its feature history -- same
+            # discipline as _get_game_prediction_live: fetch_week_games can
+            # return already-finished games, and without this a finished
+            # game's prediction would leak its own result into its own
+            # features.
+            game_history = history[history["game_id"] != game["game_id"]]
+            predictions[game["game_id"]] = _predict_game_from_models(
+                models, game["home_team"], game["away_team"], game_history,
+                spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+            )
         except Exception:
             logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
             continue
