@@ -228,3 +228,65 @@ def test_get_predictions_for_week_includes_both_resolved_and_pending_games(clien
     statuses = {row["game_id"]: row["status"] for row in body}
     assert statuses["2025_01_BAL_KC"] == "pending"
     assert statuses["g0"] == "resolved"
+
+
+def test_get_power_rankings_sorts_descending_by_rating_and_includes_division(client, monkeypatch):
+    monkeypatch.setattr(
+        routes.power_ratings, "final_ratings",
+        lambda history: {"BAL": 1550.0, "KC": 1480.0},
+    )
+    monkeypatch.setattr(
+        routes.teams_data, "fetch_team_conferences",
+        lambda: pd.DataFrame(
+            [
+                {"team": "BAL", "conference": "AFC", "division": "AFC North"},
+                {"team": "KC", "conference": "AFC", "division": "AFC West"},
+            ]
+        ),
+    )
+
+    response = client.get("/api/power-rankings?season=2025")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["season"] == 2025
+    rankings = body["rankings"]
+    assert [r["team"] for r in rankings] == ["BAL", "KC"]
+    assert rankings[0]["rank"] == 1
+    assert rankings[1]["rank"] == 2
+    assert rankings[0]["division"] == "AFC North"
+    assert rankings[1]["division"] == "AFC West"
+
+
+def test_get_power_rankings_includes_win_loss_record(client, monkeypatch):
+    # Override load_training_data to return a played game for the exact
+    # requested season -- BAL beat KC 24-17, so BAL should show 1 win.
+    monkeypatch.setattr(
+        routes.schedules, "load_training_data",
+        lambda seasons: pd.DataFrame(
+            [{"game_id": "g0", "season": 2025, "week": 1, "gameday": "2025-09-04",
+              "home_team": "BAL", "away_team": "KC", "home_score": 24, "away_score": 17}]
+        ),
+    )
+    monkeypatch.setattr(
+        routes.power_ratings, "final_ratings",
+        lambda history: {"BAL": 1550.0, "KC": 1480.0},
+    )
+    monkeypatch.setattr(
+        routes.teams_data, "fetch_team_conferences",
+        lambda: pd.DataFrame(
+            [
+                {"team": "BAL", "conference": "AFC", "division": "AFC North"},
+                {"team": "KC", "conference": "AFC", "division": "AFC West"},
+            ]
+        ),
+    )
+
+    response = client.get("/api/power-rankings?season=2025")
+
+    body = response.json()
+    by_team = {r["team"]: r for r in body["rankings"]}
+    assert by_team["BAL"]["wins"] == 1
+    assert by_team["BAL"]["losses"] == 0
+    assert by_team["KC"]["wins"] == 0
+    assert by_team["KC"]["losses"] == 1

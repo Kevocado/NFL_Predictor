@@ -22,6 +22,7 @@ from ..config import (
 from ..data import player_stats, schedules, teams as teams_data
 from ..features import build as feature_build
 from ..features import player_usage
+from ..features import power_ratings
 from ..models import game_outcome, manifest, player_props, season_projection
 from ..odds import value_bets
 from ..tracking import store
@@ -381,6 +382,44 @@ def _get_standings_live(season: int):
         return _predict_game_from_models(models, home, away, history)
 
     return season_projection.project_standings(remaining, current_records, team_conferences, predict_fn)
+
+
+@router.get("/power-rankings")
+def get_power_rankings(season: int = CURRENT_SEASON):
+    if PUBLIC_MODE:
+        snap = _public_snapshot()
+        if snap.get("season") == season and "power_rankings" in snap:
+            return snap["power_rankings"]
+    return _get_power_rankings_live(season)
+
+
+def _get_power_rankings_live(season: int) -> dict:
+    history = _load_game_history(season)
+    ratings = power_ratings.final_ratings(history)
+
+    season_games = history[history["season"] == season]
+    played = season_games[season_games["home_score"].notna() & season_games["away_score"].notna()]
+    records = season_projection.compute_current_records(played)
+
+    team_conferences = teams_data.fetch_team_conferences()
+    division_by_team = {row["team"]: row["division"] for _, row in team_conferences.iterrows()}
+    conference_by_team = {row["team"]: row["conference"] for _, row in team_conferences.iterrows()}
+
+    ranked_teams = sorted(ratings.items(), key=lambda kv: kv[1], reverse=True)
+    rankings = []
+    for rank, (team, rating) in enumerate(ranked_teams, start=1):
+        record = records.get(team, {"wins": 0, "losses": 0, "ties": 0})
+        rankings.append({
+            "team": team,
+            "rating": round(float(rating), 1),
+            "rank": rank,
+            "wins": record["wins"],
+            "losses": record["losses"],
+            "ties": record["ties"],
+            "conference": conference_by_team.get(team),
+            "division": division_by_team.get(team),
+        })
+    return {"season": season, "rankings": rankings}
 
 
 @router.post("/retrain")

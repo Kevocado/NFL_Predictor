@@ -78,6 +78,13 @@ def build_snapshot(previous: dict | None = None) -> dict:
         print(f"  ! skipped standings: {exc}")
         standings = previous.get("standings", []) if previous.get("season") == season else []
 
+    print("Building power rankings...")
+    try:
+        power_rankings = routes._get_power_rankings_live(season)
+    except Exception as exc:
+        print(f"  ! skipped power rankings: {exc}")
+        power_rankings = previous.get("power_rankings", {}) if previous.get("season") == season else {}
+
     import pandas as pd
 
     return {
@@ -86,6 +93,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         "current_week": current_week,
         "weeks": weeks,
         "standings": standings,
+        "power_rankings": power_rankings,
     }
 
 
