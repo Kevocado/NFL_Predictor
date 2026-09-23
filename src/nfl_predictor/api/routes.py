@@ -411,7 +411,7 @@ def _get_player_props_live(season: int, week: int):
             try:
                 roster = player_stats.fetch_seasonal_roster(season)
                 fallback = roster[
-                    roster["recent_team"].isin(missing_teams) & roster["position"].isin(player_props.POSITION_YARDAGE_MARKET)
+                    roster["recent_team"].isin(missing_teams) & roster["position"].isin(player_props.POSITION_MARKETS)
                 ]
                 latest_players = pd.concat([latest_players, fallback], ignore_index=True).drop_duplicates("player_id")
             except Exception as roster_err:
@@ -595,13 +595,15 @@ def background_tracking_tick(season: int, week: int) -> None:
                     continue
                 prop_rows.append({
                     "game_id": game_id, "player_id": prop["player_id"], "player_name": prop["player_name"],
+                    "position": prop["position"],
                     "market": "anytime_td", "predicted_value": prop["anytime_td_prob"],
                 })
-                for market in ("passing_yards", "rushing_yards", "receiving_yards"):
+                for market in player_props.POSITION_MARKETS.get(prop["position"], []):
                     value = prop.get(market)
                     if value is not None:
                         prop_rows.append({
                             "game_id": game_id, "player_id": prop["player_id"], "player_name": prop["player_name"],
+                            "position": prop["position"],
                             "market": market, "predicted_value": value,
                         })
             store.record_player_prop_predictions(prop_rows)

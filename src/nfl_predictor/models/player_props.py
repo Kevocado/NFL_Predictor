@@ -13,13 +13,20 @@ YARDAGE_TARGETS = {
     "passing_yards": "passing_yards",
     "rushing_yards": "rushing_yards",
     "receiving_yards": "receiving_yards",
+    "carries": "carries",
+    "receptions": "receptions",
 }
 
-# Which yardage market applies to which position — a QB doesn't have a
-# meaningful rushing-yards prop line in practice, a WR/TE doesn't have a
-# passing one, etc. RB can occasionally have a receiving line too, but v1
-# keeps one yardage market per position for simplicity (see spec's v1 scope).
-POSITION_YARDAGE_MARKET = {"QB": "passing_yards", "RB": "rushing_yards", "WR": "receiving_yards", "TE": "receiving_yards"}
+# Which markets apply to which position — a QB doesn't have a meaningful
+# rushing-yards prop line in practice, a WR/TE doesn't have a passing one,
+# etc. Each position can now have multiple markets (e.g. RB gets both
+# rushing_yards and carries).
+POSITION_MARKETS: dict[str, list[str]] = {
+    "QB": ["passing_yards"],
+    "RB": ["rushing_yards", "carries"],
+    "WR": ["receiving_yards", "receptions"],
+    "TE": ["receiving_yards", "receptions"],
+}
 
 
 def fit_anytime_td_classifier(X_train: pd.DataFrame, y_train: pd.Series) -> XGBClassifier:
@@ -43,8 +50,8 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
 
     result = {"anytime_td_prob": float(models["anytime_td"].predict_proba(X)[0, 1])}
 
-    market = POSITION_YARDAGE_MARKET.get(position)
-    if market and market in models:
-        result[market] = float(models[market].predict(X)[0])
+    for market in POSITION_MARKETS.get(position, []):
+        if market in models:
+            result[market] = float(models[market].predict(X)[0])
 
     return result

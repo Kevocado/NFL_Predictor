@@ -41,4 +41,13 @@ def test_build_features_for_player_returns_series_with_history():
     assert row["rushing_yards_roll"] == pytest.approx((81 + 82 + 83) / 3)
 
 
+def test_receptions_is_a_rolled_stat_and_feature_column():
+    assert "receptions" in player_usage.ROLL_STATS
+    assert "receptions_roll" in player_usage.PLAYER_FEATURE_COLUMNS
+
+    row = player_usage.build_features_for_player("p1", _player_stats())
+    assert row is not None
+    assert row["receptions_roll"] == pytest.approx(2.0)
+
+
 import pytest  # noqa: E402  (kept local to the test that needs it)

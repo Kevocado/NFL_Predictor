@@ -70,6 +70,12 @@ def _connect() -> sqlite3.Connection:
         )
         """
     )
+    # Phase 9: per-position MAE needs the player's position on each prop
+    # row. ALTER TABLE keeps existing rows (position NULL) readable --
+    # they stay in overall metrics, just out of position groups.
+    prop_cols = {row[1] for row in conn.execute("PRAGMA table_info(player_prop_predictions)")}
+    if "position" not in prop_cols:
+        conn.execute("ALTER TABLE player_prop_predictions ADD COLUMN position TEXT")
     return conn
 
 
@@ -294,7 +300,16 @@ def _summarize_games(resolved: pd.DataFrame) -> dict:
     }
 
 
-_YARDAGE_MARKETS = ("passing_yards", "rushing_yards", "receiving_yards")
+_YARDAGE_MARKETS = ("passing_yards", "rushing_yards", "receiving_yards", "receptions", "carries")
+
+# Anytime-TD confidence buckets: predicted-probability ranges whose
+# empirical hit rates calibrate the model's stated confidence. A
+# prediction below 0.5 isn't a "call" and lands in no bucket.
+_TD_CONFIDENCE_BUCKETS = (
+    ("50-60%", 0.50, 0.60),
+    ("60-70%", 0.60, 0.70),
+    ("70%+", 0.70, 1.01),
+)
 
 
 def _summarize_player_props(resolved: pd.DataFrame) -> dict:
@@ -302,24 +317,53 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
 
     anytime_td = resolved[resolved["market"] == "anytime_td"]
     if anytime_td.empty:
-        result["anytime_td"] = {"n_resolved": 0, "hit_rate_when_called": None, "brier_score": None}
+        result["anytime_td"] = {"n_resolved": 0, "hit_rate_when_called": None, "brier_score": None,
+                                "confidence_buckets": []}
     else:
         called = anytime_td[anytime_td["predicted_value"] >= 0.5]
+        buckets = []
+        for label, lo, hi in _TD_CONFIDENCE_BUCKETS:
+            in_bucket = anytime_td[(anytime_td["predicted_value"] >= lo) & (anytime_td["predicted_value"] < hi)]
+            buckets.append({
+                "bucket": label,
+                "n_resolved": int(len(in_bucket)),
+                # actual_value is 1.0/0.0 for anytime_td, so the mean is the hit rate,
+                # same convention as hit_rate_when_called above.
+                "hit_rate": float(in_bucket["actual_value"].mean()) if not in_bucket.empty else None,
+            })
         result["anytime_td"] = {
             "n_resolved": int(len(anytime_td)),
             "n_called": int(len(called)),
             "hit_rate_when_called": float(called["actual_value"].mean()) if not called.empty else None,
             "brier_score": float(((anytime_td["predicted_value"] - anytime_td["actual_value"]) ** 2).mean()),
+            "confidence_buckets": buckets,
         }
 
     for market in _YARDAGE_MARKETS:
         rows = resolved[resolved["market"] == market]
         if rows.empty:
-            result[market] = {"n_resolved": 0, "mean_absolute_error": None}
+            result[market] = {"n_resolved": 0, "mean_absolute_error": None,
+                              "mean_signed_error": None, "by_position": []}
         else:
+            signed_errors = rows["predicted_value"] - rows["actual_value"]
+            # Rows recorded before the position column existed (NULL)
+            # stay in the overall metrics; only positioned rows group.
+            positioned = rows[rows["position"].notna()] if "position" in rows.columns else rows.iloc[0:0]
+            by_position = [
+                {
+                    "position": position,
+                    "n_resolved": int(len(group)),
+                    "mean_absolute_error": float((group["predicted_value"] - group["actual_value"]).abs().mean()),
+                }
+                for position, group in sorted(positioned.groupby("position"))
+            ]
             result[market] = {
                 "n_resolved": int(len(rows)),
-                "mean_absolute_error": float((rows["predicted_value"] - rows["actual_value"]).abs().mean()),
+                "mean_absolute_error": float(signed_errors.abs().mean()),
+                # mean(predicted - actual): positive = systematic
+                # overprediction, negative = systematic underprediction.
+                "mean_signed_error": float(signed_errors.mean()),
+                "by_position": by_position,
             }
     return result
 
@@ -365,15 +409,16 @@ def record_player_prop_predictions(props: list[dict]) -> int:
         return 0
     now = datetime.now(timezone.utc).isoformat()
     rows = [
-        (prop["game_id"], prop["player_id"], prop["player_name"], prop["market"], float(prop["predicted_value"]), now)
+        (prop["game_id"], prop["player_id"], prop["player_name"], prop.get("position"),
+         prop["market"], float(prop["predicted_value"]), now)
         for prop in props
     ]
     with contextlib.closing(_connect()) as conn, conn:
         cursor = conn.executemany(
             """
             INSERT OR IGNORE INTO player_prop_predictions
-                (game_id, player_id, player_name, market, predicted_value, snapshotted_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (game_id, player_id, player_name, position, market, predicted_value, snapshotted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -385,6 +430,8 @@ _MARKET_TO_STAT_COLUMN = {
     "passing_yards": "passing_yards",
     "rushing_yards": "rushing_yards",
     "receiving_yards": "receiving_yards",
+    "receptions": "receptions",
+    "carries": "carries",
 }
 
 
