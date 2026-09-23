@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-23T04:55:59.619142+00:00",
+  "generated_at": "2026-09-23T11:53:23.288603+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8450,6 +8450,14 @@
           "receiving_yards": 60.787601470947266
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -9292,7 +9300,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -9512,6 +9520,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -9852,7 +9868,7 @@
         {
           "player_id": "00-0036635",
           "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.12296087294816971,
           "receiving_yards": 16.669153213500977
@@ -10512,6 +10528,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -11508,7 +11532,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -11796,7 +11820,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
@@ -12130,6 +12154,14 @@
           "receiving_yards": 23.962081909179688
         },
         {
+          "player_id": "00-0039458",
+          "player_name": "Brenden Bates",
+          "recent_team": "JAX",
+          "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0039464",
           "player_name": "Austin Reed",
           "recent_team": "BAL",
@@ -12164,7 +12196,7 @@
         {
           "player_id": "00-0039489",
           "player_name": "Hayden Rucci",
-          "recent_team": "JAX",
+          "recent_team": "LAC",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -16346,6 +16378,14 @@
           "receiving_yards": 60.787601470947266
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -17188,7 +17228,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -17408,6 +17448,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -17748,7 +17796,7 @@
         {
           "player_id": "00-0036635",
           "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.12296087294816971,
           "receiving_yards": 16.669153213500977
@@ -18408,6 +18456,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -19404,7 +19460,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -19692,7 +19748,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
@@ -20026,6 +20082,14 @@
           "receiving_yards": 23.962081909179688
         },
         {
+          "player_id": "00-0039458",
+          "player_name": "Brenden Bates",
+          "recent_team": "JAX",
+          "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0039464",
           "player_name": "Austin Reed",
           "recent_team": "BAL",
@@ -20060,7 +20124,7 @@
         {
           "player_id": "00-0039489",
           "player_name": "Hayden Rucci",
-          "recent_team": "JAX",
+          "recent_team": "LAC",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -24242,6 +24306,14 @@
           "receiving_yards": 60.787601470947266
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -25084,7 +25156,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -25304,6 +25376,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -25644,7 +25724,7 @@
         {
           "player_id": "00-0036635",
           "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.12296087294816971,
           "receiving_yards": 16.669153213500977
@@ -26304,6 +26384,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -27300,7 +27388,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -27588,7 +27676,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
@@ -27922,6 +28010,14 @@
           "receiving_yards": 23.962081909179688
         },
         {
+          "player_id": "00-0039458",
+          "player_name": "Brenden Bates",
+          "recent_team": "JAX",
+          "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0039464",
           "player_name": "Austin Reed",
           "recent_team": "BAL",
@@ -27956,7 +28052,7 @@
         {
           "player_id": "00-0039489",
           "player_name": "Hayden Rucci",
-          "recent_team": "JAX",
+          "recent_team": "LAC",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -32109,6 +32205,14 @@
           "receiving_yards": 60.787601470947266
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -32911,7 +33015,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -33131,6 +33235,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -33451,14 +33563,6 @@
           "position": "WR",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 18.336578369140625
-        },
-        {
-          "player_id": "00-0036635",
-          "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
-          "position": "WR",
-          "anytime_td_prob": 0.12296087294816971,
-          "receiving_yards": 16.669153213500977
         },
         {
           "player_id": "00-0036646",
@@ -34075,6 +34179,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -34991,7 +35103,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -35263,7 +35375,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
@@ -35565,6 +35677,14 @@
           "receiving_yards": 23.962081909179688
         },
         {
+          "player_id": "00-0039458",
+          "player_name": "Brenden Bates",
+          "recent_team": "JAX",
+          "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0039464",
           "player_name": "Austin Reed",
           "recent_team": "BAL",
@@ -35599,7 +35719,7 @@
         {
           "player_id": "00-0039489",
           "player_name": "Hayden Rucci",
-          "recent_team": "JAX",
+          "recent_team": "LAC",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -39435,6 +39555,14 @@
           "rushing_yards": 9.863127708435059
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -40173,7 +40301,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -40377,6 +40505,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -40661,7 +40797,7 @@
         {
           "player_id": "00-0036635",
           "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.12296087294816971,
           "receiving_yards": 16.669153213500977
@@ -41249,6 +41385,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -42157,7 +42301,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -42389,7 +42533,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
@@ -42707,6 +42851,14 @@
           "receiving_yards": 23.962081909179688
         },
         {
+          "player_id": "00-0039458",
+          "player_name": "Brenden Bates",
+          "recent_team": "JAX",
+          "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0039464",
           "player_name": "Austin Reed",
           "recent_team": "BAL",
@@ -42733,7 +42885,7 @@
         {
           "player_id": "00-0039489",
           "player_name": "Hayden Rucci",
-          "recent_team": "JAX",
+          "recent_team": "LAC",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -46361,6 +46513,14 @@
           "receiving_yards": 60.787601470947266
         },
         {
+          "player_id": "00-0030061",
+          "player_name": "Zach Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "anytime_td_prob": 0.29993724822998047,
+          "receiving_yards": 55.06380844116211
+        },
+        {
           "player_id": "00-0030279",
           "player_name": "Keenan Allen",
           "recent_team": "IND",
@@ -47091,7 +47251,7 @@
         {
           "player_id": "00-0035535",
           "player_name": "Darius Slayton",
-          "recent_team": "NYG",
+          "recent_team": "IND",
           "position": "WR",
           "anytime_td_prob": 0.13213251531124115,
           "receiving_yards": 24.15502166748047
@@ -47271,6 +47431,14 @@
           "position": "RB",
           "anytime_td_prob": 0.36843040585517883,
           "rushing_yards": 53.13397979736328
+        },
+        {
+          "player_id": "00-0036165",
+          "player_name": "Isaiah Hodgins",
+          "recent_team": "PIT",
+          "position": "WR",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.55524253845215
         },
         {
           "player_id": "00-0036182",
@@ -47563,7 +47731,7 @@
         {
           "player_id": "00-0036635",
           "player_name": "Ihmir Smith-Marsette",
-          "recent_team": "ARI",
+          "recent_team": "CAR",
           "position": "WR",
           "anytime_td_prob": 0.12296087294816971,
           "receiving_yards": 16.669153213500977
@@ -48151,6 +48319,14 @@
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037348",
+          "player_name": "Tanner Conner",
+          "recent_team": "NE",
+          "position": "TE",
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.1575984954834
         },
         {
           "player_id": "00-0037380",
@@ -49067,7 +49243,7 @@
         {
           "player_id": "00-0038891",
           "player_name": "Shedrick Jackson",
-          "recent_team": "LV",
+          "recent_team": "BAL",
           "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 17.86484146118164
@@ -49339,7 +49515,7 @@
         {
           "player_id": "00-0039152",
           "player_name": "Will Levis",
-          "recent_team": "TEN",
+          "recent_team": "NYJ",
           "position": "QB",
           "anytime_td_prob": 0.7033723592758179,
           "passing_yards": 203.03602600097656
