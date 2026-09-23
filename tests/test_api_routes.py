@@ -290,3 +290,41 @@ def test_get_power_rankings_includes_win_loss_record(client, monkeypatch):
     assert by_team["BAL"]["losses"] == 0
     assert by_team["KC"]["wins"] == 0
     assert by_team["KC"]["losses"] == 1
+
+
+def test_get_predictions_batch_is_keyed_by_game_id(client):
+    response = client.get("/api/predictions/2025/1/batch")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) == {"2025_01_BAL_KC"}
+    assert body["2025_01_BAL_KC"]["home_win_prob"] == 0.6
+
+
+def test_get_predictions_batch_skips_one_failing_game_without_failing_the_rest(client, monkeypatch):
+    monkeypatch.setattr(
+        routes.schedules, "fetch_week_games",
+        lambda season, week: pd.DataFrame(
+            [
+                {"game_id": "bad_game", "season": season, "week": week,
+                 "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+                 "home_score": None, "away_score": None, "spread_line": -2.5, "total_line": 46.5},
+                {"game_id": "good_game", "season": season, "week": week,
+                 "gameday": "2025-09-05", "home_team": "GB", "away_team": "PHI",
+                 "home_score": None, "away_score": None, "spread_line": 1.5, "total_line": 45.0},
+            ]
+        ),
+    )
+
+    def flaky_predict(models, home, away, games_df, spread_line=None, total_line=None):
+        if home == "BAL":
+            raise ValueError("feature build blew up")
+        return {"home_win_prob": 0.6, "away_win_prob": 0.4}
+
+    monkeypatch.setattr(routes, "_predict_game_from_models", flaky_predict)
+
+    response = client.get("/api/predictions/2025/1/batch")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body.keys()) == {"good_game"}

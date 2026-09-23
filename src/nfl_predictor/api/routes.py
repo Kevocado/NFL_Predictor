@@ -255,6 +255,27 @@ def _get_game_prediction_live(season: int, week: int, game_id: str):
     return prediction
 
 
+@router.get("/predictions/{season}/{week}/batch")
+def get_predictions_batch(season: int, week: int):
+    if PUBLIC_MODE:
+        snap = _snapshot_week(season, week)
+        if snap is not None:
+            return snap["predictions"]
+    return _get_predictions_batch_live(season, week)
+
+
+def _get_predictions_batch_live(season: int, week: int) -> dict:
+    games = schedules.fetch_week_games(season, week)
+    predictions: dict[str, dict] = {}
+    for _, game in games.iterrows():
+        try:
+            predictions[game["game_id"]] = _get_game_prediction_live(season, week, game["game_id"])
+        except Exception:
+            logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
+            continue
+    return predictions
+
+
 @router.get("/players/{season}/{week}/props")
 def get_player_props(season: int, week: int):
     if PUBLIC_MODE:
