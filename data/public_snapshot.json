@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-24T12:02:10.846771+00:00",
+  "generated_at": "2026-09-24T17:20:32.512079+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -15977,7 +15977,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
+          "spread_line": -1.5,
           "total_line": 42.5
         },
         {
@@ -16016,7 +16016,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -10.5,
-          "total_line": 46.5
+          "total_line": 45.5
         },
         {
           "game_id": "2026_03_TEN_NYG",
@@ -16034,8 +16034,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
-          "total_line": 39.5
+          "spread_line": 2.5,
+          "total_line": 38.5
         },
         {
           "game_id": "2026_03_CIN_PIT",
@@ -16242,8 +16242,8 @@
         "2026_03_HOU_IND": {
           "home_win_prob": 0.2954260889601903,
           "away_win_prob": 0.7045739110398097,
-          "home_cover_prob": 0.36371763554287073,
-          "away_cover_prob": 0.6362823644571293,
+          "home_cover_prob": 0.3357230569046985,
+          "away_cover_prob": 0.6642769430953015,
           "over_prob": 0.6070229701643195,
           "under_prob": 0.3929770298356805,
           "predicted_margin": -7.108787536621094,
@@ -16268,8 +16268,8 @@
           "away_win_prob": 0.752253011349807,
           "home_cover_prob": 0.5447726293321662,
           "away_cover_prob": 0.4552273706678338,
-          "over_prob": 0.41605075421129234,
-          "under_prob": 0.5839492457887077,
+          "over_prob": 0.44752307345668585,
+          "under_prob": 0.5524769265433142,
           "predicted_margin": -9.012858390808105,
           "predicted_total": 43.85273361206055,
           "sigma": 13.223153618916728,
@@ -16278,10 +16278,10 @@
         "2026_03_TEN_NYG": {
           "home_win_prob": 0.8732259192777378,
           "away_win_prob": 0.12677408072226215,
-          "home_cover_prob": 0.8198776121428759,
-          "away_cover_prob": 0.1801223878571241,
-          "over_prob": 0.7706819863078207,
-          "under_prob": 0.2293180136921793,
+          "home_cover_prob": 0.8296317997616025,
+          "away_cover_prob": 0.1703682002383975,
+          "over_prob": 0.7942281202014072,
+          "under_prob": 0.2057718797985928,
           "predicted_margin": 15.097846984863281,
           "predicted_total": 48.75381851196289,
           "sigma": 13.223153618916728,
