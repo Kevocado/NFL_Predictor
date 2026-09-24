@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-24T05:04:49.918471+00:00",
+  "generated_at": "2026-09-24T12:02:10.846771+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8522,6 +8522,14 @@
           "receiving_yards": 22.44120979309082
         },
         {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
+        },
+        {
           "player_id": "00-0031237",
           "player_name": "Teddy Bridgewater",
           "recent_team": "DET",
@@ -9968,6 +9976,14 @@
           "position": "TE",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 17.549158096313477
+        },
+        {
+          "player_id": "00-0036755",
+          "player_name": "Jaret Patterson",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.27778226137161255,
+          "rushing_yards": 42.880367279052734
         },
         {
           "player_id": "00-0036775",
@@ -15308,7 +15324,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -15698,6 +15714,14 @@
           "receiving_yards": 16.004743576049805
         },
         {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
           "player_id": "00-0041547",
           "player_name": "KC Concepcion",
           "recent_team": "CLE",
@@ -15877,7 +15901,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 5.5,
+          "spread_line": 4.5,
           "total_line": 42.5
         },
         {
@@ -16010,7 +16034,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 3.0,
           "total_line": 39.5
         },
         {
@@ -16170,8 +16194,8 @@
         "2026_03_ATL_GB": {
           "home_win_prob": 0.6843666583557046,
           "away_win_prob": 0.31563334164429535,
-          "home_cover_prob": 0.5255179354521231,
-          "away_cover_prob": 0.4744820645478769,
+          "home_cover_prob": 0.5555248523377646,
+          "away_cover_prob": 0.4444751476622354,
           "over_prob": 0.5108413585061491,
           "under_prob": 0.4891586414938509,
           "predicted_margin": 6.346383094787598,
@@ -16254,8 +16278,8 @@
         "2026_03_TEN_NYG": {
           "home_win_prob": 0.8732259192777378,
           "away_win_prob": 0.12677408072226215,
-          "home_cover_prob": 0.8296317997616025,
-          "away_cover_prob": 0.1703682002383975,
+          "home_cover_prob": 0.8198776121428759,
+          "away_cover_prob": 0.1801223878571241,
           "over_prob": 0.7706819863078207,
           "under_prob": 0.2293180136921793,
           "predicted_margin": 15.097846984863281,
@@ -16482,6 +16506,14 @@
           "receiving_yards": 22.44120979309082
         },
         {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
+        },
+        {
           "player_id": "00-0031237",
           "player_name": "Teddy Bridgewater",
           "recent_team": "DET",
@@ -17928,6 +17960,14 @@
           "position": "TE",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 17.549158096313477
+        },
+        {
+          "player_id": "00-0036755",
+          "player_name": "Jaret Patterson",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.27778226137161255,
+          "rushing_yards": 42.880367279052734
         },
         {
           "player_id": "00-0036775",
@@ -23268,7 +23308,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -23654,6 +23694,14 @@
           "player_name": "Louis Hansen",
           "recent_team": "HOU",
           "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
         },
@@ -24442,6 +24490,14 @@
           "receiving_yards": 22.44120979309082
         },
         {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
+        },
+        {
           "player_id": "00-0031237",
           "player_name": "Teddy Bridgewater",
           "recent_team": "DET",
@@ -25888,6 +25944,14 @@
           "position": "TE",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 17.549158096313477
+        },
+        {
+          "player_id": "00-0036755",
+          "player_name": "Jaret Patterson",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.27778226137161255,
+          "rushing_yards": 42.880367279052734
         },
         {
           "player_id": "00-0036775",
@@ -31228,7 +31292,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -31614,6 +31678,14 @@
           "player_name": "Louis Hansen",
           "recent_team": "HOU",
           "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
         },
@@ -32363,6 +32435,14 @@
           "receiving_yards": 22.44120979309082
         },
         {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
+        },
+        {
           "player_id": "00-0031237",
           "player_name": "Teddy Bridgewater",
           "recent_team": "DET",
@@ -33745,6 +33825,14 @@
           "position": "TE",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 17.549158096313477
+        },
+        {
+          "player_id": "00-0036755",
+          "player_name": "Jaret Patterson",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.27778226137161255,
+          "rushing_yards": 42.880367279052734
         },
         {
           "player_id": "00-0036775",
@@ -38677,7 +38765,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -39055,6 +39143,14 @@
           "player_name": "Louis Hansen",
           "recent_team": "HOU",
           "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
         },
@@ -39747,6 +39843,14 @@
           "position": "WR",
           "anytime_td_prob": 0.11529146879911423,
           "receiving_yards": 22.44120979309082
+        },
+        {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
         },
         {
           "player_id": "00-0031381",
@@ -45735,7 +45839,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -46033,6 +46137,14 @@
           "player_name": "Louis Hansen",
           "recent_team": "HOU",
           "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
         },
@@ -46735,6 +46847,14 @@
           "receiving_yards": 22.44120979309082
         },
         {
+          "player_id": "00-0031236",
+          "player_name": "Brandin Cooks",
+          "recent_team": "SF",
+          "position": "WR",
+          "anytime_td_prob": 0.2090146243572235,
+          "receiving_yards": 43.283206939697266
+        },
+        {
           "player_id": "00-0031237",
           "player_name": "Teddy Bridgewater",
           "recent_team": "DET",
@@ -47973,6 +48093,14 @@
           "position": "TE",
           "anytime_td_prob": 0.10275581479072571,
           "receiving_yards": 17.549158096313477
+        },
+        {
+          "player_id": "00-0036755",
+          "player_name": "Jaret Patterson",
+          "recent_team": "MIN",
+          "position": "RB",
+          "anytime_td_prob": 0.27778226137161255,
+          "rushing_yards": 42.880367279052734
         },
         {
           "player_id": "00-0036775",
@@ -52697,7 +52825,7 @@
         {
           "player_id": "00-0041327",
           "player_name": "Cody Hardy",
-          "recent_team": "NO",
+          "recent_team": "NYJ",
           "position": "TE",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
@@ -53019,6 +53147,14 @@
           "player_name": "Louis Hansen",
           "recent_team": "HOU",
           "position": "TE",
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041542",
+          "player_name": "Malick Meiga",
+          "recent_team": "SEA",
+          "position": "WR",
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
         },
