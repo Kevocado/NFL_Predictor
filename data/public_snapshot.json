@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-24T17:20:32.512079+00:00",
+  "generated_at": "2026-09-24T21:41:15.182603+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -15901,8 +15901,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 4.5,
-          "total_line": 42.5
+          "spread_line": 5.5,
+          "total_line": 43.5
         },
         {
           "game_id": "2026_03_LAC_BUF",
@@ -16072,7 +16072,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -7.0,
+          "spread_line": -7.5,
           "total_line": 40.5
         },
         {
@@ -16194,10 +16194,10 @@
         "2026_03_ATL_GB": {
           "home_win_prob": 0.6843666583557046,
           "away_win_prob": 0.31563334164429535,
-          "home_cover_prob": 0.5555248523377646,
-          "away_cover_prob": 0.4444751476622354,
-          "over_prob": 0.5108413585061491,
-          "under_prob": 0.4891586414938509,
+          "home_cover_prob": 0.5255179354521231,
+          "away_cover_prob": 0.4744820645478769,
+          "over_prob": 0.478903129577097,
+          "under_prob": 0.521096870422903,
           "predicted_margin": 6.346383094787598,
           "predicted_total": 42.83937072753906,
           "sigma": 13.223153618916728,
@@ -16302,8 +16302,8 @@
         "2026_03_SEA_WAS": {
           "home_win_prob": 0.2743472477106639,
           "away_win_prob": 0.7256527522893361,
-          "home_cover_prob": 0.47196030232701947,
-          "away_cover_prob": 0.5280396976729805,
+          "home_cover_prob": 0.48702445491885127,
+          "away_cover_prob": 0.5129755450811487,
           "over_prob": 0.5976195723417151,
           "under_prob": 0.40238042765828486,
           "predicted_margin": -7.93015718460083,
