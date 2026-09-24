@@ -220,12 +220,16 @@ def _get_games_live(season: int, week: int):
 @router.get("/teams/{team}/form")
 def get_team_form(team: str, season: int = CURRENT_SEASON, n: int = 5):
     history = _load_game_history(season)
-    return {"team": team, "recent_form": _team_recent_form(team, history, n)}
+    return {"team": team, "recent_form": _team_recent_form(team, history, n, season)}
 
 
-def _team_recent_form(team: str, history: pd.DataFrame, n: int) -> list[dict]:
+def _team_recent_form(team: str, history: pd.DataFrame, n: int, season: int) -> list[dict]:
+    # history spans multiple seasons (loaded for power-rating continuity) --
+    # recent form should only ever reflect the current season, not bleed in
+    # last season's results.
     played = history[
-        history["home_score"].notna() & history["away_score"].notna()
+        (history["season"] == season)
+        & history["home_score"].notna() & history["away_score"].notna()
         & ((history["home_team"] == team) | (history["away_team"] == team))
     ].sort_values("gameday")
     recent = played.tail(n)

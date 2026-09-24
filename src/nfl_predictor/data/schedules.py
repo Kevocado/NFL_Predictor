@@ -47,8 +47,23 @@ def fetch_schedules(seasons: list[int], force_refresh: bool = False) -> pd.DataF
             missing.append(season)
 
     if missing:
-        fetched = _import_schedules(missing)[KEEP_COLUMNS].copy()
-        fetched["gameday"] = pd.to_datetime(fetched["gameday"])
+        raw = _import_schedules(missing)
+        fetched = raw[KEEP_COLUMNS].copy()
+        # nfl_data_py's own "gameday" column is date-only (midnight) -- the
+        # actual kickoff time lives in the separate "gametime" column, in US
+        # Eastern local time (nflverse convention). Combine them and convert
+        # to UTC so the API always returns a real kickoff timestamp instead
+        # of every game showing 12:00 AM.
+        gametime = raw["gametime"] if "gametime" in raw.columns else pd.Series("00:00", index=raw.index)
+        combined = pd.to_datetime(
+            fetched["gameday"].astype(str) + " " + gametime.fillna("00:00"),
+            errors="coerce",
+        )
+        localized = combined.dt.tz_localize("America/New_York", ambiguous="NaT", nonexistent="NaT")
+        fetched["gameday"] = localized.dt.tz_convert("UTC").dt.tz_localize(None)
+        # A row whose gametime failed to combine (rare -- malformed/missing
+        # gametime) still gets a usable date, just without a real kickoff time.
+        fetched["gameday"] = fetched["gameday"].fillna(pd.to_datetime(raw["gameday"]))
         for season in missing:
             season_df = fetched[fetched["season"] == season].reset_index(drop=True)
             season_df.to_parquet(_season_cache_path(season))

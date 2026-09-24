@@ -9,14 +9,14 @@ def _raw_schedule_frame():
         [
             {
                 "game_id": "2025_01_KC_BAL", "season": 2025, "week": 1,
-                "gameday": "2025-09-04", "home_team": "BAL", "away_team": "KC",
+                "gameday": "2025-09-04", "gametime": "20:20", "home_team": "BAL", "away_team": "KC",
                 "home_score": 27, "away_score": 20, "home_rest": 7, "away_rest": 7,
                 "div_game": 0, "roof": "outdoors", "surface": "grass",
                 "temp": 72.0, "wind": 5.0, "spread_line": -2.5, "total_line": 46.5,
             },
             {
                 "game_id": "2025_01_PHI_GB", "season": 2025, "week": 1,
-                "gameday": "2025-09-05", "home_team": "GB", "away_team": "PHI",
+                "gameday": "2025-09-05", "gametime": "13:00", "home_team": "GB", "away_team": "PHI",
                 "home_score": None, "away_score": None, "home_rest": 7, "away_rest": 7,
                 "div_game": 0, "roof": "outdoors", "surface": "grass",
                 "temp": None, "wind": None, "spread_line": 1.5, "total_line": 45.0,
@@ -42,6 +42,19 @@ def test_fetch_schedules_caches_per_season(monkeypatch, tmp_path):
     assert len(first) == 2
     assert list(first.columns).__contains__("home_team")
     assert second.equals(first)
+
+
+def test_fetch_schedules_combines_gameday_and_gametime_into_a_real_kickoff(monkeypatch, tmp_path):
+    """nfl_data_py's own "gameday" is date-only (midnight) -- without
+    combining it with "gametime", every game would show 12:00 AM."""
+    monkeypatch.setattr(schedules, "SCHEDULES_CACHE_DIR", tmp_path)
+    monkeypatch.setattr(schedules, "_import_schedules", lambda years: _raw_schedule_frame())
+
+    games = schedules.fetch_schedules([2025])
+
+    kickoff = games[games["game_id"] == "2025_01_KC_BAL"].iloc[0]["gameday"]
+    # 20:20 America/New_York on 2025-09-04 (EDT, UTC-4) -> 2025-09-05 00:20 UTC.
+    assert kickoff == pd.Timestamp("2025-09-05 00:20:00")
 
 
 def test_load_training_data_drops_unplayed_games(monkeypatch, tmp_path):
