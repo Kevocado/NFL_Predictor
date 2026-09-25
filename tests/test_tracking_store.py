@@ -421,3 +421,25 @@ def test_empty_track_record_includes_phase9_metric_keys():
     assert record["anytime_td"]["confidence_buckets"] == []
     assert record["rushing_yards"]["mean_signed_error"] is None
     assert record["rushing_yards"]["by_position"] == []
+
+
+def test_get_predictions_for_week_marks_picks_rebuilt_after_kickoff():
+    """A pick backfilled after the game (record_resolved_game_predictions) is
+    not a pre-kickoff call: the week view must say so, so the site can label
+    it and leave it out of the record."""
+    store.record_game_predictions([_future_game(game_id="g1")])
+    store.reconcile_game_predictions(pd.DataFrame([{"game_id": "g1", "home_score": 30, "away_score": 20}]))
+    store.record_resolved_game_predictions([{
+        "game_id": "g3", "home_team": "NYJ", "away_team": "BUF", "commence_time": "2025-09-07T17:00:00+00:00",
+        "home_win_prob": 0.4, "away_win_prob": 0.6, "actual_home_score": 10, "actual_away_score": 24,
+    }])
+    games_df = pd.DataFrame([
+        {"game_id": "g1", "home_team": "BAL", "away_team": "KC"},
+        {"game_id": "g3", "home_team": "NYJ", "away_team": "BUF"},
+    ])
+
+    by_id = {row["game_id"]: row for row in store.get_predictions_for_week(2025, 1, games_df)}
+
+    assert by_id["g1"]["rebuilt"] is False
+    assert by_id["g3"]["rebuilt"] is True
+    assert by_id["g3"]["status"] == "resolved"
