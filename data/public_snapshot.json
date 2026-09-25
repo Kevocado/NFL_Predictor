@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25T05:10:14.672014+00:00",
+  "generated_at": "2026-09-25T12:05:19.621680+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -15898,9 +15898,9 @@
           "away_rest": 4,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 61.0,
+          "wind": 5.0,
           "spread_line": 4.5,
           "total_line": 43.5
         },
@@ -23616,8 +23616,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": -1.5,
+          "total_line": 45.5
         },
         {
           "game_id": "2026_04_MIA_MIN",
@@ -23730,8 +23730,8 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 3.5,
+          "total_line": 45.5
         }
       ],
       "predictions": {
@@ -23846,10 +23846,10 @@
         "2026_04_GB_TB": {
           "home_win_prob": 0.4894638959735892,
           "away_win_prob": 0.5105361040264108,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.5346738699270537,
+          "away_cover_prob": 0.4653261300729463,
+          "over_prob": 0.494941983292446,
+          "under_prob": 0.505058016707554,
           "predicted_margin": -0.34926536679267883,
           "predicted_total": 45.34168243408203,
           "sigma": 13.223153618916728,
@@ -23918,10 +23918,10 @@
         "2026_04_ATL_NO": {
           "home_win_prob": 0.5815807505973241,
           "away_win_prob": 0.41841924940267594,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.47657635049490954,
+          "away_cover_prob": 0.5234236495050905,
+          "over_prob": 0.5768425400636382,
+          "under_prob": 0.4231574599363618,
           "predicted_margin": 2.7231640815734863,
           "predicted_total": 47.92020034790039,
           "sigma": 13.223153618916728,
