@@ -254,21 +254,42 @@ def test_pick_timing_is_pre_kickoff_for_a_snapshotted_row(public, monkeypatch):
 # --- started games: the pick is only ever the stored pre-start one -------
 
 def test_started_game_uses_the_stored_pre_start_pick(public, monkeypatch):
+    # The public snapshot rebuilds the current and previous week every 3 h,
+    # so for a started game its prediction is today's model, recomputed after
+    # kickoff. Only the tracking row holds the pick made before kickoff.
     started = _game(gameday="2026-09-20T00:20:00")  # already kicked off
-    _install_snapshot(monkeypatch, _snapshot(game=started, prediction=_prediction(home_win_prob=0.71)))
+    _install_snapshot(monkeypatch, _snapshot(game=started, prediction=_prediction(home_win_prob=0.71, away_win_prob=0.29)))
 
     body = public.get(f"/facts/{GAME_ID}").json()
 
     assert body["status"] == "live"
-    # The stored pre-start number, not a fresh compute.
-    assert body["pick"] == {"label": "BAL", "prob": 0.71}
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}  # the stored row, not the rebuilt snapshot
+    # The row carries no margin/total, so no post-kickoff spread or total is quoted.
+    assert {m["market"] for m in body["markets"]} <= {"moneyline"}
+    assert "0.71" not in str(body["markets"])
+
+
+def test_final_judges_the_stored_pick_even_when_the_rebuilt_snapshot_flipped(public, monkeypatch):
+    final = _game(gameday="2026-09-20T00:20:00", home_score=20, away_score=27)
+    # After kickoff the snapshot rebuilt KC as favourite; before kickoff the stored pick was BAL.
+    _install_snapshot(monkeypatch, _snapshot(game=final, prediction=_prediction(home_win_prob=0.40, away_win_prob=0.60)))
+    monkeypatch.setattr(facts_mod.store, "get_predictions_for_week",
+                        lambda season, week, games_df: _week_rows(status="resolved"))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}
+    assert body["result"]["pick_won"] is False  # BAL lost 20-27
+    Facts(**body)
 
 
 def test_started_game_without_a_stored_pick_has_no_pick(public, monkeypatch):
     started = _game(gameday="2026-09-20T00:20:00")
     snap = _snapshot(game=started)
-    snap["weeks"]["5"]["predictions"] = {}  # nothing was snapshotted pre-start
     _install_snapshot(monkeypatch, snap)
+    # Nothing was stored before kickoff: no tracking row (the snapshot's own
+    # prediction is a post-kickoff rebuild and must not stand in for one).
+    monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: [])
 
     body = public.get(f"/facts/{GAME_ID}").json()
 
