@@ -459,3 +459,15 @@ def test_unknown_game_id_is_404(public, monkeypatch):
     _install_snapshot(monkeypatch, _snapshot())
 
     assert public.get("/facts/2026_05_XX_YY").status_code == 404
+
+
+def test_started_game_quotes_no_rebuilt_player_projections(public, monkeypatch):
+    # The snapshot's player props for the current/previous week are rebuilt
+    # after kickoff, like its predictions; a started game quotes none.
+    started = _game(gameday="2026-09-20T00:20:00")
+    _install_snapshot(monkeypatch, _snapshot(game=started))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "live"
+    assert body["players"] == []

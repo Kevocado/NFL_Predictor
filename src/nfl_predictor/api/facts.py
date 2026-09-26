@@ -281,7 +281,7 @@ def _markets(game: dict, prediction: dict | None) -> list[dict]:
     return out
 
 
-def _drivers(game: dict, season: int, home_team: str, away_team: str) -> list[dict]:
+def _drivers(game: dict, season: int, home_team: str, away_team: str, live_ok: bool = True) -> list[dict]:
     """Why the model leans the way it does. In public mode only what the
     snapshot actually carries — a rating gap would mean computing live."""
     drivers: list[dict] = []
@@ -290,7 +290,7 @@ def _drivers(game: dict, season: int, home_team: str, away_team: str) -> list[di
     away_rest = _num(game.get("away_rest"))
     div_game = game.get("div_game")
 
-    if not PUBLIC_MODE:
+    if not PUBLIC_MODE and live_ok:
         try:
             history = routes._load_game_history(season)
             history = history[history["game_id"] != game["game_id"]]
@@ -445,9 +445,11 @@ def get_facts(game_id: str) -> dict:
         "pick_timing": pick_timing,
         "pick": pick,
         "markets": markets,
-        "drivers": _drivers(game, season, home_team, away_team),
+        # Player props and the live rating gap are rebuilt/computed now, so a
+        # started game quotes neither; rest and divisional status are fixed.
+        "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
         "context": _context(game, game.get("home_rest"), game.get("away_rest")),
-        "players": _players(_props(season, week), {home_team, away_team}),
+        "players": [] if started else _players(_props(season, week), {home_team, away_team}),
         "record": _record(),
         "result": _result(game, status, pick_timing, stored),
     }
