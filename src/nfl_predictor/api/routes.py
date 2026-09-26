@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date
+import os
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 
 import pandas as pd
@@ -145,6 +146,8 @@ def _predict_game_from_models(
     result["predicted_total"] = predicted_total
     result["sigma"] = models["sigma"]
     result["total_sigma"] = models["total_sigma"]
+    # Which model produced this number, so the frozen snapshot carries its own provenance.
+    result["model_version"] = models.get("model_version")
     return result
 
 
@@ -589,12 +592,42 @@ def _attach_game_id(stats_df: pd.DataFrame, games_df: pd.DataFrame) -> pd.DataFr
     return stats_df.merge(team_game, on=["season", "week", "recent_team"], how="inner")
 
 
+# How close to kickoff a game's prediction is frozen. The first snapshot inside this window is
+# kept forever (INSERT OR IGNORE), so it is the one the track record grades and the Kalshi feed
+# serves. 48h lands after the prior week's Monday night game for every slot (Thu/Sat/Sun/Mon).
+SNAPSHOT_LEAD_HOURS = float(os.getenv("SNAPSHOT_LEAD_HOURS", "48"))
+
+
+def _games_to_snapshot(season: int, week: int, now: datetime, lead_hours: float | None = None) -> pd.DataFrame:
+    """Upcoming games from this week AND next whose kickoff is within the lead window.
+
+    Next week is included because `current_season_and_week()` rolls over on the UTC date of week
+    1's first kickoff (a Friday for NFL, a Saturday for CFB). Relying on the current week left
+    Thursday-night games unsnapshotted until after their kickoff, at which point
+    `record_game_predictions` rejects them -- so they were never tracked at all. It also froze
+    next week's games on the previous Saturday, before that day's results.
+
+    The window filters on the UPPER bound only: past games still reach `record_game_predictions`,
+    which rejects them itself, and the tick's own test depends on that.
+    """
+    lead = timedelta(hours=SNAPSHOT_LEAD_HOURS if lead_hours is None else lead_hours)
+    frames = [f for f in (schedules.fetch_upcoming_games(season, wk) for wk in (week, week + 1)) if not f.empty]
+    if not frames:
+        return pd.DataFrame()
+    games = pd.concat(frames, ignore_index=True)
+    kickoff = pd.to_datetime(games["gameday"], utc=True, errors="coerce")
+    horizon = pd.Timestamp(now + lead)
+    # A NaT kickoff cannot be placed relative to the window, and snapshotting it would freeze a
+    # prediction at an unknown distance from kickoff.
+    return games[kickoff.notna() & (kickoff <= horizon)].drop_duplicates("game_id").reset_index(drop=True)
+
+
 def background_tracking_tick(season: int, week: int) -> None:
     """Snapshot this week's upcoming-game (and player-prop) predictions,
     then reconcile anything now resolved. Called on a timer from
     api/main.py's lifespan the same way PL_Predictor's own
     background_tracking_tick is."""
-    games = schedules.fetch_upcoming_games(season, week)
+    games = _games_to_snapshot(season, week, datetime.now(timezone.utc))
     if not games.empty:
         models = _load_models_cached()
         history = _load_game_history(season)
@@ -608,7 +641,10 @@ def background_tracking_tick(season: int, week: int) -> None:
                 predictions.append(
                     {
                         "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
-                        "commence_time": str(game["gameday"]), "season": season, "week": week,
+                        "commence_time": str(game["gameday"]), "season": season,
+                        # This tick also snapshots NEXT week's games, so each row must carry its
+                        # own week rather than the tick's.
+                        "week": int(game["week"]) if pd.notna(game.get("week")) else week,
                         "home_spread_line": game.get("spread_line"), "total_line": game.get("total_line"),
                         **pred,
                     }
