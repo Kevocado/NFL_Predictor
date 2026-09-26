@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
@@ -77,11 +78,28 @@ def refresh_public_snapshot_from_remote() -> bool:
     return True
 
 
+def _json_safe(value):
+    """NaN/inf -> None, recursively.
+
+    Snapshots written before missing lines were handled contain NaN, and Starlette refuses to
+    serialize it, so the live /batch returned 500. Sanitizing at the serving edge also covers
+    every other non-finite value that a stale snapshot might carry.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 def _snapshot_week(season: int, week: int) -> dict | None:
     snap = _public_snapshot()
     if snap.get("season") != season:
         return None
-    return snap.get("weeks", {}).get(str(week))
+    week_snap = snap.get("weeks", {}).get(str(week))
+    return None if week_snap is None else _json_safe(week_snap)
 
 
 def current_season_and_week() -> tuple[int, int]:

@@ -13,6 +13,8 @@ regression, and XGBoost — whichever wins held-out log-loss is served.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
@@ -66,6 +68,14 @@ def residual_sigma(model, X_val: pd.DataFrame, y_val: pd.Series) -> float:
     return float(np.std(residuals, ddof=1)) if len(residuals) > 1 else float(np.std(residuals) or 1.0)
 
 
+def _line_or_none(line: float | None) -> float | None:
+    """A missing line is NaN as often as it is None. nflverse writes NaN, and `is not None` let it
+    through, so a game with no line produced NaN cover/over probabilities instead of none."""
+    if line is None or math.isnan(float(line)):
+        return None
+    return float(line)
+
+
 def margin_to_probabilities(
     predicted_margin: float,
     sigma: float,
@@ -92,6 +102,8 @@ def margin_to_probabilities(
     CFB_Predictor's identical bug: every game showed a fake 50/50 covers
     market, traced to the shared Odds API key being out of quota so
     spread_line was always None."""
+    spread_line = _line_or_none(spread_line)
+    total_line = _line_or_none(total_line)
     home_win_prob = float(1.0 - norm.cdf(0.0, loc=predicted_margin, scale=sigma))
     result = {"home_win_prob": home_win_prob, "away_win_prob": 1.0 - home_win_prob}
 
