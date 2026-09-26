@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T16:34:25.097146+00:00",
+  "generated_at": "2026-09-26T21:19:39.369986+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -15921,7 +15921,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 50.5
+          "total_line": 49.5
         },
         {
           "game_id": "2026_03_CAR_CLE",
@@ -16129,7 +16129,7 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": -3.5,
+          "spread_line": -3.0,
           "total_line": 53.5
         },
         {
@@ -16186,8 +16186,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -4.5,
-          "total_line": 41.5
+          "spread_line": -3.5,
+          "total_line": 42.5
         }
       ],
       "predictions": {
@@ -16208,8 +16208,8 @@
           "away_win_prob": 0.1250732687747207,
           "home_cover_prob": 0.7325748493549848,
           "away_cover_prob": 0.26742515064501515,
-          "over_prob": 0.4057646093770545,
-          "under_prob": 0.5942353906229455,
+          "over_prob": 0.4370832489001676,
+          "under_prob": 0.5629167510998324,
           "predicted_margin": 15.206541061401367,
           "predicted_total": 47.52250289916992,
           "sigma": 13.223153618916728,
@@ -16338,8 +16338,8 @@
         "2026_03_BAL_DAL": {
           "home_win_prob": 0.278751209880464,
           "away_win_prob": 0.721248790119536,
-          "home_cover_prob": 0.37377632935577143,
-          "away_cover_prob": 0.6262236706442286,
+          "home_cover_prob": 0.3595430334806937,
+          "away_cover_prob": 0.6404569665193063,
           "over_prob": 0.3307480628503503,
           "under_prob": 0.6692519371496497,
           "predicted_margin": -7.756110668182373,
@@ -16374,10 +16374,10 @@
         "2026_03_PHI_CHI": {
           "home_win_prob": 0.49344381007395477,
           "away_win_prob": 0.5065561899260452,
-          "home_cover_prob": 0.6269846072424675,
-          "away_cover_prob": 0.3730153927575325,
-          "over_prob": 0.7246450985927825,
-          "under_prob": 0.2753549014072175,
+          "home_cover_prob": 0.5980305015871503,
+          "away_cover_prob": 0.4019694984128497,
+          "over_prob": 0.6972863260458785,
+          "under_prob": 0.3027136739541215,
           "predicted_margin": -0.21731817722320557,
           "predicted_total": 48.950767517089844,
           "sigma": 13.223153618916728,
@@ -23597,7 +23597,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": -2.5,
           "total_line": 45.5
         },
         {
@@ -23834,8 +23834,8 @@
         "2026_04_LA_PHI": {
           "home_win_prob": 0.5353287687176306,
           "away_win_prob": 0.4646712312823694,
-          "home_cover_prob": 0.5800844559179752,
-          "away_cover_prob": 0.4199155440820248,
+          "home_cover_prob": 0.6093918999575221,
+          "away_cover_prob": 0.3906081000424779,
           "over_prob": 0.33734108485885916,
           "under_prob": 0.6626589151411408,
           "predicted_margin": 1.1725255250930786,
