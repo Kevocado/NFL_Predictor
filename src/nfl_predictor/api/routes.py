@@ -20,6 +20,8 @@ from ..config import (
     PUBLIC_SNAPSHOT_REFRESH_URL,
 )
 from ..data import player_stats, schedules, teams as teams_data
+from ..data import team_efficiency as team_efficiency_mod
+from ..data.player_season import player_season
 from ..features import build as feature_build
 from ..features import player_usage
 from ..features import power_ratings
@@ -535,6 +537,35 @@ def _get_power_rankings_live(season: int) -> dict:
             "division": division_by_team.get(team),
         })
     return {"season": season, "rankings": rankings}
+
+
+@router.get("/hub/teams")
+def get_hub_teams(season: int = CURRENT_SEASON):
+    if PUBLIC_MODE:
+        snap = _public_snapshot()
+        if snap.get("season") == season and "hub_teams" in snap:
+            return snap["hub_teams"]
+    return _get_hub_teams_live(season)
+
+
+def _get_hub_teams_live(season: int) -> dict:
+    games = _load_game_history(season)
+    pbp = team_efficiency_mod.load_pbp(season)
+    return {"season": season, "teams": team_efficiency_mod.team_efficiency(pbp, games, season)}
+
+
+@router.get("/hub/players")
+def get_hub_players(season: int = CURRENT_SEASON):
+    if PUBLIC_MODE:
+        snap = _public_snapshot()
+        if snap.get("season") == season and "hub_players" in snap:
+            return snap["hub_players"]
+    return _get_hub_players_live(season)
+
+
+def _get_hub_players_live(season: int) -> dict:
+    weekly = player_stats.fetch_weekly_player_stats([season])
+    return {"season": season, **player_season(weekly, season)}
 
 
 @router.post("/retrain")
