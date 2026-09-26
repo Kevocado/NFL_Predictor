@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-25T05:10:14.672014+00:00",
+  "generated_at": "2026-09-26T16:34:25.097146+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8224,10 +8224,10 @@
           "away_win_prob": 0.3200623420443778,
           "home_cover_prob": 0.7442766772182949,
           "away_cover_prob": 0.25572332278170506,
-          "over_prob": 0.6748082695665776,
-          "under_prob": 0.3251917304334224,
+          "over_prob": 0.6669870532611235,
+          "under_prob": 0.3330129467388765,
           "predicted_margin": 6.182147979736328,
-          "predicted_total": 49.15933609008789,
+          "predicted_total": 48.88936233520508,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
@@ -8236,10 +8236,10 @@
           "away_win_prob": 0.2751556974359589,
           "home_cover_prob": 0.481847098613152,
           "away_cover_prob": 0.518152901386848,
-          "over_prob": 0.5117087782068961,
-          "under_prob": 0.4882912217931039,
+          "over_prob": 0.5030849277898553,
+          "under_prob": 0.49691507221014475,
           "predicted_margin": 7.898104667663574,
-          "predicted_total": 45.86653137207031,
+          "predicted_total": 45.5965576171875,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
@@ -8332,21 +8332,21 @@
           "away_win_prob": 0.32137989825114444,
           "home_cover_prob": 0.4889433730739199,
           "away_cover_prob": 0.5110566269260801,
-          "over_prob": 0.5249851903989817,
-          "under_prob": 0.4750148096010183,
+          "over_prob": 0.5163714473417649,
+          "under_prob": 0.4836285526582351,
           "predicted_margin": 6.133475303649902,
-          "predicted_total": 44.282535552978516,
+          "predicted_total": 44.0125617980957,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
         "2026_02_SEA_ARI": {
-          "home_win_prob": 0.27939012813705366,
-          "away_win_prob": 0.7206098718629463,
-          "home_cover_prob": 0.3744966877953897,
-          "away_cover_prob": 0.6255033122046103,
+          "home_win_prob": 0.2658503331150528,
+          "away_win_prob": 0.7341496668849472,
+          "home_cover_prob": 0.3591525931411974,
+          "away_cover_prob": 0.6408474068588026,
           "over_prob": 0.6441003552493962,
           "under_prob": 0.35589964475060376,
-          "predicted_margin": -7.7309722900390625,
+          "predicted_margin": -8.269919395446777,
           "predicted_total": 45.11309051513672,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
@@ -8380,21 +8380,21 @@
           "away_win_prob": 0.346290242970701,
           "home_cover_prob": 0.4767174092680887,
           "away_cover_prob": 0.5232825907319113,
-          "over_prob": 0.42340757863403944,
-          "under_prob": 0.5765924213659606,
+          "over_prob": 0.41495984999819313,
+          "under_prob": 0.5850401500018069,
           "predicted_margin": 5.227847576141357,
-          "predicted_total": 44.08777618408203,
+          "predicted_total": 43.81780242919922,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
         "2026_02_NYG_LA": {
-          "home_win_prob": 0.6575680614890171,
-          "away_win_prob": 0.34243193851098286,
-          "home_cover_prob": 0.46584169432316813,
-          "away_cover_prob": 0.5341583056768319,
+          "home_win_prob": 0.6549791923983035,
+          "away_win_prob": 0.3450208076016965,
+          "home_cover_prob": 0.46304575575250284,
+          "away_cover_prob": 0.5369542442474972,
           "over_prob": 0.41559367938690017,
           "under_prob": 0.5844063206130998,
-          "predicted_margin": 5.36641788482666,
+          "predicted_margin": 5.273375034332275,
           "predicted_total": 44.83810043334961,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
@@ -15898,9 +15898,9 @@
           "away_rest": 4,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": null,
-          "temp": null,
-          "wind": null,
+          "surface": "grass",
+          "temp": 61.0,
+          "wind": 5.0,
           "spread_line": 4.5,
           "total_line": 43.5
         },
@@ -15959,7 +15959,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 6.5,
-          "total_line": 47.5
+          "total_line": 48.5
         },
         {
           "game_id": "2026_03_HOU_IND",
@@ -16015,7 +16015,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -10.5,
+          "spread_line": -10.0,
           "total_line": 45.5
         },
         {
@@ -16035,7 +16035,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 38.5
+          "total_line": 37.5
         },
         {
           "game_id": "2026_03_CIN_PIT",
@@ -16208,10 +16208,10 @@
           "away_win_prob": 0.1250732687747207,
           "home_cover_prob": 0.7325748493549848,
           "away_cover_prob": 0.26742515064501515,
-          "over_prob": 0.3921912902974053,
-          "under_prob": 0.6078087097025947,
+          "over_prob": 0.4057646093770545,
+          "under_prob": 0.5942353906229455,
           "predicted_margin": 15.206541061401367,
-          "predicted_total": 47.08348846435547,
+          "predicted_total": 47.52250289916992,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
@@ -16232,10 +16232,10 @@
           "away_win_prob": 0.234381347097965,
           "home_cover_prob": 0.5920927736762606,
           "away_cover_prob": 0.40790722632373944,
-          "over_prob": 0.5207938142788499,
-          "under_prob": 0.47920618572115015,
+          "over_prob": 0.5028800577550858,
+          "under_prob": 0.4971199422449142,
           "predicted_margin": 9.58009147644043,
-          "predicted_total": 48.15113067626953,
+          "predicted_total": 48.590145111083984,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214
         },
@@ -16266,8 +16266,8 @@
         "2026_03_KC_MIA": {
           "home_win_prob": 0.24774698865019296,
           "away_win_prob": 0.752253011349807,
-          "home_cover_prob": 0.5447726293321662,
-          "away_cover_prob": 0.4552273706678338,
+          "home_cover_prob": 0.5297544031888672,
+          "away_cover_prob": 0.47024559681113276,
           "over_prob": 0.44752307345668585,
           "under_prob": 0.5524769265433142,
           "predicted_margin": -9.012858390808105,
@@ -16280,8 +16280,8 @@
           "away_win_prob": 0.12677408072226215,
           "home_cover_prob": 0.8296317997616025,
           "away_cover_prob": 0.1703682002383975,
-          "over_prob": 0.7942281202014072,
-          "under_prob": 0.2057718797985928,
+          "over_prob": 0.8162763506678199,
+          "under_prob": 0.1837236493321801,
           "predicted_margin": 15.097846984863281,
           "predicted_total": 48.75381851196289,
           "sigma": 13.223153618916728,
@@ -23616,8 +23616,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": -1.5,
+          "total_line": 45.5
         },
         {
           "game_id": "2026_04_MIA_MIN",
@@ -23692,7 +23692,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 4.5,
+          "spread_line": 3.0,
           "total_line": 45.5
         },
         {
@@ -23730,8 +23730,8 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 3.5,
+          "total_line": 45.5
         }
       ],
       "predictions": {
@@ -23846,10 +23846,10 @@
         "2026_04_GB_TB": {
           "home_win_prob": 0.4894638959735892,
           "away_win_prob": 0.5105361040264108,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.5346738699270537,
+          "away_cover_prob": 0.4653261300729463,
+          "over_prob": 0.494941983292446,
+          "under_prob": 0.505058016707554,
           "predicted_margin": -0.34926536679267883,
           "predicted_total": 45.34168243408203,
           "sigma": 13.223153618916728,
@@ -23894,8 +23894,8 @@
         "2026_04_DEN_SF": {
           "home_win_prob": 0.5258071342167714,
           "away_win_prob": 0.4741928657832286,
-          "home_cover_prob": 0.39143607110671697,
-          "away_cover_prob": 0.608563928893283,
+          "home_cover_prob": 0.4355975282988994,
+          "away_cover_prob": 0.5644024717011006,
           "over_prob": 0.3178459408875649,
           "under_prob": 0.6821540591124351,
           "predicted_margin": 0.855988621711731,
@@ -23918,10 +23918,10 @@
         "2026_04_ATL_NO": {
           "home_win_prob": 0.5815807505973241,
           "away_win_prob": 0.41841924940267594,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": 0.47657635049490954,
+          "away_cover_prob": 0.5234236495050905,
+          "over_prob": 0.5768425400636382,
+          "under_prob": 0.4231574599363618,
           "predicted_margin": 2.7231640815734863,
           "predicted_total": 47.92020034790039,
           "sigma": 13.223153618916728,
@@ -134180,5 +134180,1318 @@
         "division": "AFC South"
       }
     ]
+  },
+  "hub_teams": {
+    "season": 2026,
+    "teams": [
+      {
+        "team": "ARI",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 16.5,
+        "points_against_pg": 22.5,
+        "off_epa_play": -0.046,
+        "def_epa_play": -0.03,
+        "off_success_rate": 0.422,
+        "def_success_rate": 0.432,
+        "yards_per_play": 4.72,
+        "pass_rate": 0.603,
+        "turnover_margin": 2,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "SEA",
+            "is_home": true,
+            "team_score": 7,
+            "opponent_score": 31,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "LAC",
+            "is_home": false,
+            "team_score": 26,
+            "opponent_score": 14,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "ATL",
+        "games": 3,
+        "wins": 1,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 17.0,
+        "points_against_pg": 22.7,
+        "off_epa_play": -0.151,
+        "def_epa_play": -0.05,
+        "off_success_rate": 0.466,
+        "def_success_rate": 0.388,
+        "yards_per_play": 5.43,
+        "pass_rate": 0.481,
+        "turnover_margin": -6,
+        "streak": 1,
+        "form": [
+          "L",
+          "L",
+          "W"
+        ],
+        "form_trend": "steady",
+        "recent_games": [
+          {
+            "gameday": "2026-09-25",
+            "opponent": "GB",
+            "is_home": false,
+            "team_score": 35,
+            "opponent_score": 14,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-20",
+            "opponent": "CAR",
+            "is_home": true,
+            "team_score": 3,
+            "opponent_score": 34,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "PIT",
+            "is_home": false,
+            "team_score": 13,
+            "opponent_score": 20,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "BAL",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 29.0,
+        "points_against_pg": 23.5,
+        "off_epa_play": 0.223,
+        "def_epa_play": -0.028,
+        "off_success_rate": 0.565,
+        "def_success_rate": 0.436,
+        "yards_per_play": 7.14,
+        "pass_rate": 0.574,
+        "turnover_margin": 0,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "NO",
+            "is_home": true,
+            "team_score": 17,
+            "opponent_score": 24,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "IND",
+            "is_home": false,
+            "team_score": 41,
+            "opponent_score": 23,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "BUF",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 38.5,
+        "points_against_pg": 31.0,
+        "off_epa_play": 0.344,
+        "def_epa_play": 0.144,
+        "off_success_rate": 0.5,
+        "def_success_rate": 0.474,
+        "yards_per_play": 7.28,
+        "pass_rate": 0.602,
+        "turnover_margin": 2,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-18",
+            "opponent": "DET",
+            "is_home": true,
+            "team_score": 41,
+            "opponent_score": 31,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "HOU",
+            "is_home": false,
+            "team_score": 36,
+            "opponent_score": 31,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "CAR",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 35.5,
+        "points_against_pg": 31.0,
+        "off_epa_play": 0.162,
+        "def_epa_play": -0.022,
+        "off_success_rate": 0.463,
+        "def_success_rate": 0.453,
+        "yards_per_play": 6.79,
+        "pass_rate": 0.678,
+        "turnover_margin": 4,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "ATL",
+            "is_home": false,
+            "team_score": 34,
+            "opponent_score": 3,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "CHI",
+            "is_home": true,
+            "team_score": 37,
+            "opponent_score": 59,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "CHI",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 31.0,
+        "points_against_pg": 23.0,
+        "off_epa_play": 0.144,
+        "def_epa_play": 0.064,
+        "off_success_rate": 0.432,
+        "def_success_rate": 0.416,
+        "yards_per_play": 6.11,
+        "pass_rate": 0.568,
+        "turnover_margin": -1,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "MIN",
+            "is_home": true,
+            "team_score": 3,
+            "opponent_score": 9,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "CAR",
+            "is_home": false,
+            "team_score": 59,
+            "opponent_score": 37,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "CIN",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 26.5,
+        "points_against_pg": 16.5,
+        "off_epa_play": -0.045,
+        "def_epa_play": -0.222,
+        "off_success_rate": 0.392,
+        "def_success_rate": 0.386,
+        "yards_per_play": 5.17,
+        "pass_rate": 0.608,
+        "turnover_margin": 3,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "HOU",
+            "is_home": false,
+            "team_score": 20,
+            "opponent_score": 6,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "TB",
+            "is_home": true,
+            "team_score": 33,
+            "opponent_score": 27,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "CLE",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 16.5,
+        "points_against_pg": 26.5,
+        "off_epa_play": -0.084,
+        "def_epa_play": 0.077,
+        "off_success_rate": 0.441,
+        "def_success_rate": 0.487,
+        "yards_per_play": 5.3,
+        "pass_rate": 0.637,
+        "turnover_margin": -1,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "TB",
+            "is_home": false,
+            "team_score": 23,
+            "opponent_score": 19,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "JAX",
+            "is_home": false,
+            "team_score": 10,
+            "opponent_score": 34,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "DAL",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 28.5,
+        "points_against_pg": 24.0,
+        "off_epa_play": 0.224,
+        "def_epa_play": 0.217,
+        "off_success_rate": 0.509,
+        "def_success_rate": 0.553,
+        "yards_per_play": 5.43,
+        "pass_rate": 0.679,
+        "turnover_margin": 1,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "WAS",
+            "is_home": true,
+            "team_score": 37,
+            "opponent_score": 20,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-14",
+            "opponent": "NYG",
+            "is_home": false,
+            "team_score": 20,
+            "opponent_score": 28,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "DEN",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 15.0,
+        "points_against_pg": 22.0,
+        "off_epa_play": -0.087,
+        "def_epa_play": 0.066,
+        "off_success_rate": 0.431,
+        "def_success_rate": 0.429,
+        "yards_per_play": 5.61,
+        "pass_rate": 0.627,
+        "turnover_margin": -1,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "JAX",
+            "is_home": true,
+            "team_score": 20,
+            "opponent_score": 13,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-15",
+            "opponent": "KC",
+            "is_home": false,
+            "team_score": 10,
+            "opponent_score": 31,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "DET",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 31.0,
+        "points_against_pg": 35.5,
+        "off_epa_play": 0.107,
+        "def_epa_play": 0.171,
+        "off_success_rate": 0.467,
+        "def_success_rate": 0.487,
+        "yards_per_play": 5.36,
+        "pass_rate": 0.63,
+        "turnover_margin": 2,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-18",
+            "opponent": "BUF",
+            "is_home": false,
+            "team_score": 31,
+            "opponent_score": 41,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "NO",
+            "is_home": true,
+            "team_score": 31,
+            "opponent_score": 30,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "GB",
+        "games": 3,
+        "wins": 1,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 18.7,
+        "points_against_pg": 30.3,
+        "off_epa_play": -0.122,
+        "def_epa_play": 0.066,
+        "off_success_rate": 0.372,
+        "def_success_rate": 0.462,
+        "yards_per_play": 5.26,
+        "pass_rate": 0.733,
+        "turnover_margin": -2,
+        "streak": -1,
+        "form": [
+          "L",
+          "W",
+          "L"
+        ],
+        "form_trend": "steady",
+        "recent_games": [
+          {
+            "gameday": "2026-09-25",
+            "opponent": "ATL",
+            "is_home": true,
+            "team_score": 14,
+            "opponent_score": 35,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-20",
+            "opponent": "NYJ",
+            "is_home": false,
+            "team_score": 20,
+            "opponent_score": 17,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "MIN",
+            "is_home": false,
+            "team_score": 22,
+            "opponent_score": 39,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "HOU",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 18.5,
+        "points_against_pg": 28.0,
+        "off_epa_play": -0.092,
+        "def_epa_play": 0.06,
+        "off_success_rate": 0.396,
+        "def_success_rate": 0.355,
+        "yards_per_play": 5.07,
+        "pass_rate": 0.691,
+        "turnover_margin": -2,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "CIN",
+            "is_home": true,
+            "team_score": 6,
+            "opponent_score": 20,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "BUF",
+            "is_home": true,
+            "team_score": 31,
+            "opponent_score": 36,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "IND",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 26.5,
+        "points_against_pg": 37.0,
+        "off_epa_play": -0.026,
+        "def_epa_play": 0.269,
+        "off_success_rate": 0.448,
+        "def_success_rate": 0.529,
+        "yards_per_play": 5.0,
+        "pass_rate": 0.578,
+        "turnover_margin": -2,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-21",
+            "opponent": "KC",
+            "is_home": false,
+            "team_score": 30,
+            "opponent_score": 33,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "BAL",
+            "is_home": true,
+            "team_score": 23,
+            "opponent_score": 41,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "JAX",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 23.5,
+        "points_against_pg": 15.0,
+        "off_epa_play": 0.142,
+        "def_epa_play": -0.02,
+        "off_success_rate": 0.519,
+        "def_success_rate": 0.467,
+        "yards_per_play": 5.84,
+        "pass_rate": 0.519,
+        "turnover_margin": 2,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "DEN",
+            "is_home": false,
+            "team_score": 13,
+            "opponent_score": 20,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "CLE",
+            "is_home": true,
+            "team_score": 34,
+            "opponent_score": 10,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "KC",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 32.0,
+        "points_against_pg": 20.0,
+        "off_epa_play": 0.2,
+        "def_epa_play": -0.056,
+        "off_success_rate": 0.493,
+        "def_success_rate": 0.431,
+        "yards_per_play": 6.47,
+        "pass_rate": 0.592,
+        "turnover_margin": 2,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-21",
+            "opponent": "IND",
+            "is_home": true,
+            "team_score": 33,
+            "opponent_score": 30,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-15",
+            "opponent": "DEN",
+            "is_home": true,
+            "team_score": 31,
+            "opponent_score": 10,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "LA",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 17.5,
+        "points_against_pg": 16.5,
+        "off_epa_play": 0.013,
+        "def_epa_play": -0.102,
+        "off_success_rate": 0.491,
+        "def_success_rate": 0.429,
+        "yards_per_play": 6.92,
+        "pass_rate": 0.545,
+        "turnover_margin": -2,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-22",
+            "opponent": "NYG",
+            "is_home": true,
+            "team_score": 28,
+            "opponent_score": 6,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-11",
+            "opponent": "SF",
+            "is_home": true,
+            "team_score": 7,
+            "opponent_score": 27,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "LAC",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 14.0,
+        "points_against_pg": 26.0,
+        "off_epa_play": -0.253,
+        "def_epa_play": 0.035,
+        "off_success_rate": 0.372,
+        "def_success_rate": 0.429,
+        "yards_per_play": 5.12,
+        "pass_rate": 0.584,
+        "turnover_margin": -4,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "LV",
+            "is_home": true,
+            "team_score": 14,
+            "opponent_score": 26,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "ARI",
+            "is_home": true,
+            "team_score": 14,
+            "opponent_score": 26,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "LV",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 26.5,
+        "points_against_pg": 13.5,
+        "off_epa_play": -0.066,
+        "def_epa_play": -0.25,
+        "off_success_rate": 0.388,
+        "def_success_rate": 0.348,
+        "yards_per_play": 4.99,
+        "pass_rate": 0.521,
+        "turnover_margin": 2,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "LAC",
+            "is_home": false,
+            "team_score": 26,
+            "opponent_score": 14,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "MIA",
+            "is_home": true,
+            "team_score": 27,
+            "opponent_score": 13,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "MIA",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 13.0,
+        "points_against_pg": 31.0,
+        "off_epa_play": -0.112,
+        "def_epa_play": 0.172,
+        "off_success_rate": 0.377,
+        "def_success_rate": 0.486,
+        "yards_per_play": 5.12,
+        "pass_rate": 0.613,
+        "turnover_margin": 0,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "SF",
+            "is_home": false,
+            "team_score": 13,
+            "opponent_score": 35,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "LV",
+            "is_home": false,
+            "team_score": 13,
+            "opponent_score": 27,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "MIN",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 24.0,
+        "points_against_pg": 12.5,
+        "off_epa_play": -0.047,
+        "def_epa_play": -0.15,
+        "off_success_rate": 0.345,
+        "def_success_rate": 0.353,
+        "yards_per_play": 4.45,
+        "pass_rate": 0.5,
+        "turnover_margin": 3,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "CHI",
+            "is_home": false,
+            "team_score": 9,
+            "opponent_score": 3,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "GB",
+            "is_home": true,
+            "team_score": 39,
+            "opponent_score": 22,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "NE",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 15.0,
+        "points_against_pg": 8.0,
+        "off_epa_play": -0.092,
+        "def_epa_play": -0.182,
+        "off_success_rate": 0.415,
+        "def_success_rate": 0.386,
+        "yards_per_play": 5.14,
+        "pass_rate": 0.585,
+        "turnover_margin": -3,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "PIT",
+            "is_home": true,
+            "team_score": 20,
+            "opponent_score": 3,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-10",
+            "opponent": "SEA",
+            "is_home": false,
+            "team_score": 10,
+            "opponent_score": 13,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "NO",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 27.0,
+        "points_against_pg": 24.0,
+        "off_epa_play": 0.046,
+        "def_epa_play": 0.05,
+        "off_success_rate": 0.433,
+        "def_success_rate": 0.531,
+        "yards_per_play": 5.13,
+        "pass_rate": 0.68,
+        "turnover_margin": -1,
+        "streak": 1,
+        "form": [
+          "L",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "BAL",
+            "is_home": false,
+            "team_score": 24,
+            "opponent_score": 17,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "DET",
+            "is_home": false,
+            "team_score": 30,
+            "opponent_score": 31,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "NYG",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 17.0,
+        "points_against_pg": 24.0,
+        "off_epa_play": 0.003,
+        "def_epa_play": 0.257,
+        "off_success_rate": 0.45,
+        "def_success_rate": 0.509,
+        "yards_per_play": 4.84,
+        "pass_rate": 0.558,
+        "turnover_margin": 1,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-22",
+            "opponent": "LA",
+            "is_home": false,
+            "team_score": 6,
+            "opponent_score": 28,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-14",
+            "opponent": "DAL",
+            "is_home": true,
+            "team_score": 28,
+            "opponent_score": 20,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "NYJ",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 20.0,
+        "points_against_pg": 15.0,
+        "off_epa_play": 0.02,
+        "def_epa_play": -0.171,
+        "off_success_rate": 0.435,
+        "def_success_rate": 0.384,
+        "yards_per_play": 5.0,
+        "pass_rate": 0.565,
+        "turnover_margin": 1,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "GB",
+            "is_home": true,
+            "team_score": 17,
+            "opponent_score": 20,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "TEN",
+            "is_home": false,
+            "team_score": 23,
+            "opponent_score": 10,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "PHI",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 24.0,
+        "points_against_pg": 21.0,
+        "off_epa_play": 0.052,
+        "def_epa_play": 0.066,
+        "off_success_rate": 0.382,
+        "def_success_rate": 0.429,
+        "yards_per_play": 5.37,
+        "pass_rate": 0.61,
+        "turnover_margin": -2,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "TEN",
+            "is_home": false,
+            "team_score": 24,
+            "opponent_score": 20,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "WAS",
+            "is_home": true,
+            "team_score": 24,
+            "opponent_score": 22,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "PIT",
+        "games": 2,
+        "wins": 1,
+        "losses": 1,
+        "ties": 0,
+        "points_for_pg": 11.5,
+        "points_against_pg": 16.5,
+        "off_epa_play": -0.33,
+        "def_epa_play": -0.202,
+        "off_success_rate": 0.352,
+        "def_success_rate": 0.398,
+        "yards_per_play": 3.92,
+        "pass_rate": 0.695,
+        "turnover_margin": 1,
+        "streak": -1,
+        "form": [
+          "W",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "NE",
+            "is_home": false,
+            "team_score": 3,
+            "opponent_score": 20,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "ATL",
+            "is_home": true,
+            "team_score": 20,
+            "opponent_score": 13,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "SEA",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 22.0,
+        "points_against_pg": 8.5,
+        "off_epa_play": 0.106,
+        "def_epa_play": -0.199,
+        "off_success_rate": 0.439,
+        "def_success_rate": 0.377,
+        "yards_per_play": 5.85,
+        "pass_rate": 0.474,
+        "turnover_margin": 3,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "ARI",
+            "is_home": false,
+            "team_score": 31,
+            "opponent_score": 7,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-10",
+            "opponent": "NE",
+            "is_home": true,
+            "team_score": 13,
+            "opponent_score": 10,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "SF",
+        "games": 2,
+        "wins": 2,
+        "losses": 0,
+        "ties": 0,
+        "points_for_pg": 31.0,
+        "points_against_pg": 10.0,
+        "off_epa_play": 0.298,
+        "def_epa_play": -0.133,
+        "off_success_rate": 0.568,
+        "def_success_rate": 0.42,
+        "yards_per_play": 6.87,
+        "pass_rate": 0.55,
+        "turnover_margin": 1,
+        "streak": 2,
+        "form": [
+          "W",
+          "W"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "MIA",
+            "is_home": true,
+            "team_score": 35,
+            "opponent_score": 13,
+            "result": "W"
+          },
+          {
+            "gameday": "2026-09-11",
+            "opponent": "LA",
+            "is_home": false,
+            "team_score": 27,
+            "opponent_score": 7,
+            "result": "W"
+          }
+        ]
+      },
+      {
+        "team": "TB",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 23.0,
+        "points_against_pg": 28.0,
+        "off_epa_play": -0.164,
+        "def_epa_play": 0.003,
+        "off_success_rate": 0.425,
+        "def_success_rate": 0.452,
+        "yards_per_play": 5.27,
+        "pass_rate": 0.673,
+        "turnover_margin": -4,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "CLE",
+            "is_home": true,
+            "team_score": 19,
+            "opponent_score": 23,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "CIN",
+            "is_home": false,
+            "team_score": 27,
+            "opponent_score": 33,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "TEN",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 15.0,
+        "points_against_pg": 23.5,
+        "off_epa_play": -0.02,
+        "def_epa_play": 0.098,
+        "off_success_rate": 0.44,
+        "def_success_rate": 0.447,
+        "yards_per_play": 4.86,
+        "pass_rate": 0.63,
+        "turnover_margin": 2,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "PHI",
+            "is_home": true,
+            "team_score": 20,
+            "opponent_score": 24,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "NYJ",
+            "is_home": true,
+            "team_score": 10,
+            "opponent_score": 23,
+            "result": "L"
+          }
+        ]
+      },
+      {
+        "team": "WAS",
+        "games": 2,
+        "wins": 0,
+        "losses": 2,
+        "ties": 0,
+        "points_for_pg": 21.0,
+        "points_against_pg": 30.5,
+        "off_epa_play": 0.064,
+        "def_epa_play": 0.151,
+        "off_success_rate": 0.467,
+        "def_success_rate": 0.457,
+        "yards_per_play": 5.07,
+        "pass_rate": 0.6,
+        "turnover_margin": -1,
+        "streak": -2,
+        "form": [
+          "L",
+          "L"
+        ],
+        "form_trend": "new",
+        "recent_games": [
+          {
+            "gameday": "2026-09-20",
+            "opponent": "DAL",
+            "is_home": false,
+            "team_score": 20,
+            "opponent_score": 37,
+            "result": "L"
+          },
+          {
+            "gameday": "2026-09-13",
+            "opponent": "PHI",
+            "is_home": false,
+            "team_score": 22,
+            "opponent_score": 24,
+            "result": "L"
+          }
+        ]
+      }
+    ]
+  },
+  "hub_players": {
+    "season": 2026,
+    "players": [],
+    "leaderboards": {
+      "QB": [],
+      "RB": [],
+      "WR": [],
+      "TE": []
+    }
   }
 }
