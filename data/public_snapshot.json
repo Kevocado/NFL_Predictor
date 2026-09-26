@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T05:10:30.734367+00:00",
+  "generated_at": "2026-09-26T11:39:04.153452+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -16035,7 +16035,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 38.5
+          "total_line": 37.5
         },
         {
           "game_id": "2026_03_CIN_PIT",
@@ -16280,8 +16280,8 @@
           "away_win_prob": 0.12677408072226215,
           "home_cover_prob": 0.8296317997616025,
           "away_cover_prob": 0.1703682002383975,
-          "over_prob": 0.7942281202014072,
-          "under_prob": 0.2057718797985928,
+          "over_prob": 0.8162763506678199,
+          "under_prob": 0.1837236493321801,
           "predicted_margin": 15.097846984863281,
           "predicted_total": 48.75381851196289,
           "sigma": 13.223153618916728,
