@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T21:19:39.369986+00:00",
+  "generated_at": "2026-09-26T23:43:11.743401+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8217,7 +8217,8 @@
           "predicted_margin": 3.439911365509033,
           "predicted_total": 48.85564041137695,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_CAR_ATL": {
           "home_win_prob": 0.6799376579556222,
@@ -8229,7 +8230,8 @@
           "predicted_margin": 6.182147979736328,
           "predicted_total": 48.88936233520508,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_NO_BAL": {
           "home_win_prob": 0.7248443025640411,
@@ -8241,7 +8243,8 @@
           "predicted_margin": 7.898104667663574,
           "predicted_total": 45.5965576171875,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_MIN_CHI": {
           "home_win_prob": 0.5410177604542552,
@@ -8253,7 +8256,8 @@
           "predicted_margin": 1.36195969581604,
           "predicted_total": 45.61709213256836,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_CIN_HOU": {
           "home_win_prob": 0.6531012168333596,
@@ -8265,7 +8269,8 @@
           "predicted_margin": 5.206044673919678,
           "predicted_total": 48.51747131347656,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_PIT_NE": {
           "home_win_prob": 0.5506296390943888,
@@ -8277,7 +8282,8 @@
           "predicted_margin": 1.6826765537261963,
           "predicted_total": 38.04233169555664,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_GB_NYJ": {
           "home_win_prob": 0.30278004573070283,
@@ -8289,7 +8295,8 @@
           "predicted_margin": -6.8287200927734375,
           "predicted_total": 46.461585998535156,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_CLE_TB": {
           "home_win_prob": 0.685767894043267,
@@ -8301,7 +8308,8 @@
           "predicted_margin": 6.3985466957092285,
           "predicted_total": 40.527462005615234,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_PHI_TEN": {
           "home_win_prob": 0.44116496354468326,
@@ -8313,7 +8321,8 @@
           "predicted_margin": -1.9572418928146362,
           "predicted_total": 43.87575912475586,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_JAX_DEN": {
           "home_win_prob": 0.5182338633680167,
@@ -8325,7 +8334,8 @@
           "predicted_margin": 0.6045816540718079,
           "predicted_total": 36.11921691894531,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_LV_LAC": {
           "home_win_prob": 0.6786201017488556,
@@ -8337,7 +8347,8 @@
           "predicted_margin": 6.133475303649902,
           "predicted_total": 44.0125617980957,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_SEA_ARI": {
           "home_win_prob": 0.2658503331150528,
@@ -8349,7 +8360,8 @@
           "predicted_margin": -8.269919395446777,
           "predicted_total": 45.11309051513672,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_WAS_DAL": {
           "home_win_prob": 0.5043131349115971,
@@ -8361,7 +8373,8 @@
           "predicted_margin": 0.1429639309644699,
           "predicted_total": 42.98333740234375,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_MIA_SF": {
           "home_win_prob": 0.718286890829552,
@@ -8373,7 +8386,8 @@
           "predicted_margin": 7.639808177947998,
           "predicted_total": 45.665008544921875,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_IND_KC": {
           "home_win_prob": 0.653709757029299,
@@ -8385,7 +8399,8 @@
           "predicted_margin": 5.227847576141357,
           "predicted_total": 43.81780242919922,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_NYG_LA": {
           "home_win_prob": 0.6549791923983035,
@@ -8397,7 +8412,8 @@
           "predicted_margin": 5.273375034332275,
           "predicted_total": 44.83810043334961,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
@@ -16201,7 +16217,8 @@
           "predicted_margin": 6.346383094787598,
           "predicted_total": 42.83937072753906,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_LAC_BUF": {
           "home_win_prob": 0.8749267312252793,
@@ -16213,7 +16230,8 @@
           "predicted_margin": 15.206541061401367,
           "predicted_total": 47.52250289916992,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_CAR_CLE": {
           "home_win_prob": 0.5322389350707555,
@@ -16225,7 +16243,8 @@
           "predicted_margin": 1.0697423219680786,
           "predicted_total": 37.598915100097656,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_NYJ_DET": {
           "home_win_prob": 0.765618652902035,
@@ -16237,7 +16256,8 @@
           "predicted_margin": 9.58009147644043,
           "predicted_total": 48.590145111083984,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_HOU_IND": {
           "home_win_prob": 0.2954260889601903,
@@ -16249,7 +16269,8 @@
           "predicted_margin": -7.108787536621094,
           "predicted_total": 45.890987396240234,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_NE_JAX": {
           "home_win_prob": 0.6413601797273907,
@@ -16261,7 +16282,8 @@
           "predicted_margin": 4.788062572479248,
           "predicted_total": 44.8612060546875,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_KC_MIA": {
           "home_win_prob": 0.24774698865019296,
@@ -16273,7 +16295,8 @@
           "predicted_margin": -9.012858390808105,
           "predicted_total": 43.85273361206055,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_TEN_NYG": {
           "home_win_prob": 0.8732259192777378,
@@ -16285,7 +16308,8 @@
           "predicted_margin": 15.097846984863281,
           "predicted_total": 48.75381851196289,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_CIN_PIT": {
           "home_win_prob": 0.5331896007560653,
@@ -16297,7 +16321,8 @@
           "predicted_margin": 1.1013590097427368,
           "predicted_total": 42.64759826660156,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_SEA_WAS": {
           "home_win_prob": 0.2743472477106639,
@@ -16309,7 +16334,8 @@
           "predicted_margin": -7.93015718460083,
           "predicted_total": 43.58658981323242,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_ARI_SF": {
           "home_win_prob": 0.6868911630611941,
@@ -16321,7 +16347,8 @@
           "predicted_margin": 6.440434455871582,
           "predicted_total": 40.56521224975586,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_MIN_TB": {
           "home_win_prob": 0.40629775165785253,
@@ -16333,7 +16360,8 @@
           "predicted_margin": -3.134932041168213,
           "predicted_total": 43.2225227355957,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_BAL_DAL": {
           "home_win_prob": 0.278751209880464,
@@ -16345,7 +16373,8 @@
           "predicted_margin": -7.756110668182373,
           "predicted_total": 48.03272247314453,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_LV_NO": {
           "home_win_prob": 0.552064133819433,
@@ -16357,7 +16386,8 @@
           "predicted_margin": 1.730621337890625,
           "predicted_total": 44.0672492980957,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_LA_DEN": {
           "home_win_prob": 0.5826741935023921,
@@ -16369,7 +16399,8 @@
           "predicted_margin": 2.7601943016052246,
           "predicted_total": 40.21767044067383,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_PHI_CHI": {
           "home_win_prob": 0.49344381007395477,
@@ -16381,7 +16412,8 @@
           "predicted_margin": -0.21731817722320557,
           "predicted_total": 48.950767517089844,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
@@ -23745,7 +23777,8 @@
           "predicted_margin": -3.385741949081421,
           "predicted_total": 39.761627197265625,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_IND_WAS": {
           "home_win_prob": 0.5540356405912381,
@@ -23757,7 +23790,8 @@
           "predicted_margin": 1.7965518236160278,
           "predicted_total": 37.85895919799805,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_TEN_BAL": {
           "home_win_prob": 0.8158029884455402,
@@ -23769,7 +23803,8 @@
           "predicted_margin": 11.894037246704102,
           "predicted_total": 48.126220703125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_NE_BUF": {
           "home_win_prob": 0.7415008768921825,
@@ -23781,7 +23816,8 @@
           "predicted_margin": 8.568331718444824,
           "predicted_total": 45.927146911621094,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_NYJ_CHI": {
           "home_win_prob": 0.7875777027199979,
@@ -23793,7 +23829,8 @@
           "predicted_margin": 10.552666664123535,
           "predicted_total": 43.93190383911133,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_JAX_CIN": {
           "home_win_prob": 0.5897086306570212,
@@ -23805,7 +23842,8 @@
           "predicted_margin": 2.9989521503448486,
           "predicted_total": 46.43392562866211,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_DAL_HOU": {
           "home_win_prob": 0.6495898081859715,
@@ -23817,7 +23855,8 @@
           "predicted_margin": 5.080511093139648,
           "predicted_total": 49.86009979248047,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_ARI_NYG": {
           "home_win_prob": 0.633950244609673,
@@ -23829,7 +23868,8 @@
           "predicted_margin": 4.526735782623291,
           "predicted_total": 46.59260559082031,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_LA_PHI": {
           "home_win_prob": 0.5353287687176306,
@@ -23841,7 +23881,8 @@
           "predicted_margin": 1.1725255250930786,
           "predicted_total": 40.25895309448242,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_GB_TB": {
           "home_win_prob": 0.4894638959735892,
@@ -23853,7 +23894,8 @@
           "predicted_margin": -0.34926536679267883,
           "predicted_total": 45.34168243408203,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_MIA_MIN": {
           "home_win_prob": 0.8061922067008374,
@@ -23865,7 +23907,8 @@
           "predicted_margin": 11.424138069152832,
           "predicted_total": 45.054969787597656,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_KC_LV": {
           "home_win_prob": 0.40599765646206654,
@@ -23877,7 +23920,8 @@
           "predicted_margin": -3.1451632976531982,
           "predicted_total": 39.65793991088867,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_LAC_SEA": {
           "home_win_prob": 0.7030891376697015,
@@ -23889,7 +23933,8 @@
           "predicted_margin": 7.051988124847412,
           "predicted_total": 41.981754302978516,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_DEN_SF": {
           "home_win_prob": 0.5258071342167714,
@@ -23901,7 +23946,8 @@
           "predicted_margin": 0.855988621711731,
           "predicted_total": 39.58467102050781,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_DET_CAR": {
           "home_win_prob": 0.3554237529536688,
@@ -23913,7 +23959,8 @@
           "predicted_margin": -4.90206241607666,
           "predicted_total": 50.1380500793457,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_ATL_NO": {
           "home_win_prob": 0.5815807505973241,
@@ -23925,7 +23972,8 @@
           "predicted_margin": 2.7231640815734863,
           "predicted_total": 47.92020034790039,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
@@ -31703,182 +31751,167 @@
         "2026_05_TB_DAL": {
           "home_win_prob": 0.5571513421778611,
           "away_win_prob": 0.4428486578221389,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 1.9008378982543945,
           "predicted_total": 45.56195831298828,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_PHI_JAX": {
           "home_win_prob": 0.6060005185097853,
           "away_win_prob": 0.3939994814902147,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.555837869644165,
           "predicted_total": 48.965362548828125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_CIN_MIA": {
           "home_win_prob": 0.15050449981688585,
           "away_win_prob": 0.8494955001831141,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -13.676338195800781,
           "predicted_total": 44.22198486328125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_LV_NE": {
           "home_win_prob": 0.5865826342705829,
           "away_win_prob": 0.4134173657294171,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 2.892735719680786,
           "predicted_total": 38.84344482421875,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_MIN_NO": {
           "home_win_prob": 0.4640355708037186,
           "away_win_prob": 0.5359644291962814,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -1.1936793327331543,
           "predicted_total": 43.018611907958984,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_CLE_NYJ": {
           "home_win_prob": 0.4129438534626029,
           "away_win_prob": 0.5870561465373971,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -2.9088127613067627,
           "predicted_total": 41.66905212402344,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_IND_PIT": {
           "home_win_prob": 0.651313634127306,
           "away_win_prob": 0.34868636587269397,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 5.142080307006836,
           "predicted_total": 42.07344436645508,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_HOU_TEN": {
           "home_win_prob": 0.4295763619666315,
           "away_win_prob": 0.5704236380333685,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -2.3464858531951904,
           "predicted_total": 46.50918960571289,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_NYG_WAS": {
           "home_win_prob": 0.4779751612290952,
           "away_win_prob": 0.5220248387709048,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -0.7303962111473083,
           "predicted_total": 41.33248519897461,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_DEN_LAC": {
           "home_win_prob": 0.30769774125415983,
           "away_win_prob": 0.6923022587458402,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -6.643137454986572,
           "predicted_total": 39.89737319946289,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_DET_ARI": {
           "home_win_prob": 0.3424330116742613,
           "away_win_prob": 0.6575669883257387,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -5.366379261016846,
           "predicted_total": 44.676361083984375,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_CHI_GB": {
           "home_win_prob": 0.4759248052583984,
           "away_win_prob": 0.5240751947416016,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -0.7984700798988342,
           "predicted_total": 44.4893798828125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_SF_SEA": {
           "home_win_prob": 0.6026024045387072,
           "away_win_prob": 0.39739759546129283,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.4391956329345703,
           "predicted_total": 48.509742736816406,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_BAL_ATL": {
           "home_win_prob": 0.32630435434478555,
           "away_win_prob": 0.6736956456552144,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -5.952284812927246,
           "predicted_total": 42.20975875854492,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_BUF_LA": {
           "home_win_prob": 0.5410859258262319,
           "away_win_prob": 0.45891407417376806,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 1.3642311096191406,
           "predicted_total": 54.12199783325195,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
@@ -39141,170 +39174,156 @@
         "2026_06_SEA_DEN": {
           "home_win_prob": 0.4140608030904359,
           "away_win_prob": 0.5859391969095641,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -2.870896100997925,
           "predicted_total": 41.62666320800781,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_HOU_JAX": {
           "home_win_prob": 0.6117221273171655,
           "away_win_prob": 0.38827787268283454,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.7528674602508545,
           "predicted_total": 49.98209762573242,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_CHI_ATL": {
           "home_win_prob": 0.4007935898661399,
           "away_win_prob": 0.5992064101338601,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -3.322892904281616,
           "predicted_total": 40.585899353027344,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_BAL_CLE": {
           "home_win_prob": 0.3321789962255939,
           "away_win_prob": 0.6678210037744061,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -5.737582206726074,
           "predicted_total": 44.610435485839844,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_TEN_IND": {
           "home_win_prob": 0.6926029772188873,
           "away_win_prob": 0.3073970227811127,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 6.65444803237915,
           "predicted_total": 48.41094970703125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_NYJ_NE": {
           "home_win_prob": 0.7432240139869797,
           "away_win_prob": 0.2567759860130203,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 8.638910293579102,
           "predicted_total": 36.63538360595703,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_NO_NYG": {
           "home_win_prob": 0.4878058029490937,
           "away_win_prob": 0.5121941970509063,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -0.40424609184265137,
           "predicted_total": 49.09625244140625,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_CAR_PHI": {
           "home_win_prob": 0.5934663951485507,
           "away_win_prob": 0.4065336048514493,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.126892328262329,
           "predicted_total": 39.200416564941406,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_PIT_TB": {
           "home_win_prob": 0.45719078146702974,
           "away_win_prob": 0.5428092185329703,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -1.4216684103012085,
           "predicted_total": 40.02040481567383,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_ARI_LA": {
           "home_win_prob": 0.7053899066095155,
           "away_win_prob": 0.2946100933904845,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 7.140058994293213,
           "predicted_total": 48.5900993347168,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_LAC_KC": {
           "home_win_prob": 0.6943577739713325,
           "away_win_prob": 0.30564222602866753,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 6.720546722412109,
           "predicted_total": 38.78437423706055,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_BUF_LV": {
           "home_win_prob": 0.35943692499017654,
           "away_win_prob": 0.6405630750098235,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -4.759862899780273,
           "predicted_total": 44.6279182434082,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_DAL_GB": {
           "home_win_prob": 0.5050900049138145,
           "away_win_prob": 0.4949099950861855,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 0.1687154918909073,
           "predicted_total": 44.897483825683594,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_WAS_SF": {
           "home_win_prob": 0.6493859540688407,
           "away_win_prob": 0.3506140459311593,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 5.073237419128418,
           "predicted_total": 41.508819580078125,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
@@ -46119,170 +46138,156 @@
         "2026_07_NE_CHI": {
           "home_win_prob": 0.5371707163150241,
           "away_win_prob": 0.4628292836849759,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 1.2338311672210693,
           "predicted_total": 45.09501647949219,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_PIT_NO": {
           "home_win_prob": 0.5034360603635053,
           "away_win_prob": 0.4965639396364947,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 0.11389145255088806,
           "predicted_total": 42.458621978759766,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_SF_ATL": {
           "home_win_prob": 0.3746052052290655,
           "away_win_prob": 0.6253947947709345,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -4.227186679840088,
           "predicted_total": 41.85470199584961,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.5294587605985384,
           "away_win_prob": 0.47054123940146164,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 0.9773153066635132,
           "predicted_total": 47.84261703491211,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_TB_CAR": {
           "home_win_prob": 0.5530944722139548,
           "away_win_prob": 0.4469055277860452,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 1.7650721073150635,
           "predicted_total": 48.145225524902344,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_NYG_HOU": {
           "home_win_prob": 0.5834242796417481,
           "away_win_prob": 0.41657572035825186,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 2.785609006881714,
           "predicted_total": 45.72087097167969,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_IND_MIN": {
           "home_win_prob": 0.7261790876935542,
           "away_win_prob": 0.2738209123064458,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 7.9510498046875,
           "predicted_total": 47.499244689941406,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_MIA_NYJ": {
           "home_win_prob": 0.42381193920933014,
           "away_win_prob": 0.5761880607906699,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -2.5408430099487305,
           "predicted_total": 41.007904052734375,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_CLE_TEN": {
           "home_win_prob": 0.3769721317653314,
           "away_win_prob": 0.6230278682346686,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -4.144702434539795,
           "predicted_total": 45.01322555541992,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_DEN_ARI": {
           "home_win_prob": 0.39053796846554256,
           "away_win_prob": 0.6094620315344574,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -3.6749415397644043,
           "predicted_total": 43.30818557739258,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_GB_DET": {
           "home_win_prob": 0.6665030061093086,
           "away_win_prob": 0.33349699389069143,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 5.689621925354004,
           "predicted_total": 50.23717498779297,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_LA_LV": {
           "home_win_prob": 0.3814273811408504,
           "away_win_prob": 0.6185726188591496,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": -3.9898765087127686,
           "predicted_total": 40.99576950073242,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_KC_SEA": {
           "home_win_prob": 0.6172392263460249,
           "away_win_prob": 0.3827607736539751,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.9436464309692383,
           "predicted_total": 44.555580139160156,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_DAL_PHI": {
           "home_win_prob": 0.5995789831426547,
           "away_win_prob": 0.4004210168573453,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN,
+          "home_cover_prob": null,
+          "away_cover_prob": null,
           "predicted_margin": 3.335639715194702,
           "predicted_total": 40.953956604003906,
           "sigma": 13.223153618916728,
-          "total_sigma": 12.486688413234214
+          "total_sigma": 12.486688413234214,
+          "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         }
       },
       "player_props": [
