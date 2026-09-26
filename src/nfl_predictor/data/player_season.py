@@ -4,10 +4,29 @@ from __future__ import annotations
 
 import pandas as pd
 
+from ..config import CACHE_DIR, CURRENT_SEASON
+from .hub_cache import cached_frame
+
 POSITIONS = ["QB", "RB", "WR", "TE"]
 SUM_COLS = ["completions", "attempts", "passing_yards", "passing_tds", "interceptions", "carries",
             "rushing_yards", "rushing_tds", "receptions", "targets", "receiving_yards", "receiving_tds"]
 EPA_COLS = ["passing_epa", "rushing_epa", "receiving_epa"]
+# Everything player_season reads. The model's weekly cache (player_stats.py)
+# keeps a much narrower set, so the hub pulls its own copy.
+HUB_WEEKLY_COLUMNS = ["player_id", "player_display_name", "position", "recent_team", "season", "week",
+                      *SUM_COLS, *EPA_COLS, "target_share", "air_yards_share", "fantasy_points_ppr"]
+HUB_CACHE_DIR = CACHE_DIR / "hub_weekly"
+
+
+def _import_weekly(years: list[int], columns: list[str]) -> pd.DataFrame:
+    import nfl_data_py as nfl
+
+    return nfl.import_weekly_data(years, columns=columns)
+
+
+def load_hub_weekly(season: int) -> pd.DataFrame:
+    return cached_frame(HUB_CACHE_DIR / f"{season}.parquet", lambda: _import_weekly([season], HUB_WEEKLY_COLUMNS),
+                        HUB_WEEKLY_COLUMNS, current=season == CURRENT_SEASON)
 
 
 def _mean(s: pd.Series) -> float | None:

@@ -5,22 +5,25 @@ from __future__ import annotations
 
 import pandas as pd
 
-from ..config import CACHE_DIR
+from ..config import CACHE_DIR, CURRENT_SEASON
+from .hub_cache import cached_frame
 
 PBP_COLUMNS = ["game_id", "posteam", "defteam", "epa", "success", "yards_gained", "pass", "rush",
                "play_type", "interception", "fumble_lost", "week", "season_type"]
 
 
-def load_pbp(season: int) -> pd.DataFrame:
-    path = CACHE_DIR / "pbp" / f"pbp_{season}.parquet"
-    if path.exists():
-        return pd.read_parquet(path)
+PBP_CACHE_DIR = CACHE_DIR / "pbp"
+
+
+def _import_pbp(years: list[int], columns: list[str]) -> pd.DataFrame:
     import nfl_data_py as nfl
 
-    df = nfl.import_pbp_data([season], columns=PBP_COLUMNS)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(path)
-    return df
+    return nfl.import_pbp_data(years, columns=columns)
+
+
+def load_pbp(season: int) -> pd.DataFrame:
+    return cached_frame(PBP_CACHE_DIR / f"pbp_{season}.parquet", lambda: _import_pbp([season], PBP_COLUMNS),
+                        PBP_COLUMNS, current=season == CURRENT_SEASON)
 
 
 def _r(x: float | None, nd: int = 3) -> float | None:
