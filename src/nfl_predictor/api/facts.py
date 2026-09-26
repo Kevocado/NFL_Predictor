@@ -404,32 +404,40 @@ def get_facts(game_id: str) -> dict:
     started = status in ("live", "final")
 
     row = _week_row(season, week, game_id)
+    row_probs = (
+        {"home_win_prob": row.get("home_win_prob"), "away_win_prob": row.get("away_win_prob")}
+        if row is not None and row.get("home_win_prob") is not None
+        else None
+    )
 
+    # THE RULE: the pick number and its timing label always come from the SAME
+    # source, so a number is never described by another source's honesty.
+    #
+    # * STARTED -> the tracking row stored before kickoff, in both modes. The
+    #   public snapshot is NOT that: it rebuilds the current and previous week
+    #   every few hours, so its prediction for a started game is today's model,
+    #   recomputed after kickoff. The row carries no margin/total, so those are
+    #   simply absent. No row at all -> no pick, and "none".
+    # * UPCOMING -> the row when one exists, so the number shown is the very
+    #   record that will be judged and a late-written row still reports itself
+    #   as 'rebuilt'. With no row yet (weeks out) the live forecast is used and
+    #   labelled 'pre_kickoff': a game that has not been played cannot have
+    #   been predicted after it, so that label is always true of the number.
     if started:
-        # A started game is only ever described by the tracking row stored
-        # before it began, in both modes. The public snapshot is NOT that:
-        # it rebuilds the current and previous week every few hours, so its
-        # prediction for a started game is today's model, recomputed after
-        # kickoff. The row carries no margin/total, so those markets are
-        # simply absent.
-        if row is not None and row.get("home_win_prob") is not None:
-            stored = {
-                "home_win_prob": row.get("home_win_prob"),
-                "away_win_prob": row.get("away_win_prob"),
-            }
-        else:
-            stored = None
+        stored = row_probs
     else:
         stored = _current_prediction(season, week, game_id)
 
-    pick = None
-    if row is not None and stored is not None:
-        pick = _pick(home_team, away_team, stored.get("home_win_prob"), stored.get("away_win_prob"))
-
+    pick_source = row_probs if row_probs is not None else (None if started else stored)
+    pick = (
+        _pick(home_team, away_team, pick_source.get("home_win_prob"), pick_source.get("away_win_prob"))
+        if pick_source is not None
+        else None
+    )
     if pick is None:
         pick_timing = "none"
-    elif row.get("rebuilt"):
-        pick_timing = "rebuilt"
+    elif pick_source is row_probs:
+        pick_timing = "rebuilt" if row.get("rebuilt") else "pre_kickoff"
     else:
         pick_timing = "pre_kickoff"
 

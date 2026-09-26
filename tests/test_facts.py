@@ -219,8 +219,11 @@ def test_record_reports_pre_kickoff_hits_over_settled(public, monkeypatch):
 
 # --- pick_timing: the three cases ---------------------------------------
 
-def test_pick_timing_is_none_when_no_stored_row(public, monkeypatch):
-    _install_snapshot(monkeypatch, _snapshot())
+def test_pick_timing_is_none_only_when_there_is_no_forecast_at_all(public, monkeypatch):
+    # No tracking row, and no forecast either: there is genuinely nothing to
+    # claim. (A missing row alone is NOT enough — with a live forecast the pick
+    # is that forecast; see test_upcoming_game_with_no_stored_row_...)
+    _install_snapshot(monkeypatch, _snapshot(prediction={"game_id": None}))
     monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: [])
 
     body = public.get(f"/facts/{GAME_ID}").json()
@@ -406,6 +409,17 @@ def live(monkeypatch):
     )
     monkeypatch.setattr(facts_mod.routes, "get_games", lambda season, week: [_game(gameday="2026-09-20T00:20:00")])
     monkeypatch.setattr(facts_mod.routes, "get_player_props", lambda season, week: [])
+    # Stubbed so no test in this module can reach nflverse: _load_game_history
+    # reads (and can refresh) the cached parquet. Offline is a hard rule here,
+    # not a nicety, so the stub is in the fixture rather than in one test.
+    monkeypatch.setattr(
+        facts_mod.routes, "_load_game_history",
+        lambda season: pd.DataFrame([{"game_id": "other", "rating_diff": 0.0, "home_rest_days": 6, "away_rest_days": 6}]),
+    )
+    monkeypatch.setattr(
+        facts_mod.routes.feature_build, "build_features_for_game",
+        lambda home, away, history: pd.Series({"rating_diff": 7.0, "home_rest_days": 6, "away_rest_days": 6, "div_game": False}),
+    )
     monkeypatch.setattr(
         facts_mod.store, "get_track_record",
         lambda: {"games": {"n_resolved": 10, "pct_moneyline_correct": 0.5, "n_rebuilt": 0}},
@@ -449,8 +463,86 @@ def test_live_upcoming_game_does_use_the_current_model(live, monkeypatch):
     body = live.get(f"/facts/{GAME_ID}").json()
 
     assert body["status"] == "upcoming"
-    assert body["pick"] == {"label": "BAL", "prob": 0.66}
+    # The pick is the stored row, so the number on screen is the record that
+    # will be judged; the SPREAD and TOTAL still come from the live model,
+    # which is legitimate for a game that has not been played.
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}
     assert {m["market"] for m in body["markets"]} == {"moneyline", "spread", "total"}
+
+
+def test_an_upcoming_game_reports_the_live_rating_gap(live, monkeypatch):
+    """Covers _drivers' live branch, which the started-game tests skip.
+
+    The rating gap comes from the stubs the `live` fixture installs — that
+    fixture is what keeps this module offline (see the comment there). Note
+    this test does NOT itself prove offline behaviour: a raising stub cannot,
+    because _drivers swallows exceptions, and removing the fixture stubs did
+    not make this test fail. The offline guarantee is structural.
+    """
+    monkeypatch.setattr(
+        facts_mod.routes.schedules, "fetch_week_games", lambda season, week: pd.DataFrame([_game()])
+    )
+    monkeypatch.setattr(facts_mod.routes, "get_games", lambda season, week: [_game()])
+    monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: _week_rows())
+    monkeypatch.setattr(
+        facts_mod.routes, "get_game_prediction",
+        lambda season, week, game_id: _prediction(home_win_prob=0.66, away_win_prob=0.34),
+    )
+
+    body = live.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "upcoming"
+    gap = next(d for d in body["drivers"] if d.get("name") == "Rating gap")
+    assert gap["value"] == "+7.0 pts"
+
+
+# --- the pick number and its timing label must share one source ----------
+
+def test_upcoming_game_with_no_stored_row_still_shows_the_live_forecast(public, monkeypatch):
+    # Weeks out there is no tracking row yet, but the model has a current
+    # forecast. Gating the pick on the row left pick null and
+    # pick_timing "none" beside a full set of markets — the panel showed
+    # numbers it refused to make a pick from.
+    monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: [])
+    _install_snapshot(monkeypatch, _snapshot(prediction=_prediction(home_win_prob=0.66, away_win_prob=0.34)))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "upcoming"
+    assert body["pick"] == {"label": "BAL", "prob": 0.66}
+    assert body["pick_timing"] == "pre_kickoff"
+    assert body["markets"]
+
+
+def test_upcoming_game_prefers_the_stored_row_so_the_number_matches_the_verdict(public, monkeypatch):
+    # With a row present the pick is the row, so the number on screen is the
+    # very record that will be judged — and a row written late still reports
+    # itself as 'rebuilt' rather than borrowing the live forecast's label.
+    monkeypatch.setattr(
+        facts_mod.store, "get_predictions_for_week",
+        lambda season, week, games_df: _week_rows(home_win_prob=0.62, away_win_prob=0.38, rebuilt=True),
+    )
+    _install_snapshot(monkeypatch, _snapshot(prediction=_prediction(home_win_prob=0.66, away_win_prob=0.34)))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "upcoming"
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}  # the row, not 0.66
+    assert body["pick_timing"] == "rebuilt"
+    assert body["markets"]
+
+
+def test_started_game_still_takes_its_pick_and_label_from_the_row(public, monkeypatch):
+    # The counterpart: the upcoming rule above must not leak into a started
+    # game, where the row remains the only honest source.
+    started = _game(gameday="2026-09-20T00:20:00")
+    _install_snapshot(monkeypatch, _snapshot(game=started, prediction=_prediction(home_win_prob=0.80, away_win_prob=0.20)))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "live"
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}  # the row, not 0.80
+    assert body["pick_timing"] == "pre_kickoff"
 
 
 # --- unknowns -----------------------------------------------------------
