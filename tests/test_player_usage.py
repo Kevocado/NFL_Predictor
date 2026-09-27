@@ -38,7 +38,13 @@ def test_build_features_for_player_returns_none_with_no_history():
 def test_build_features_for_player_returns_series_with_history():
     row = player_usage.build_features_for_player("p1", _player_stats())
     assert row is not None
-    assert row["rushing_yards_roll"] == pytest.approx((81 + 82 + 83) / 3)
+    # Must equal the TRAINING value for the same player and week, not a mean that
+    # includes the latest game. `build_player_training_frame` already asserts
+    # (81 + 82) / 2 for week 3; this used to assert (81 + 82 + 83) / 3, so the two
+    # tests contradicted each other -- and that contradiction *was* the train/serve
+    # skew, serving reading a different quantity under the same column name than
+    # the model was fitted on.
+    assert row["rushing_yards_roll"] == pytest.approx((81 + 82) / 2)
 
 
 def test_receptions_is_a_rolled_stat_and_feature_column():

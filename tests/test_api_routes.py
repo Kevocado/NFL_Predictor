@@ -161,7 +161,9 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
     )
     monkeypatch.setattr(
         routes.player_usage, "build_features_for_player",
-        lambda player_id, history: pd.Series({"dummy_feature": 1.0}),
+        # `season` is now passed as a keyword so a 2026 roster is not scored on
+        # 2024 stat lines; the stub has to accept it.
+        lambda player_id, history, season=None, window=5: pd.Series({"dummy_feature": 1.0}),
     )
     monkeypatch.setattr(
         routes.player_props, "predict_props",

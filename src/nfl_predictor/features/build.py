@@ -83,6 +83,20 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
     home_rest = _rest_days(home_team)
     away_rest = _rest_days(away_team)
 
+    # `div_game` is a real modelled feature (FEATURE_COLUMNS) and training fills
+    # it from the schedule, where it toggles for roughly a third of games. It
+    # used to be hardcoded to 0 here, so the model was fitted with the covariate
+    # varying and served with it permanently constant -- the fitted coefficient
+    # was dead weight at inference. Read it from the schedule for this matchup
+    # when the column is present, and fall back to 0 for any games frame that
+    # does not carry it (which is also the training default).
+    div_game = 0
+    if "div_game" in games_df.columns:
+        matchup = games_df[(games_df["home_team"] == home_team) & (games_df["away_team"] == away_team)]
+        if not matchup.empty:
+            value = matchup.iloc[0]["div_game"]
+            div_game = 0 if pd.isna(value) else int(value)
+
     return pd.Series(
         {
             "home_pregame_rating": home_rating,
@@ -94,6 +108,6 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
             "away_points_allowed_roll": away_allowed,
             "home_rest_days": home_rest if home_rest is not None else 7.0,
             "away_rest_days": away_rest if away_rest is not None else 7.0,
-            "div_game": 0,
+            "div_game": div_game,
         }
     )
