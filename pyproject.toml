@@ -24,7 +24,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-mock", "httpx2"]
+# `httpx2` is not a real PyPI package -- `pip install -e ".[dev]"` failed on it.
+# FastAPI's TestClient needs `httpx`.
+dev = ["pytest", "pytest-mock", "httpx"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
