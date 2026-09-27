@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-27T05:29:09.226032+00:00",
+  "generated_at": "2026-09-27T12:18:02.683859+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -16108,7 +16108,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.5,
-          "total_line": 47.5
+          "total_line": 48.5
         },
         {
           "game_id": "2026_03_MIN_TB",
@@ -16184,7 +16184,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -2.5,
-          "total_line": 43.5
+          "total_line": 44.5
         },
         {
           "game_id": "2026_03_PHI_CHI",
@@ -16342,8 +16342,8 @@
           "away_win_prob": 0.29707378563435205,
           "home_cover_prob": 0.48629838842732864,
           "away_cover_prob": 0.5137016115726714,
-          "over_prob": 0.289319281355648,
-          "under_prob": 0.710680718644352,
+          "over_prob": 0.2625643087294074,
+          "under_prob": 0.7374356912705926,
           "predicted_margin": 7.0457634925842285,
           "predicted_total": 40.56521224975586,
           "sigma": 13.223153618916728,
@@ -16394,8 +16394,8 @@
           "away_win_prob": 0.4109005521934481,
           "home_cover_prob": 0.6606696244088344,
           "away_cover_prob": 0.33933037559116563,
-          "over_prob": 0.3963268166055055,
-          "under_prob": 0.6036731833944945,
+          "over_prob": 0.36581744231312796,
+          "under_prob": 0.634182557686872,
           "predicted_margin": 2.978238105773926,
           "predicted_total": 40.21767044067383,
           "sigma": 13.223153618916728,
