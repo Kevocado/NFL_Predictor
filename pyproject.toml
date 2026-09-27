@@ -17,6 +17,9 @@ dependencies = [
     "requests",
     "python-dotenv",
     "fastapi",
+    # api/schemas.py imports pydantic directly. It arrives transitively via
+    # fastapi today, but a direct import should be a direct declaration.
+    "pydantic>=2.9",
     "uvicorn[standard]",
 ]
 
