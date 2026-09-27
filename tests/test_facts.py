@@ -563,3 +563,48 @@ def test_started_game_quotes_no_rebuilt_player_projections(public, monkeypatch):
 
     assert body["status"] == "live"
     assert body["players"] == []
+
+
+# --- one pick, one number ------------------------------------------------
+#
+# The snapshot rebuilds the current and previous week every few hours, so its
+# prediction for an UPCOMING game is today's model, recomputed. The tracking row
+# is the number that was snapshotted before kickoff. Both are real, and they can
+# differ — so a bundle built from one for the pick and the other for the markets
+# states the same pick twice at two different probabilities.
+#
+# That is not a cosmetic disagreement. The v2 panel computes its confidence band
+# from `pick.prob` and draws its moneyline tile and split bar from
+# `markets[].model`, so the panel would show 58% beside a band derived from 62%.
+
+def test_the_moneyline_market_agrees_with_the_pick(public, monkeypatch):
+    """The invariant, as a property of the bundle rather than of one fixture."""
+    # The stored row says BAL at 62; today's recomputation says 55.
+    _install_snapshot(
+        monkeypatch,
+        _snapshot(prediction=_prediction(home_win_prob=0.55, away_win_prob=0.45)),
+    )
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    pick = body["pick"]
+    moneyline = next(m for m in body["markets"] if m["market"] == "moneyline")
+    assert moneyline["model"][pick["label"]] == pick["prob"], (
+        f"the bundle states the pick twice: pick says {pick['prob']}, the moneyline "
+        f"market says {moneyline['model'][pick['label']]}. A panel that draws its "
+        f"figure from one and its confidence from the other would show both."
+    )
+
+
+def test_the_pick_is_the_stored_number_even_when_the_model_moved(public, monkeypatch):
+    """The stored row still wins, because it is the record that will be judged."""
+    _install_snapshot(
+        monkeypatch,
+        _snapshot(prediction=_prediction(home_win_prob=0.55, away_win_prob=0.45)),
+    )
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["pick"]["label"] == "BAL"
+    assert body["pick"]["prob"] == 0.62
+    assert body["pick_timing"] == "pre_kickoff"
