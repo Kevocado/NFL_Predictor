@@ -16,6 +16,7 @@ See config.py's PUBLIC_SNAPSHOT_PATH for the rest of that mechanism.
 from __future__ import annotations
 
 import json
+import math
 
 from fastapi.encoders import jsonable_encoder
 
@@ -111,10 +112,33 @@ def build_snapshot(previous: dict | None = None) -> dict:
     }
 
 
+def sanitize_floats(value):
+    """Replace every non-finite float with None, recursively.
+
+    The feature pipeline produces NaN for "this market has no line" (an
+    unplayed game has no spread, a team with no cover model has no cover
+    probability). NaN is not valid JSON, and the public deployment serves
+    this file verbatim through a starlette JSONResponse, which renders with
+    allow_nan=False and turns a NaN into a 500. Null is the honest
+    encoding: the UI already renders a dash for a missing number.
+    """
+    if isinstance(value, float):
+        return None if not math.isfinite(value) else value
+    if isinstance(value, dict):
+        return {k: sanitize_floats(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [sanitize_floats(v) for v in value]
+    return value
+
+
 def main() -> None:
     previous = json.loads(config.PUBLIC_SNAPSHOT_PATH.read_text()) if config.PUBLIC_SNAPSHOT_PATH.exists() else None
-    snapshot = jsonable_encoder(build_snapshot(previous))
-    config.PUBLIC_SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2))
+    snapshot = sanitize_floats(jsonable_encoder(build_snapshot(previous)))
+    # allow_nan=False is the guard, not the mechanism: sanitize_floats has
+    # already replaced every non-finite float, so reaching here means a new
+    # one appeared somewhere and the build must fail loudly rather than
+    # write invalid JSON again.
+    config.PUBLIC_SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2, allow_nan=False))
     print(f"Wrote {config.PUBLIC_SNAPSHOT_PATH} ({config.PUBLIC_SNAPSHOT_PATH.stat().st_size / 1024:.0f} KB)")
 
 
