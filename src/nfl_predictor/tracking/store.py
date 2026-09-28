@@ -575,19 +575,46 @@ def get_calibration(n_buckets: int = CALIBRATION_N_BUCKETS) -> dict:
     }
 
 
-# The three graded markets, as (grade column, hit count key, accuracy key). One list so a
-# week row cannot grow an accuracy without also growing the count behind it -- a rate with
-# no denominator is not a fact, and a *weekly* rate is where that mistake hides best: 5
-# games, 3 ATS grades and 2 totals grades are three different denominators, and a chart
-# that shows all three accuracies as bare percentages is asserting they share one.
+# The three graded markets, as (grade column, hit count key, accuracy key, probability
+# pair the market is only a call if it has). One list so a week row cannot grow an
+# accuracy without also growing the count behind it -- a rate with no denominator is not
+# a fact, and a *weekly* rate is where that mistake hides best: 5 games, 3 ATS grades and
+# 2 totals grades are three different denominators, and a chart that shows all three
+# accuracies as bare percentages is asserting they share one.
+#
+# The fourth field is the other half of the same rule, kept here rather than written out
+# a second time beside the count keys. `get_game_verdict` below already declines to
+# report an ATS or totals market for a row whose probabilities are missing, because
+# `_present` says that is not a call the model made; `_grade` excludes exactly those rows
+# so the per-game view and the aggregate cannot give opposite answers about the same game.
+# The moneyline carries an EMPTY pair, which is a different statement from "its pair is
+# missing": the moneyline has no spread, `_compute_hits` grades it unconditionally, and
+# `get_game_verdict` always reports it. Requiring a probability pair there would drop
+# real grades to satisfy a rule that market has no part in.
+#
+# The data migration that would repair the stored flags is separate; until it runs,
+# excluding the rows in `_grade` is what keeps the aggregate honest.
 _GRADED_MARKETS = (
-    ("moneyline_hit", "n_moneyline", "pct_moneyline_correct"),
-    ("ats_hit", "n_ats", "pct_ats_correct"),
-    ("total_hit", "n_totals", "pct_totals_correct"),
+    ("moneyline_hit", "n_moneyline", "pct_moneyline_correct", ()),
+    ("ats_hit", "n_ats", "pct_ats_correct", ("home_cover_prob", "away_cover_prob")),
+    ("total_hit", "n_totals", "pct_totals_correct", ("over_prob", "under_prob")),
 )
 
 
-def _grade(frame: pd.DataFrame, column: str) -> dict:
+def _pair_present(frame: pd.DataFrame, *columns: str) -> pd.Series:
+    """Row-wise `all(_present(...))`, for filtering a frame.
+
+    `_present` is scalar; iterating it with Series arguments would make
+    `pd.isna` return a Series and blow up on truthiness. This is the same rule
+    expressed over columns.
+    """
+    mask = pd.Series(True, index=frame.index)
+    for column in columns:
+        mask &= frame[column].notna()
+    return mask
+
+
+def _grade(frame: pd.DataFrame, column: str, required: tuple[str, ...] = ()) -> dict:
     """Hit rate and its count for one graded market over `frame`.
 
     A market is graded per game, and not always: ATS needs a real spread line plus both
@@ -595,10 +622,23 @@ def _grade(frame: pd.DataFrame, column: str) -> dict:
     probabilities (see `_present`). So the denominator is the graded subset, never the
     row count, and an ungraded market is `None` rather than 0.0 -- 0% is a legible claim
     that every game was missed, which is not what "never measured" means.
+
+    `required` is the probability pair `_GRADED_MARKETS` records for this market. A
+    stored grade flag is not on its own enough: an older build wrote `ats_hit` for rows
+    that had a spread line and no cover probabilities, and `get_game_verdict` refuses
+    to report those rows, so counting them would put the per-game view and this
+    aggregate in disagreement about the same game. Empty for the moneyline, which
+    `_compute_hits` grades with no pair to check.
+
+    This is the ONLY place the two halves meet, deliberately: the headline aggregate
+    and every weekly row both go through it, so a week cannot apply a looser rule than
+    the season total above it.
     """
     if column not in frame.columns:
         return {"n": 0, "pct": None}
     graded = frame[frame[column].notna()]
+    if required and all(probability in frame.columns for probability in required):
+        graded = graded[_pair_present(graded, *required)]
     return {"n": int(len(graded)), "pct": float(graded[column].mean()) if not graded.empty else None}
 
 
@@ -617,8 +657,8 @@ def _weekly_row(week: int, frame: pd.DataFrame) -> dict:
     `_weekly_window`.
     """
     row = {"week": int(week), "n_games": int(len(frame)), "tracked": bool(len(frame))}
-    for column, count_key, pct_key in _GRADED_MARKETS:
-        graded = _grade(frame, column)
+    for column, count_key, pct_key, required in _GRADED_MARKETS:
+        graded = _grade(frame, column, required)
         row[count_key], row[pct_key] = graded["n"], graded["pct"]
     return row
 
@@ -1090,7 +1130,7 @@ def _point_forecast_week(week: int, frame: pd.DataFrame | None, column: str, rea
 def _summarize_games(
     resolved: pd.DataFrame, current_week: int | None = None, season: int | None = None
 ) -> dict:
-    graded = {column: _grade(resolved, column) for column, _, _ in _GRADED_MARKETS}
+    graded = {column: _grade(resolved, column, required) for column, _, _, required in _GRADED_MARKETS}
     forecasts = {
         key: {**_point_forecast(resolved, column, realised(resolved)), "weekly": []}
         for key, column, realised in _POINT_FORECASTS
@@ -1103,8 +1143,8 @@ def _summarize_games(
         "n_resolved": int(len(resolved)),
         # The headline counts too. A rate without its denominator is exactly the
         # ambiguity B1 shipped on this page, one level up.
-        **{count: graded[column]["n"] for column, count, _ in _GRADED_MARKETS},
-        **{pct: graded[column]["pct"] for column, _, pct in _GRADED_MARKETS},
+        **{count: graded[column]["n"] for column, count, _, _ in _GRADED_MARKETS},
+        **{pct: graded[column]["pct"] for column, _, pct, _ in _GRADED_MARKETS},
         "weekly": _weekly_window(resolved, current_week, season),
         **forecasts,
         "vs_market": {
