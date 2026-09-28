@@ -97,7 +97,6 @@ def load_depth_charts(season: int, cache_dir: Path, *, timeout: int = 60) -> pd.
     except Exception as exc:  # noqa: BLE001 - enhancement, never fatal
         logger.warning("depth charts: fetch failed for %s (%s); continuing without starters", season, exc)
         return None
-    return frame
 
 
 def _fetch_to(url: str, dest: Path, timeout: int) -> str:
