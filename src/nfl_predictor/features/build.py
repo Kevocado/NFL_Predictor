@@ -41,6 +41,48 @@ def build_training_frame(games_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     return played, FEATURE_COLUMNS
 
 
+def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int:
+    """Whether this matchup is a divisional game, read from the schedule.
+
+    `div_game` is a real modelled feature (`FEATURE_COLUMNS`) and training fills it
+    from the schedule, where it toggles for roughly a third of games. It used to be
+    hardcoded to 0 at serving time, so the model was fitted with the covariate
+    varying and served with it permanently constant -- the fitted coefficient was
+    dead weight at inference.
+
+    Extracted from `build_features_for_game` so the season-scoping rule can be
+    tested without reconstructing a full valid games frame.
+
+    Two rules, both of which the first version of this lookup got wrong:
+
+    - **Scope to the most recent season.** `routes._load_game_history`
+      concatenates eight completed seasons and `schedules.fetch_schedules` sorts
+      `["season", "week", "gameday"]` -- oldest first -- so the first home/away
+      pair on record is from the *earliest* season available. Demonstrated: a frame
+      where 2019's BUF-MIA was divisional and 2021's and 2026's were not served
+      `div_game = 1` for a 2026 game whose true value is 0.
+    - **Take the latest matchup inside that season**, not the first, since a
+      division's two meetings are both in the frame.
+
+    Falls back to 0 for any frame without the column, which is also the training
+    default, so a games frame that never carried `div_game` still serves.
+    """
+    if "div_game" not in games_df.columns:
+        return 0
+    candidates = games_df
+    if "season" in games_df.columns and games_df["season"].notna().any():
+        candidates = games_df[games_df["season"] == games_df["season"].max()]
+    matchup = candidates[
+        (candidates["home_team"] == home_team) & (candidates["away_team"] == away_team)
+    ]
+    if matchup.empty:
+        return 0
+    if "week" in matchup.columns:
+        matchup = matchup.sort_values("week")
+    value = matchup.iloc[-1]["div_game"]
+    return 0 if pd.isna(value) else int(value)
+
+
 def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFrame) -> pd.Series:
     """One live feature row for an upcoming home_team vs away_team game,
     computed from every played game in games_df (ratings/rolling form as of
@@ -90,12 +132,7 @@ def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFra
     # was dead weight at inference. Read it from the schedule for this matchup
     # when the column is present, and fall back to 0 for any games frame that
     # does not carry it (which is also the training default).
-    div_game = 0
-    if "div_game" in games_df.columns:
-        matchup = games_df[(games_df["home_team"] == home_team) & (games_df["away_team"] == away_team)]
-        if not matchup.empty:
-            value = matchup.iloc[0]["div_game"]
-            div_game = 0 if pd.isna(value) else int(value)
+    div_game = _div_game_for(games_df, home_team, away_team)
 
     return pd.Series(
         {

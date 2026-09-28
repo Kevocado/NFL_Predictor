@@ -140,15 +140,29 @@ def reconcile_against_players(
     yards). Rows are summed per team-game before comparison.
     """
     keys = ["season", "week", "team"]
-    # Plain per-column sum. `min_count` on a groupby sum is per *column* -- it
-    # requires N non-null observations of that one column within the group, not N
-    # populated components -- so `min_count=len(TARGET_COLUMNS)` here NaN'd out any
-    # team-game with fewer than two rows for a given column, instead of checking
-    # that both components were present. Presence is checked after the fact, on
-    # the summed components, which is what was actually meant.
+    # Both `min_count`s are load-bearing and only one of them was present.
+    #
+    # `min_count` on a *groupby* sum is per column -- it requires N non-null
+    # observations of that one column within the group, not N populated
+    # components -- so putting it here NaN'd out any team-game with a single row
+    # for a column. Hence the axis-level `min_count` below, which is the right
+    # instrument.
+    #
+    # But pandas' `groupby.sum()` also treats an **all-NaN column as 0.0**. So a
+    # team-game where no player row carried a `rushing_yards` value came back with
+    # `player_rushing_yards = 0` -- a real zero -- and the axis sum then saw two
+    # populated numbers and never objected. The guard the comment above describes
+    # therefore did not exist, and the failure it would have caught is the exact
+    # "missing value becomes a plausible number" shape: a partial player total read
+    # as a complete one, understating the diff by the whole team rushing total.
+    #
+    # `min_count=1` on the groupby stops an all-NaN component collapsing to zero;
+    # the axis `min_count` then requires both components to be genuinely present.
+    # Verified: groupby.sum() -> 0.0, axis sum -> 250.0 (guard inert);
+    # groupby.sum(min_count=1) -> NaN, axis sum -> NaN.
     player_totals = (
         player_frame.groupby(keys, as_index=False)[TARGET_COLUMNS]
-        .sum()
+        .sum(min_count=1)
         .rename(columns={column: f"player_{column}" for column in TARGET_COLUMNS})
     )
     summed = [f"player_{column}" for column in TARGET_COLUMNS]

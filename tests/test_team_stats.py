@@ -196,3 +196,22 @@ def test_player_stats_source_has_a_known_one_game_discrepancy():
         f"the known player_stats discrepancy grew from 1 team-game to {len(offenders)}; "
         f"re-examine before trusting either source"
     )
+
+
+def test_a_missing_component_yields_a_missing_total_not_a_zero():
+    """Kills the `min_count=len(summed)`-without-`min_count=1` mutant.
+
+    `groupby.sum()` coerces an all-NaN column to 0.0, so a team-game where no
+    player row carried `rushing_yards` looked like a team that rushed nothing, and
+    the axis-level presence check saw two real numbers and never fired. The result
+    was a *partial* player total that reads as complete — worse than an absent one,
+    because an absent one shows up in a count and a partial one does not.
+    """
+    team = pd.DataFrame([{"season": 2024, "week": 1, "team": "A", "passing_yards": 250, "rushing_yards": 100}])
+    players = pd.DataFrame([
+        {"season": 2024, "week": 1, "team": "A", "passing_yards": 250, "rushing_yards": float("nan")},
+    ])
+    out = team_stats.reconcile_against_players(team, players)
+    total = out["player_total_yards"].iloc[0]
+    assert total != total, f"a missing rushing component must report a missing total, not {total}"
+    assert out["diff"].iloc[0] != out["diff"].iloc[0], "and a missing diff, not a number"
