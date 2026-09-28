@@ -470,8 +470,28 @@ def _summarize_games(resolved: pd.DataFrame) -> dict:
             "n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None,
             "pct_totals_correct": None, "weekly_trend": [],
         }
-    ats = resolved[resolved["ats_hit"].notna()]
-    totals = resolved[resolved["total_hit"].notna()]
+    # `get_game_verdict` below already declines to report an ATS or totals market for
+    # a row whose probabilities are missing, because `_present` says that is not a
+    # call the model made. These rows are excluded here for exactly these rows, so
+    # without this the per-game view and the aggregate give opposite answers about
+    # the same game.
+    #
+    # The data migration that would repair the stored flags is separate; until it
+    # runs, excluding the rows here is what keeps the aggregate honest.
+    def _pair_present(*columns: str) -> pd.Series:
+        """Row-wise `all(_present(...))`, for filtering a frame.
+
+        `_present` is scalar; iterating it with Series arguments would make
+        `pd.isna` return a Series and blow up on truthiness. This is the same rule
+        expressed over columns.
+        """
+        mask = pd.Series(True, index=resolved.index)
+        for column in columns:
+            mask &= resolved[column].notna()
+        return mask
+
+    ats = resolved[resolved["ats_hit"].notna() & _pair_present("home_cover_prob", "away_cover_prob")]
+    totals = resolved[resolved["total_hit"].notna() & _pair_present("over_prob", "under_prob")]
 
     weekly_trend = []
     with_week = resolved[resolved["week"].notna()]
