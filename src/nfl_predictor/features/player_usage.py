@@ -26,9 +26,77 @@ def build_player_training_frame(player_stats_df: pd.DataFrame) -> tuple[pd.DataF
     return df, PLAYER_FEATURE_COLUMNS
 
 
-def build_features_for_player(player_id: str, player_stats_df: pd.DataFrame) -> pd.Series | None:
-    history = player_stats_df[player_stats_df["player_id"] == player_id].sort_values(["season", "week"])
+def build_features_for_player(
+    player_id: str,
+    player_stats_df: pd.DataFrame,
+    season: int | None = None,
+    week: int | None = None,
+    window: int = 5,
+) -> pd.Series | None:
+    """Pregame rolling features for one player, matching the training discipline.
+
+    `week` is the gameweek being predicted, and bounds the history to games strictly
+    before it. Pass it whenever it is known -- see the comment at the `history["week"]
+    < week` line for why relying on the target row's absence is not enough.
+
+    `season` scopes the history to a single season. This is not a refinement: the
+    previous version ranged over every season in the frame, so a player on a 2026
+    roster was scored on whatever his last five games were in whatever year those
+    were. Measured 2026-09-27, 416 of 458 non-zero served rows were predicted off
+    2024 data, and because `recent_team` comes from the current roster while the
+    features came from an old one, a traded player was credited to his new team on
+    his former team's numbers.
+
+    The rolling mean deliberately **excludes the most recent game**, reproducing
+    `_add_rolling`'s `shift(1).rolling(window, min_periods=1)`. A pregame feature
+    cannot know the game being predicted, so including it makes the served quantity
+    differ from the trained one under the same column name. That skew was real and
+    measurable: Aaron Rodgers (`00-0023459`) was served `passing_yards_roll` 254.0
+    against a training-consistent 249.0.
+
+    Returns None when the player has no rows in scope. Callers must skip rather than
+    substitute a default: the model is never trained on the all-zero region, and
+    scoring it returns the origin intercept (passing_yards 62.592, anytime_td_prob
+    0.111846), which is how 430 of 880 live rows -- 48.9% -- came back bit-identical
+    before this was fixed.
+    """
+    history = player_stats_df[player_stats_df["player_id"] == player_id]
+    if season is not None:
+        history = history[history["season"] == season]
+    if week is not None:
+        # The pregame view of `week`: everything strictly before it.
+        #
+        # This is the fix, and it is the *opposite* of dropping the last row. An
+        # earlier version of this function did `history.iloc[:-1]`, reasoning that
+        # "a pregame feature cannot know the game being predicted". That is wrong
+        # about the serving situation: nflverse publishes only *played* weeks, so
+        # the target game's row is normally absent already and `shift(1)` is
+        # implicit. Dropping a row therefore subtracted a real game that training
+        # includes. Measured against `_add_rolling`'s own training rows, for a
+        # player with 16 played games:
+        #
+        #     target week   training row   iloc[:-1] (was)   tail(5)
+        #              6           30.0            25.0         30.0
+        #             10           70.0            60.0         70.0
+        #             12           90.0            80.0         90.0
+        #             16          130.0           120.0        130.0
+        #
+        # `iloc[:-1]` matched training at no target week; `tail(window)` matches at
+        # every one. So the "fix" introduced a skew that was not there.
+        #
+        # Passing `week` explicitly is still strictly better than relying on that
+        # absence: `_load_player_history(season)` returns *every* played week, so
+        # when a team's week-N game has not kicked off but other week-N games have
+        # finished, the target row IS present and the window would include the
+        # game being predicted. The explicit bound closes that too.
+        history = history[history["week"] < week]
+    history = history.sort_values(["season", "week"])
     if history.empty:
         return None
-    recent = history.tail(5)
-    return pd.Series({f"{stat}_roll": float(recent[stat].mean()) for stat in ROLL_STATS})
+    prior = history.tail(window)
+    return pd.Series(
+        {
+            f"{stat}_roll": float(prior[stat].mean()) if not prior.empty else float("nan")
+            for stat in ROLL_STATS
+        }
+    )

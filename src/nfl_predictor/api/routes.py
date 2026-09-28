@@ -447,12 +447,19 @@ def _get_player_props_live(season: int, week: int):
         results = []
         for _, player in latest_players.iterrows():
             try:
-                feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
+                feature_row = player_usage.build_features_for_player(
+                    player["player_id"], player_history, season=season, week=week
+                )
                 if feature_row is None:
-                    # No usage history anywhere in player_history (true rookie,
-                    # or a player the roster fallback pulled in) — predict off
-                    # a neutral zero-usage baseline rather than skipping them.
-                    feature_row = pd.Series({col: 0.0 for col in player_usage.PLAYER_FEATURE_COLUMNS})
+                    # No usage history in the season being predicted — a true rookie,
+                    # or a player the roster fallback pulled in. Skip rather than
+                    # fabricating a zero row: the model is never trained on the
+                    # all-zero region, so scoring it returns the origin intercept
+                    # rather than a prediction. Measured 2026-09-27, that path made
+                    # 430 of 880 live rows (48.9%) bit-identical, serving 62.592
+                    # passing yards to real quarterbacks. This matches the sibling
+                    # CFB route, which already skipped.
+                    continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
                 results.append({
                     "player_id": player["player_id"],
@@ -763,7 +770,32 @@ def background_tracking_tick(season: int, week: int) -> None:
     try:
         if not completed.empty:
             actual_stats = player_stats.fetch_weekly_player_stats([season])
-            store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
+            if actual_stats.empty:
+                # `hub_cache.cached_frame` catches the upstream 404 and returns an
+                # empty frame on purpose, so the site shows dashes instead of
+                # erroring, and it logs at INFO -- below the default threshold, and
+                # per season per tick, so raising it there would flood. The
+                # consequence lands here, so it is reported here: once per tick, at a
+                # level that is actually visible.
+                #
+                # `n_resolved: 0` on the track record with snapshots still being
+                # written looks exactly like a tracking bug. It is this. Verified
+                # URLs, and why a prop backfill would be the wrong fix:
+                # docs/player-prop-accuracy-blocker.md
+                #
+                # Note the `else`, not a `return`. The game backfill below is a
+                # separate `try` block in the same tick, and returning would let a
+                # missing *player* stats file silently stop *game* reconciliation --
+                # which is the part that works, and would have regressed from 30 of
+                # 33 resolved to 0 with no error anywhere.
+                logger.warning(
+                    "player prop reconciliation skipped: no nflverse player stats for season %s "
+                    "(player_stats_%s.parquet is 404 upstream); n_resolved will stay 0 until "
+                    "the file is published -- see docs/player-prop-accuracy-blocker.md",
+                    season, season,
+                )
+            else:
+                store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
     except Exception:
         logger.exception("player prop reconciliation failed")
 
