@@ -225,11 +225,40 @@ def _week_row(season: int, week: int, game_id: str) -> dict | None:
     return None
 
 
-def _props(season: int, week: int) -> list[dict]:
+def _props(season: int, week: int) -> tuple[list[dict], bool]:
+    """(rows, unavailable) for this week.
+
+    Non-raising on purpose. This is a second reader of the same data as
+    `routes.get_player_props`, and when that route started answering 503 for an
+    unavailable week this function propagated it -- with no handler at the call
+    site, which took down the whole `/facts/{game_id}` bundle: pick, markets,
+    drivers, context and record all died because a props panel could not be
+    filled. Before that it degraded to `"players": []`. A panel is allowed to be
+    empty; it is not allowed to take the page with it.
+
+    The PUBLIC_MODE branch calls `routes.snapshot_props_unavailable` rather than
+    reimplementing the rule. While the two were separate, the props page said
+    "could not be loaded" for week 3 while this panel said nothing, for the same
+    week -- the same reader looking at two panels, one loud and one silent. The
+    `unavailable` flag is what lets the panel say something true instead of
+    implying there are simply no players.
+    """
     if PUBLIC_MODE:
         snap = _snapshot_week(season, week, "") or {}
-        return snap.get("player_props") or []
-    return routes.get_player_props(season, week)
+        if routes.snapshot_props_unavailable(snap) is not None:
+            logger.warning("facts: player props unavailable for season=%s week=%s", season, week)
+            return [], True
+        return snap.get("player_props") or [], False
+    try:
+        return routes.get_player_props(season, week), False
+    except HTTPException as exc:
+        # A 503 from the props route is the expected shape of "unavailable". A
+        # 404 would mean the route itself is gone, which is not something to
+        # absorb quietly -- re-raise so it is not mistaken for no players.
+        if exc.status_code != 503:
+            raise
+        logger.warning("facts: player props unavailable for season=%s week=%s: %s", season, week, exc.detail)
+        return [], True
 
 
 # --- bundle assembly ----------------------------------------------------
@@ -471,6 +500,15 @@ def get_facts(game_id: str) -> dict:
     # same thing as taking every market from the row.
     markets = [] if (started and stored is None) else _markets(game, stored, moneyline_from=pick_source)
 
+    # Resolved before the return dict so the panel and the flag can never come
+    # from different reads. `started` short-circuits: a started game quotes no
+    # props at all, and "unavailable" would be a false claim about a thing the
+    # bundle deliberately does not show.
+    if started:
+        props_rows, players_unavailable = [], False
+    else:
+        props_rows, players_unavailable = _props(season, week)
+
     return {
         "sport": "nfl",
         "id": game_id,
@@ -484,7 +522,11 @@ def get_facts(game_id: str) -> dict:
         # started game quotes neither; rest and divisional status are fixed.
         "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
         "context": _context(game, game.get("home_rest"), game.get("away_rest")),
-        "players": [] if started else _players(_props(season, week), {home_team, away_team}),
+        "players": [] if started else _players(props_rows, {home_team, away_team}),
+        # True when props exist upstream but could not be produced. The panel can
+        # then say "unavailable" rather than rendering an empty list, which is
+        # indistinguishable from a game whose players simply have no prop markets.
+        "players_unavailable": players_unavailable,
         "record": _record(),
         "result": _result(game, status, pick_timing, stored),
     }

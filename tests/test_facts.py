@@ -608,3 +608,108 @@ def test_the_pick_is_the_stored_number_even_when_the_model_moved(public, monkeyp
     assert body["pick"]["label"] == "BAL"
     assert body["pick"]["prob"] == 0.62
     assert body["pick_timing"] == "pre_kickoff"
+
+
+# --- player props: a panel may be empty, it may not be silent ------------
+#
+# `facts._props` is a second reader of the same props data as
+# `routes.get_player_props`. When that route started answering 503 for an
+# unavailable week, this function propagated it, and with no handler at the call
+# site the whole `/facts/{game_id}` bundle 500'd -- pick, markets, drivers,
+# context and record, all of it, because a props panel could not be filled.
+#
+# The `public` and `live` fixtures above stub `get_player_props` (or the
+# snapshot's props) with data that makes props available, which is exactly why
+# this file could not see the regression. These tests break that arrangement
+# deliberately: they make props unavailable, in both modes, and assert the rest
+# of the bundle is intact and that the panel says something true.
+
+
+def test_a_snapshot_week_with_games_but_no_props_flags_the_panel_instead_of_claiming_no_players(public, monkeypatch):
+    # games present, props absent: a build that failed, not a week without props
+    _install_snapshot(monkeypatch, _snapshot(props=[]))
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["players"] == []
+    assert body["players_unavailable"] is True
+    # The rest of the bundle is the point: it must be whole.
+    assert body["pick"] == {"label": "BAL", "prob": 0.62}
+    assert {m["market"] for m in body["markets"]} == {"moneyline", "spread", "total"}
+    assert body["drivers"] and body["context"] and body["record"]
+
+
+def test_a_snapshot_week_with_players_does_not_flag_the_panel(public, monkeypatch):
+    _install_snapshot(monkeypatch, _snapshot())
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["players_unavailable"] is False
+    assert len(body["players"]) == 3
+
+
+def test_a_recorded_unavailable_status_is_read_by_the_facts_panel(public, monkeypatch):
+    """The panel and the props route share one rule, so a build that recorded
+    "unavailable" is believed by both. Without this the panel would show an empty
+    list for a week the props route is refusing outright."""
+    snapshot = _snapshot(props=[])
+    snapshot["weeks"]["5"]["player_props_status"] = "unavailable"
+    _install_snapshot(monkeypatch, snapshot)
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+
+    assert body["players_unavailable"] is True
+    assert body["pick"] is not None
+
+
+def test_a_raising_props_route_does_not_take_the_bundle_down(live, monkeypatch):
+    """The regression itself, in the mode where the route computes live.
+
+    `live` stubs `routes.get_player_props` to return `[]`. Overriding it with a
+    raiser is the point: a stub that returns an empty list makes the very failure
+    under test unfailable, which is how this shipped.
+
+    The game is pushed into the future because the `live` fixture's own game is
+    already finished, and a finished game deliberately quotes no props at all --
+    which would make the flag False for a reason that has nothing to do with the
+    exception handling under test.
+    """
+    from fastapi import HTTPException
+
+    def _unavailable(season, week):
+        raise HTTPException(status_code=503, detail="player props unavailable")
+
+    upcoming = _game(gameday="2026-10-05T00:20:00")
+    monkeypatch.setattr(facts_mod.routes.schedules, "fetch_week_games",
+                        lambda season, week: pd.DataFrame([upcoming]))
+    monkeypatch.setattr(facts_mod.routes, "get_games", lambda season, week: [upcoming])
+    monkeypatch.setattr(facts_mod.routes, "get_player_props", _unavailable)
+
+    body = live.get(f"/facts/{GAME_ID}").json()
+
+    assert body["status"] == "upcoming"
+    assert body["players"] == []
+    assert body["players_unavailable"] is True
+    # Everything else still ships. This is the assertion that fails when the
+    # exception is not caught: the request 500s and there is no body at all.
+    assert body["context"] is not None
+    assert body["pick"] is not None or body["pick_timing"] == "none"
+
+
+def test_a_finished_game_never_claims_its_props_are_unavailable(live, monkeypatch):
+    """The flag has to stay quiet where the bundle deliberately shows no props.
+    A finished game quotes no props by rule, so "unavailable" would be a false
+    claim about something that was never on the page to begin with."""
+    from fastapi import HTTPException
+
+    def _unavailable(season, week):
+        raise HTTPException(status_code=503, detail="player props unavailable")
+
+    monkeypatch.setattr(facts_mod.routes, "get_player_props", _unavailable)
+
+    body = live.get(f"/facts/{GAME_ID}").json()
+
+    # The `live` fixture's game kicked off before NOW, so it is in progress.
+    assert body["status"] == "live"
+    assert body["players"] == []
+    assert body["players_unavailable"] is False

@@ -13,7 +13,7 @@ from functools import lru_cache
 
 import pandas as pd
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from ..config import (
     CURRENT_SEASON,
@@ -421,57 +421,105 @@ class PlayerPropsUnavailable(RuntimeError):
     These are different facts and the difference is the whole point. A reader
     shown "no props for this game" when the pipeline actually broke has been told
     something false, and there is no way to tell the two apart from the response
-    alone -- the old `except Exception: return []` made a stalled nflverse socket,
-    a 404 on the season's stats, and a genuine empty week all arrive as `200 []`.
+    alone -- the old `except Exception: return []` made a 404 on the season's
+    stats, a dead upstream host, and a genuine empty week all arrive as `200 []`.
 
     Raised rather than logged-and-returned so the HTTP layer can answer 503 and
     the snapshot builder can tell a failed rebuild from a week with nothing in
     it. The live path's other callers (background_tracking_tick, _build_week)
     already wrap this call in their own try/except, so they keep their behaviour.
+
+    The message on this exception is for the LOG, never for a reader: `str()` on a
+    urllib failure carries the upstream host and port, and the sentence a reader
+    gets is a fixed constant (`PROPS_UNAVAILABLE_DETAIL`) that cannot contradict
+    itself the way an appended cause can.
     """
 
 
+#: What a reader is told when props could not be produced. Fixed text, on purpose.
+#: Interpolating the cause leaked `HTTPSConnectionPool(host='github.com',
+#: port=443): Read timed out` into a public response body, and bolting "could not
+#: be loaded" onto a message that already said "could not be loaded" read as two
+#: separate failures. The log carries the detail; the body does not.
+PROPS_UNAVAILABLE_DETAIL = (
+    "Player props are temporarily unavailable for this game. The projections could "
+    "not be produced. This is a failure, not a game without props."
+)
+
+#: Set on a 200 whose rows came from a previous snapshot build because this
+#: week's rebuild failed. Carrying the last good rows forward is worth it -- they
+#: are pregame projections for the same week, which is all the accuracy rule asks
+#: -- but a reader must be able to tell they are not from this build.
+PROPS_STALE_HEADER = "X-Player-Props-Stale"
+
+
+def snapshot_props_unavailable(snap: dict) -> str | None:
+    """Why this snapshot week cannot serve player props, or None if it can.
+
+    One implementation, called by BOTH readers of the snapshot -- the props route
+    and `facts._props`. While those were separate, the props page said "could not
+    be loaded" for a week while the facts panel beside it said nothing at all, for
+    the same week and the same reader. Two panels disagreeing about one fact is
+    the defect; sharing the rule is the fix.
+
+    Order matters, and the `games` check is deliberately last:
+
+    1. rows present -> serve them, whatever the status says. A build that recorded
+       "stale" still carried real rows, and blanking those would discard exactly
+       what the carry-forward exists to preserve.
+    2. `player_props_status == "unavailable"` -> the build itself said it could not
+       produce rows. This is the reason the build writes the key.
+    3. no status key (or an unrecognised one) and the week has games -> a pre-key
+       snapshot. Every NFL game has players in it, so a full slate with zero props
+       is only reachable by something breaking. This is what covers the currently
+       committed file, whose weeks 2-7 predate the key.
+    4. no rows and no games -> an honest empty. Weeks 19-22 look exactly like it.
+    """
+    if not snap:
+        return None
+    if snap.get("player_props"):
+        return None
+    if snap.get("player_props_status") == "unavailable":
+        return "the last build recorded that props could not be produced for it"
+    if snap.get("games"):
+        return f"the snapshot has {len(snap['games'])} game(s) and no player props for it"
+    return None
+
+
 @router.get("/players/{season}/{week}/props")
-def get_player_props(season: int, week: int):
+def get_player_props(season: int, week: int, response: Response = None):
+    """The HTTP endpoint.
+
+    `response` is FastAPI's per-request object, used only to set the stale
+    header. It defaults to None because `facts._props` calls this function
+    directly, off-HTTP, to reuse the PUBLIC_MODE snapshot rule; FastAPI still
+    injects a real Response for a served request and ignores the default.
+    """
     if PUBLIC_MODE:
         snap = _snapshot_week(season, week)
         if snap is not None:
-            props = snap.get("player_props")
-            # A week that has games but no props is a build that failed, not a
-            # week without props -- every NFL game has players in it, so zero
-            # props alongside a real slate is only reachable by something
-            # breaking. This deliberately keys off `games` rather than the
-            # `player_props_status` key, so it also covers snapshots committed
-            # before that key existed -- including the current one, where weeks
-            # 2-7 have a full slate and no props.
-            if not props and snap.get("games"):
-                raise HTTPException(
-                    status_code=503,
-                    detail=(
-                        f"Player props for season {season} week {week} are unavailable: the "
-                        f"precomputed snapshot has {len(snap['games'])} game(s) and no player "
-                        "props for it. This is a data/build failure, not a week without props."
-                    ),
-                )
-            if not props:
-                # No games either -- an honest empty. Weeks 19-22 in the committed
-                # snapshot look exactly like this: the schedule hasn't reached them.
-                return []
-            return props
+            reason = snapshot_props_unavailable(snap)
+            if reason is not None:
+                logger.error("player props unavailable for season=%s week=%s: %s", season, week, reason)
+                raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL)
+            if snap.get("player_props_status") == "stale":
+                # Served, but labelled: a stale pregame projection is still a
+                # pregame projection, and presenting it as this build's is not.
+                response.headers[PROPS_STALE_HEADER] = "true"
+            return snap.get("player_props") or []
     try:
         return _get_player_props_live(season, week)
     except PlayerPropsUnavailable as exc:
-        # 503, not 200 []. A bare 500 would be honest but unactionable, and
-        # returning an empty list here is the bug this whole path exists to fix.
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"player props for season {season} week {week} could not be loaded: {exc}. "
-                "This is a failure, not a week without props."
-            ),
-        ) from exc
+        # No `except Exception` backstop here, and that is deliberate.
+        # `_get_player_props_live` wraps its whole body, so every Exception it can
+        # raise has already become a PlayerPropsUnavailable before control gets
+        # back here; a second net could only be unreachable code. The contract
+        # that makes it unreachable is pinned by
+        # `test_the_live_path_never_leaks_a_raw_exception` rather than by a
+        # branch nobody can reach -- so a mutation deleting THIS handler has to be
+        # caught by that test, not by anything here.
+        logger.error("player props unavailable for season=%s week=%s: %s", season, week, exc)
+        raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc
 
 
 def _get_player_props_live(season: int, week: int):
@@ -533,7 +581,14 @@ def _get_player_props_live(season: int, week: int):
                 logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)
 
         results = []
+        # `skipped` and `failed` are different facts and the error message has to
+        # keep them apart. "every player failed (0 of 1 failed)" -- which is what
+        # the first cut of this said -- is self-contradictory, and it is what you
+        # get when the roster fallback supplies a name and `build_features_for_player`
+        # returns None for them all. One is a prediction error; the other is a
+        # missing pregame feature row.
         failed = []
+        skipped = []
         for _, player in latest_players.iterrows():
             try:
                 feature_row = player_usage.build_features_for_player(
@@ -548,6 +603,7 @@ def _get_player_props_live(season: int, week: int):
                     # 430 of 880 live rows (48.9%) bit-identical, serving 62.592
                     # passing yards to real quarterbacks. This matches the sibling
                     # CFB route, which already skipped.
+                    skipped.append(player.get("player_id"))
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
                 results.append({
@@ -561,15 +617,29 @@ def _get_player_props_live(season: int, week: int):
                 failed.append(player.get("player_id"))
                 logger.warning("Failed to predict props for player_id=%s: %s", player.get("player_id"), player_err)
                 continue
-        # Every player failing is an outage, not a week without props. One bad
+        # Producing nothing at all is an outage, not a week without props. One bad
         # player is a tolerable gap and is still a partial result, so only the
-        # total-failure case is promoted to an error. Silently returning `[]`
-        # here is what made a model backend timing out look like an empty slate.
+        # total-failure case is promoted to an error. Returning `[]` here is what
+        # made a broken prediction path look like an empty slate.
+        #
+        # The `not results` half is load-bearing and was one token from being lost:
+        # with `and failed:` bolted on, a week where the roster fallback supplied
+        # every name and `build_features_for_player` returned None for all of them
+        # (`failed` empty, `skipped` full) would fall straight through to `200 []`.
+        # The two causes get separate sentences because they are different bugs
+        # upstream -- a dead model backend versus a missing pregame feature row.
         if latest_players.shape[0] and not results:
+            considered = latest_players.shape[0]
+            if skipped and not failed:
+                raise PlayerPropsUnavailable(
+                    f"no props for season {season} week {week}: all {considered} player(s) were "
+                    "skipped for want of a pregame usage history in the season being predicted, "
+                    "so none could be scored"
+                )
             raise PlayerPropsUnavailable(
-                f"every player in season {season} week {week} failed to predict "
-                f"({len(failed)} of {latest_players.shape[0]} failed, first={failed[:3]}); "
-                "this is a prediction failure, not a week without props"
+                f"no props for season {season} week {week}: {len(failed)} of {considered} "
+                f"player(s) failed to predict (first={failed[:3]}) and {len(skipped)} were "
+                "skipped for want of a pregame usage history"
             )
         return results
     except PlayerPropsUnavailable:
@@ -577,13 +647,11 @@ def _get_player_props_live(season: int, week: int):
         # bury the message that explains the 503 a reader is about to get.
         raise
     except Exception as e:
-        # The old `return []`. A stalled nflverse socket, a 404 on the season's
-        # stats and a 500 in feature building all used to land here and reach a
-        # reader as an empty props table.
+        # The old `return []`. A 404 on the season's stats, a dead upstream host
+        # and a crash in feature building all used to land here and reach a reader
+        # as an empty props table.
         logger.exception("Failed to load player props for season=%s week=%s", season, week)
-        raise PlayerPropsUnavailable(
-            f"player props for season {season} week {week} could not be loaded: {e}"
-        ) from e
+        raise PlayerPropsUnavailable(f"unhandled error in the props pipeline: {e!r}") from e
 
 
 @router.get("/track-record")

@@ -152,6 +152,14 @@ def test_get_games_includes_finished_games(client, monkeypatch):
 
 
 def test_get_player_props_includes_recent_team_and_position(client, monkeypatch):
+    # The roster fallback below is reached because the stub history above has no
+    # row for either team in the game, so `missing_teams` is non-empty and
+    # `player_stats.fetch_seasonal_roster` runs. Unstubbed that reads nflverse,
+    # which is the pre-existing tenth connection the offline guard now names.
+    monkeypatch.setattr(
+        routes.player_stats, "fetch_seasonal_roster",
+        lambda season: pd.DataFrame(columns=["player_id", "player_name", "position", "recent_team"]),
+    )
     monkeypatch.setattr(
         routes, "_load_player_history",
         lambda season: pd.DataFrame(

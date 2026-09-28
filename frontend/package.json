@@ -13,6 +13,10 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
+  "engines": {
+    "//": "jsdom 29 declares `node: ^20.19.0 || ^22.13.0 || >=24.0.0`; the CI job pins 20.19 for the same reason.",
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",

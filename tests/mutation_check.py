@@ -1,227 +1,558 @@
-"""Mutation harness for tests/test_player_props_failure.py.
+"""Mutation harness for the player-props empty-state work.
 
-For each mutation: apply it to a scratch copy of the source, run the suite
-against it, record whether the suite caught it. A surviving mutation is a hole in
-the test, not a pass.
+For each mutation: apply it to a COPY of the tree, run the target against the
+copy, and record whether the target caught it. A surviving mutation is a hole in
+the tests, not a pass.
 
-Usage: .venv/bin/python tests/mutation_check.py
+    .venv/bin/python tests/mutation_check.py            # all
+    .venv/bin/python tests/mutation_check.py M4 M9      # named only
+
+Three things this harness is built around, each of which broke a previous
+version of it:
+
+**It never writes to a tracked file.** The first version applied mutations to
+`src/nfl_predictor/api/routes.py` in place and restored from a temp backup in a
+`finally`. `finally` does not run on SIGKILL or Ctrl-C, so an interrupted run
+left `routes.py` mutated -- in a file whose own comment says that cannot happen.
+Worse, two proof scripts in this project's history derived their restore paths by
+string-munging and left every mutation in place. So the tree is copied to a
+tempdir, `node_modules` and `.venv` are symlinked rather than copied, and the
+tracked files are never opened for writing at all. `signal`/`atexit` handlers are
+kept as a second line of defence for the tempdir itself.
+
+**Exit codes are not verdicts.** The first version reported CAUGHT for any
+non-zero exit, which cannot tell "an assertion fired" from "the runner crashed
+or could not start". A missing `jsdom` -- the exact failure mode of a brand-new
+dependency -- was reported as `all mutations caught`, exit 0. The python arm now
+runs each target's BASELINE first and aborts if it is not green. The frontend arm
+requires the literal `all frontend state assertions passed` before believing a
+pass and a `FAIL` marker before believing a failure; anything else is
+INCONCLUSIVE, which is a harness problem and is reported as one.
+
+**The canary.** A mutation that is known to survive must report SURVIVED. If it
+reports CAUGHT, the harness itself has stopped detecting and every other verdict
+in the run is suspect, so that fails the whole harness. This is what makes a
+broken harness loud instead of green.
+
+Verdicts: CAUGHT / SURVIVED / INCONCLUSIVE / SKIPPED.
 """
+from __future__ import annotations
+
+import atexit
+import os
+import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ROUTES = ROOT / "src/nfl_predictor/api/routes.py"
-SNAPSHOT = ROOT / "src/nfl_predictor/public_snapshot.py"
-PAGE = ROOT / "frontend/src/pages/PlayerPropsPage.tsx"
+PYTHON = ROOT / ".venv/bin/python"
 
-# (id, file, find, replace, tests_to_run)
-MUTATIONS = [
-    (
-        "M1 outer-except returns [] again (the original bug)",
-        ROUTES,
-        """        logger.exception("Failed to load player props for season=%s week=%s", season, week)
-        raise PlayerPropsUnavailable(
-            f"player props for season {season} week {week} could not be loaded: {e}"
-        ) from e""",
-        """        logger.exception("Failed to load player props for season=%s week=%s", season, week)
-        return []""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M2 route converts the unavailable error back into an empty 200",
-        ROUTES,
-        """    except PlayerPropsUnavailable as exc:
-        # 503, not 200 []. A bare 500 would be honest but unactionable, and
-        # returning an empty list here is the bug this whole path exists to fix.
-        raise HTTPException(status_code=503, detail=str(exc)) from exc""",
-        """    except PlayerPropsUnavailable as exc:
-        return []""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M3 per-player total-failure check deleted (empty results served as empty week)",
-        ROUTES,
-        """        if latest_players.shape[0] and not results:
-            raise PlayerPropsUnavailable(
-                f"every player in season {season} week {week} failed to predict "
-                f"({len(failed)} of {latest_players.shape[0]} failed, first={failed[:3]}); "
-                "this is a prediction failure, not a week without props"
-            )
-""",
-        "",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M4 upstream-data-gap check deleted",
-        ROUTES,
-        """        if latest_players.empty and (player_history["season"] == season).sum() == 0:
-            raise PlayerPropsUnavailable(
-                f"no player stats are available for season {season}, so no props can be "
-                f"projected for week {week} of it (upstream player_stats_{season}.parquet is "
-                "not published); this is an upstream data gap, not a week without props"
-            )
-""",
-        "",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M5 snapshot drops the previous props on failure (reintroduces the frozen empty)",
-        SNAPSHOT,
-        """        carried = (previous or {}).get("player_props") or []
-        if carried:""",
-        """        carried = []
-        if carried:""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M6 snapshot status is hardcoded to 'ok'",
-        SNAPSHOT,
-        """            player_props, props_status = carried, "stale\"""",
-        """            player_props, props_status = carried, "ok\"""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M7 PUBLIC_MODE games check deleted (serves the committed empty snapshot as empty week)",
-        ROUTES,
-        """            if not props and snap.get("games"):""",
-        """            if False:""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M13 the no-games branch also 503s (every empty result becomes an error)",
-        ROUTES,
-        """        if upcoming_games.empty:
-            # No games in this week at all. Nothing to project and nothing broken --
-            # this is the one empty result that is a true answer, and it is the
-            # only one allowed to reach a reader as an empty list.
-            return []""",
-        """        if upcoming_games.empty:
-            raise PlayerPropsUnavailable(f"no games in week {week}")""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M14 PUBLIC_MODE no-games week also 503s",
-        ROUTES,
-        """            if not props:
-                # No games either -- an honest empty. Weeks 19-22 in the committed
-                # snapshot look exactly like this: the schedule hasn't reached them.
-                return []""",
-        """            if not props:
-                raise HTTPException(status_code=503, detail="no props and no games")""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M8 503 downgraded to 500 (still not an empty state, but loses the retryable signal)",
-        ROUTES,
-        """        raise HTTPException(status_code=503, detail=str(exc)) from exc""",
-        """        raise HTTPException(status_code=500, detail=str(exc)) from exc""",
-        "tests/test_player_props_failure.py",
-    ),
-    (
-        "M9 frontend error state dropped (a failed fetch renders the empty-state sentence)",
-        PAGE,
-        """      {error && (
+# --- what gets copied ------------------------------------------------------
+# Explicit, because an implicit copy either misses something the target reads or
+# drags in .git and a 400MB node_modules. `data/cache` is excluded for a second
+# reason: it is gitignored, so a stale local parquet cache would make a network
+# leak pass locally and fail on CI.
+# `.github` is here because tests/test_deploy_workflow.py reads the real workflow
+# files, and a copy without them turns the baseline red. That is the baseline
+# gate doing its job on its first run.
+COPY_DIRS = ["src", "tests", "models", ".github"]
+COPY_FILES = ["pyproject.toml"]
+DATA_GLOBS = ["data/*.json"]
+FRONTEND_FILES = [
+    "package.json", "package-lock.json", "vite.config.ts", "tsconfig.json",
+    "tsconfig.app.json", "tsconfig.node.json", "props_state_check.mjs",
+]
+FRONTEND_DIRS = ["src"]
+# Symlinked, not copied: both are large and neither is mutated.
+SYMLINKS = [".venv", "frontend/node_modules"]
+
+FRONTEND_SUCCESS = "all frontend state assertions passed"
+FRONTEND_FAIL = "FRONTEND RESULT: FAIL"
+FRONTEND_PASS = "FRONTEND RESULT: PASS"
+
+
+@dataclass(frozen=True)
+class Mutation:
+    ident: str
+    name: str
+    relpath: str          # path inside the repo, i.e. inside the copy
+    find: str
+    replace: str
+    arm: str              # "python" | "frontend"
+    canary: bool = False
+    note: str = ""
+
+
+M = Mutation
+MUTATIONS: list[Mutation] = [
+    # --- the original defect ------------------------------------------------
+    M("M1", "outer except returns [] again (the original bug)",
+      "src/nfl_predictor/api/routes.py",
+      '''        logger.exception("Failed to load player props for season=%s week=%s", season, week)
+        raise PlayerPropsUnavailable(f"unhandled error in the props pipeline: {e!r}") from e''',
+      '''        logger.exception("Failed to load player props for season=%s week=%s", season, week)
+        return []''',
+      "python"),
+    M("M2", "route converts the unavailable error back into an empty 200",
+      "src/nfl_predictor/api/routes.py",
+      '''        logger.error("player props unavailable for season=%s week=%s: %s", season, week, exc)
+        raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc''',
+      '''        return []''',
+      "python"),
+    M("M3", "total-failure guard deleted",
+      "src/nfl_predictor/api/routes.py",
+      "        if latest_players.shape[0] and not results:",
+      "        if False:",
+      "python"),
+    M("M4", "upstream-data-gap check deleted",
+      "src/nfl_predictor/api/routes.py",
+      '''        if latest_players.empty and (player_history["season"] == season).sum() == 0:''',
+      '''        if False:''',
+      "python"),
+    M("M5", "snapshot drops the previous props on failure (reintroduces the frozen empty)",
+      "src/nfl_predictor/public_snapshot.py",
+      '''        carried = (previous or {}).get("player_props") or []
+        if carried:''',
+      '''        carried = []
+        if carried:''',
+      "python"),
+    M("M6", "snapshot status hardcoded to 'ok'",
+      "src/nfl_predictor/public_snapshot.py",
+      '''            player_props, props_status = carried, "stale"''',
+      '''            player_props, props_status = carried, "ok"''',
+      "python"),
+    M("M7", "PUBLIC_MODE games check deleted (serves the committed empty snapshot)",
+      "src/nfl_predictor/api/routes.py",
+      '''    if snap.get("games"):
+        return f"the snapshot has {len(snap['games'])} game(s) and no player props for it"''',
+      '''    if False:
+        return "unused"''',
+      "python"),
+    M("M8", "503 downgraded to 500 (loses the retryable signal)",
+      "src/nfl_predictor/api/routes.py",
+      '''        raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc''',
+      '''        raise HTTPException(status_code=500, detail=PROPS_UNAVAILABLE_DETAIL) from exc''',
+      "python"),
+    M("M9", "frontend error branch deleted (a failed fetch renders the empty state)",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      '''      {error && (
         <p role="alert">
           Player props could not be loaded: {error}
         </p>
       )}
-""",
-        "",
-        "frontend/props_state_check.mjs",
-    ),
-    (
-        "M10 frontend suppresses the table on failure -> restored (zero-row table beside the error)",
-        PAGE,
-        """      {!error && (
-        <>
-          <label>
-            Sort by:{" "}""",
-        """      {(
-        <>
-          <label>
-            Sort by:{" "}""",
-        "frontend/props_state_check.mjs",
-    ),
-    (
-        "M11 frontend loading state dropped (a pending fetch renders the empty-state sentence)",
-        PAGE,
-        """      {loading && <p>Loading…</p>}
-""",
-        "",
-        "frontend/props_state_check.mjs",
-    ),
-    (
-        "M12 frontend .catch dropped (reintroduces the swallowed rejection)",
-        PAGE,
-        """      .catch((err) => {
+''',
+      "",
+      "frontend"),
+    M("M10", "frontend table shown beside the error (zero-row grid)",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      """      {!error && !loading && (""",
+      """      {!loading && (""",
+      "frontend"),
+    M("M11", "frontend loading branch deleted (a pending fetch claims no props)",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      """      {loading && <p>Loading…</p>}\n""",
+      "",
+      "frontend"),
+    M("M12", "frontend .catch deleted (reintroduces the swallowed rejection)",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      '''      .catch((err) => {
         setError(err.message);
         setProps([]);
+        setStale(false);
       })
-""",
-        "",
-        "frontend/props_state_check.mjs",
-    ),
+''',
+      "",
+      "frontend"),
+    M("M13", "live no-games branch also raises (every empty becomes an error)",
+      "src/nfl_predictor/api/routes.py",
+      '''            # this is the one empty result that is a true answer, and it is the
+            # only one allowed to reach a reader as an empty list.
+            return []''',
+      '''            raise PlayerPropsUnavailable("no games in this week")''',
+      "python"),
+    M("M14", "PUBLIC_MODE no-games week also raises",
+      "src/nfl_predictor/api/routes.py",
+      '''            return snap.get("player_props") or []''',
+      '''            raise HTTPException(status_code=503, detail="no props and no games")''',
+      "python"),
+    M("M15", "total-failure guard also requires a failure (everyone-skipped slips through)",
+      "src/nfl_predictor/api/routes.py",
+      "        if latest_players.shape[0] and not results:",
+      "        if latest_players.shape[0] and not results and failed:",
+      "python"),
+    M("M16", "stale header never set (a stale week served as a fresh 200)",
+      "src/nfl_predictor/api/routes.py",
+      '''            if snap.get("player_props_status") == "stale":''',
+      '''            if False:''',
+      "python"),
+    # Reported SURVIVED on purpose, and kept for that reason rather than deleted.
+    # `snapshot_props_unavailable` returns early on `if snap.get("player_props"):
+    # return None`, and `_build_week` only ever writes "stale" alongside
+    # carried-forward rows, so a stale week carrying no rows is unreachable.
+    # The mutation therefore documents a dead branch instead of hiding it.
+    M("M17", "CANARY: 'stale' added to the status comparison (an unreachable state)",
+      "src/nfl_predictor/api/routes.py",
+      '''    if snap.get("player_props_status") == "unavailable":''',
+      '''    if snap.get("player_props_status") in ("unavailable", "stale"):''',
+      "python", canary=True),
+    M("M18", "status checked before rows (blanking carried-forward props)",
+      "src/nfl_predictor/api/routes.py",
+      '''    if snap.get("player_props"):
+        return None
+    if snap.get("player_props_status") == "unavailable":''',
+      '''    if snap.get("player_props_status") == "unavailable":''',
+      "python"),
+    M("M19", "facts: no HTTPException catch (the bundle 500s on a 503)",
+      "src/nfl_predictor/api/facts.py",
+      '''    try:
+        return routes.get_player_props(season, week), False
+    except HTTPException as exc:
+        # A 503 from the props route is the expected shape of "unavailable". A
+        # 404 would mean the route itself is gone, which is not something to
+        # absorb quietly -- re-raise so it is not mistaken for no players.
+        if exc.status_code != 503:
+            raise
+        logger.warning("facts: player props unavailable for season=%s week=%s: %s", season, week, exc.detail)
+        return [], True''',
+      '''    return routes.get_player_props(season, week), False''',
+      "python"),
+    M("M20", "facts: PUBLIC_MODE reverts to its own rule (the two panels disagree)",
+      "src/nfl_predictor/api/facts.py",
+      '''        if routes.snapshot_props_unavailable(snap) is not None:''',
+      '''        if False:''',
+      "python"),
+    M("M21", "facts: the flag is hardcoded False (the panel goes silent again)",
+      "src/nfl_predictor/api/facts.py",
+      '''        "players_unavailable": players_unavailable,''',
+      '''        "players_unavailable": False,''',
+      "python"),
+    M("M22", "public 503 body leaks the upstream cause again",
+      "src/nfl_predictor/api/routes.py",
+      '''        logger.error("player props unavailable for season=%s week=%s: %s", season, week, exc)
+        raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc''',
+      '''        logger.error("player props unavailable for season=%s week=%s: %s", season, week, exc)
+        raise HTTPException(status_code=503, detail=f"could not be loaded: {exc}") from exc''',
+      "python"),
+    M("M23", "skipped and failed conflated again ('every player failed (0 of 1)')",
+      "src/nfl_predictor/api/routes.py",
+      '''            if skipped and not failed:''',
+      '''            if False:''',
+      "python"),
+    M("M24", "live path stops wrapping (a raw exception reaches the caller)",
+      "src/nfl_predictor/api/routes.py",
+      '''    except Exception as e:
+        # The old `return []`. A 404 on the season's stats, a dead upstream host
+        # and a crash in feature building all used to land here and reach a reader
+        # as an empty props table.
+        logger.exception("Failed to load player props for season=%s week=%s", season, week)
+        raise PlayerPropsUnavailable(f"unhandled error in the props pipeline: {e!r}") from e''',
+      '''    except Exception:
+        raise''',
+      "python"),
+    # --- frontend stale marker ----------------------------------------------
+    M("M25", "frontend never renders the stale notice",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      '''      {!loading && !error && stale && (''',
+      '''      {!loading && !error && false && (''',
+      "frontend"),
+    M("M26", "stale week also claims the empty state",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      """      {!loading && !error && !stale && props.length === 0 && (""",
+      """      {!loading && !error && props.length === 0 && (""",
+      "frontend"),
+    # --- the canaries ------------------------------------------------------
+    # Each must report SURVIVED. If one reports CAUGHT, the detector has stopped
+    # detecting and every other verdict in the run is void -- so that fails the
+    # whole harness rather than being reported as a good result.
+    M("C1", "CANARY: a comment edit no assertion can see (must report SURVIVED)",
+      "src/nfl_predictor/api/routes.py",
+      "# Producing nothing at all is an outage, not a week without props.",
+      "# Producing nothing at all is completely unremarkable, in fact.",
+      "python", canary=True),
+    M("C2", "CANARY: a docstring edit no assertion can see (must report SURVIVED)",
+      "src/nfl_predictor/public_snapshot.py",
+      '"""One week of precomputed data.',
+      '"""One week of precomputed data (a slightly different opening line).',
+      "python", canary=True),
+    M("C3", "CANARY: a frontend JSX label edit no assertion can see (must report SURVIVED)",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      "Sort by:{\" \"}",
+      "Order by:{\" \"}",
+      "frontend", canary=True),
+    M("C4", "CANARY: a frontend comment edit no assertion can see (must report SURVIVED)",
+      "frontend/props_state_check.mjs",
+      "let currentTest = '';",
+      "let currentTest = 'unmutated';",
+      "frontend", canary=True),
 ]
 
+# --- tree copy -------------------------------------------------------------
 
-def run(cmd: list[str], cwd: Path | None = None) -> tuple[int, str]:
-    proc = subprocess.run(cmd, cwd=cwd or ROOT, capture_output=True, text=True)
-    return proc.returncode, proc.stdout + proc.stderr
+_TMP: Path | None = None
 
 
-def main() -> int:
-    survivors = []
-    for name, path, find, replace, target in MUTATIONS:
-        original = path.read_text()
-        if find not in original:
-            print(f"SKIP  {name}\n        anchor not found in {path.relative_to(ROOT)}")
-            survivors.append(name)
-            continue
-        backup = tempfile.NamedTemporaryFile(delete=False, suffix=path.suffix)
-        backup.write(original.encode())
-        backup.close()
+def _cleanup(*_args) -> None:
+    if _TMP and _TMP.exists():
+        shutil.rmtree(_TMP, ignore_errors=True)
+
+
+def build_tree() -> Path:
+    """A writable copy of everything the targets read, and nothing else."""
+    global _TMP
+    _TMP = Path(tempfile.mkdtemp(prefix="props-mutation-"))
+    atexit.register(_cleanup)
+    # `os._exit` rather than `sys.exit`: a SystemExit raised in a signal handler
+    # while the main thread sits in `subprocess.run` is delivered late, and the
+    # loop then walked on into a temp dir that had already been removed --
+    # correct, but as a FileNotFoundError traceback rather than as a clean exit.
+    def _on_signal(_sig, _frame):
+        _cleanup()
+        print("\ninterrupted; the tracked tree was never written to", file=sys.stderr)
+        os._exit(130)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _on_signal)
+
+    for d in COPY_DIRS:
+        src, dst = ROOT / d, _TMP / d
+        if src.exists():
+            shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for f in COPY_FILES:
+        if (ROOT / f).exists():
+            shutil.copy2(ROOT / f, _TMP / f)
+    for pattern in DATA_GLOBS:
+        for src in ROOT.glob(pattern):
+            dst = _TMP / src.relative_to(ROOT)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+    for f in FRONTEND_FILES:
+        src = ROOT / "frontend" / f
+        if src.exists():
+            dst = _TMP / "frontend" / f
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+    for d in FRONTEND_DIRS:
+        src = ROOT / "frontend" / d
+        if src.exists():
+            shutil.copytree(src, _TMP / "frontend" / d,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for link in SYMLINKS:
+        src = ROOT / link
+        dst = _TMP / link
+        if src.exists() and not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(src, dst)
+    return _TMP
+
+
+def write_mutation(tree: Path, mutation: Mutation) -> Path:
+    target = tree / mutation.relpath
+    original = target.read_text()
+    if mutation.find not in original:
+        raise LookupError(
+            f"{mutation.ident}: anchor not found in {mutation.relpath}\n"
+            f"  looking for: {mutation.find!r}\n"
+            f"  the file starts: {original[:200]!r}"
+        )
+    target.write_text(original.replace(mutation.find, mutation.replace, 1))
+    return target
+
+
+# --- running ---------------------------------------------------------------
+
+def assert_copy_is_under_test(tree: Path) -> None:
+    """Refuse to run unless `nfl_predictor` imports from the COPY.
+
+    This is not paranoia, it is the fourth bug this harness has had. The venv is
+    an *editable* install, and its `.pth` puts the real `src` on `sys.path`;
+    `PYTHONPATH` puts the copy's first, but only because `PYTHONPATH` is
+    processed before site-packages. Get that order wrong -- or trust
+    `pyproject.toml`'s `pythonpath = ["src"]`, which is inert here, see the note
+    in `assert_copy_is_under_test`'s caller -- and every mutation is applied to a
+    file nothing imports. The result is a run that reports twenty mutations
+    SURVIVED and looks like a catastrophic hole in the tests, when the truth is
+    that the tests never saw a single one of them.
+    """
+    probe = (
+        "import pathlib, nfl_predictor, sys;"
+        f"print('MODULE=' + str(pathlib.Path(nfl_predictor.__file__).resolve()))"
+    )
+    proc = subprocess.run(
+        [str(PYTHON), "-c", probe],
+        cwd=tree, capture_output=True, text=True,
+        env={**os.environ, "PYTHONPATH": str(tree / "src")},
+    )
+    line = next((l for l in proc.stdout.splitlines() if l.startswith("MODULE=")), "")
+    module = line.removeprefix("MODULE=")
+    if not module.startswith(str(tree.resolve())):
+        raise RuntimeError(
+            "HARNESS ERROR: `nfl_predictor` does not import from the copy, so no "
+            f"mutation is being tested.\n  expected under: {tree.resolve()}\n"
+            f"  actually imported: {module or '<nothing>'}\n"
+            "  Without this check the run would report every mutation as SURVIVED."
+        )
+
+
+def run_python(tree: Path) -> tuple[str, str]:
+    """Returns ("PASS" | "FAIL" | "INCONCLUSIVE", output).
+
+    The exit code is not consulted for the verdict. `returncode != 0` conflates
+    three very different things, and the first version of this harness read all
+    three as CAUGHT:
+
+    * a real assertion failure -- the only thing that is evidence;
+    * a collection error (exit 2), e.g. the mutation produced a SyntaxError or
+      broke an import. M19 did exactly this and was scored as a good catch;
+    * no tests collected at all (exit 5).
+
+    So a failure is only believed when pytest's own summary says tests failed.
+    Anything else is INCONCLUSIVE and fails the harness, because a runner that
+    cannot run is not a runner that detected.
+    """
+    proc = subprocess.run(
+        [str(PYTHON), "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"],
+        cwd=tree, capture_output=True, text=True,
+        env={**os.environ, "PYTHONPATH": str(tree / "src")},
+    )
+    out = proc.stdout + proc.stderr
+    if re.search(r"\d+ passed", out) and " failed" not in out and "error" not in out.split("short test summary")[-1]:
+        return "PASS", out
+    if re.search(r"\d+ failed", out):
+        return "FAIL", out
+    return "INCONCLUSIVE", out
+
+
+def run_frontend(tree: Path) -> tuple[str, str]:
+    """Returns (verdict, output) where verdict is PASS | FAIL | INCONCLUSIVE.
+
+    Never `returncode`. A runner that cannot import jsdom exits non-zero exactly
+    like one that caught an assertion, and reading those as the same thing is how
+    a broken harness reported `all mutations caught`.
+    """
+    try:
+        proc = subprocess.run(
+            ["node", "props_state_check.mjs"],
+            cwd=tree / "frontend", capture_output=True, text=True, timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        return "INCONCLUSIVE", "the runner timed out"
+    out = proc.stdout + proc.stderr
+    if FRONTEND_SUCCESS in out and FRONTEND_PASS in out:
+        return "PASS", out
+    if FRONTEND_FAIL in out:
+        return "FAIL", out
+    return "INCONCLUSIVE", out
+
+
+# --- main ------------------------------------------------------------------
+
+def main(argv: list[str]) -> int:
+    wanted = set(argv[1:])
+    tree = build_tree()
+    selected = [m for m in MUTATIONS if not wanted or m.ident in wanted]
+    if not selected:
+        print(f"no mutation matched {sorted(wanted)}", file=sys.stderr)
+        return 2
+
+    assert_copy_is_under_test(tree)
+
+    # Baselines first, once, on the unmutated copy. A red baseline makes every
+    # verdict meaningless, so stop before claiming anything.
+    print("baseline (unmutated copy):")
+    base_verdict, base_out = run_python(tree)
+    base_ok = base_verdict == "PASS"
+    print(f"  pytest            {base_verdict}")
+    front_verdict, _ = run_frontend(tree)
+    print(f"  props_state_check {front_verdict}")
+    if not base_ok:
+        print("\nBASELINE IS RED -- aborting; no verdict from this run means anything.")
+        print(base_out[-3000:])
+        return 2
+    if front_verdict != "PASS":
+        print(f"\nFRONTEND BASELINE IS {front_verdict} -- aborting.")
+        return 2
+
+    results = []
+    for mutation in selected:
+        # Restore the pristine file first. The copy is shared between mutations,
+        # and a stale edit from the previous one would make the next verdict a
+        # lie -- which is the failure mode this harness is meant to be immune to.
+        target = tree / mutation.relpath
+        pristine = target.read_text()
         try:
-            path.write_text(original.replace(find, replace, 1))
-            if target.startswith("frontend/"):
-                # tsc alone only typechecks, so it is not evidence about
-                # behaviour -- a deleted error branch typechecks fine. The
-                # assertion runner is the real check; tsc runs alongside it to
-                # catch a mutation that only breaks the types.
-                code, out = run(["node", target.split("/", 1)[1]], cwd=ROOT / "frontend")
-                print(f"{'CAUGHT  ' if code != 0 else 'SURVIVED'} {name}  ({target})")
-                if code == 0:
-                    survivors.append(name)
-                    print("        the runner stayed green -- this assertion proves nothing")
-                else:
-                    for line in [l for l in out.splitlines() if l.startswith("  FAIL")][:4]:
-                        print(f"        {line.strip()}")
-                continue
-            code, out = run([sys.executable, "-m", "pytest", "-q", target, "-p", "no:cacheprovider"])
-            caught = code != 0
-            print(f"{'CAUGHT  ' if caught else 'SURVIVED'} {name}")
-            if not caught:
-                survivors.append(name)
-                print("        suite stayed green -- this assertion proves nothing")
+            write_mutation(tree, mutation)
+        except LookupError as exc:
+            # A stale anchor is a broken harness, not a result. Counting it as
+            # either verdict would be a lie, and raising here would throw away
+            # every verdict already gathered.
+            print(f"SKIPPED      {mutation.ident}: {exc}".splitlines()[0])
+            results.append((mutation, "SKIPPED", str(exc)))
+            continue
+        after = target.read_text()
+        assert after != pristine, f"{mutation.ident}: the mutation did not change the file"
+        try:
+            if mutation.arm == "python":
+                pv, out = run_python(tree)
+                verdict = {"PASS": "SURVIVED", "FAIL": "CAUGHT", "INCONCLUSIVE": "INCONCLUSIVE"}[pv]
             else:
-                failed = [l for l in out.splitlines() if l.startswith("FAILED")]
-                for line in failed[:4]:
-                    print(f"        {line}")
+                fv, out = run_frontend(tree)
+                verdict = {"PASS": "SURVIVED", "FAIL": "CAUGHT", "INCONCLUSIVE": "INCONCLUSIVE"}[fv]
         finally:
-            shutil.copyfile(backup.name, path)
-            Path(backup.name).unlink()
+            target.write_text(pristine)
+            restored = target.read_text()
+            assert restored == pristine, f"{mutation.ident}: restore was not clean"
+        results.append((mutation, verdict, out))
+        if mutation.note:
+            print(f"             {mutation.note}")
+        flag = "CANARY" if mutation.canary else "      "
+        print(f"{verdict:<12} {flag} {mutation.ident}: {mutation.name}")
+        if verdict in ("SURVIVED", "INCONCLUSIVE"):
+            if mutation.canary and verdict == "SURVIVED":
+                print("            (expected -- this is the canary)")
+            for line in out.splitlines():
+                if line.startswith(("FAILED", "  FAIL", "AssertionError")):
+                    print(f"            {line.strip()}")
+                    break
+
+    _cleanup()
+    global _TMP
+    _TMP = None
+
+    survivors = [(m, v) for m, v, _ in results if v == "SURVIVED" and not m.canary]
+    inconclusive = [(m, v) for m, v, _ in results if v == "INCONCLUSIVE"]
+    skipped = [(m, v) for m, v, _ in results if v == "SKIPPED"]
+    canaries = [(m, v) for m, v, _ in results if m.canary]
+    canary_ok = all(v == "SURVIVED" for _, v in canaries)
 
     print()
+    if not canary_ok:
+        print("HARNESS BROKEN: a canary mutation did not report SURVIVED, so the")
+        print("detector itself is not working and every other verdict here is void.")
+        for m, v in canaries:
+            if v != "SURVIVED":
+                print(f"  {m.ident} reported {v}, expected SURVIVED")
+    if inconclusive:
+        print(f"{len(inconclusive)} INCONCLUSIVE (the runner did not produce a verdict):")
+        for m, v in inconclusive:
+            print(f"  {m.ident} {m.name} -> {v}")
+    if skipped:
+        print(f"{len(skipped)} SKIPPED (the anchor no longer matches the source -- a stale mutation):")
+        for m, _ in skipped:
+            print(f"  - {m.ident} {m.name}")
     if survivors:
-        print(f"{len(survivors)} mutation(s) survived:")
-        for s in survivors:
-            print(f"  - {s}")
-        return 1
-    print("all mutations caught")
-    return 0
+        print(f"{len(survivors)} mutation(s) SURVIVED:")
+        for m, _ in survivors:
+            print(f"  - {m.ident} {m.name}")
+    caught = sum(1 for _, v, _ in results if v == "CAUGHT")
+    print(f"\n{caught} caught, {len(survivors)} survived, {len(inconclusive)} inconclusive, "
+          f"{len(canaries)} canary (all correct: {canary_ok})")
+    return 1 if (survivors or inconclusive or skipped or not canary_ok) else 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv))

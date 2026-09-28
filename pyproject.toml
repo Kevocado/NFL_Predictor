@@ -44,7 +44,14 @@ markers = [
 ]
 
 [tool.ruff]
-# No config existed, so the workflow scopes the invocation to the
-# import-breaking rules explicitly. Scoping it here too means running bare
-# `ruff check` locally matches CI rather than applying ruff's full default set.
+# This config does NOT make bare `ruff check` equivalent to CI, and an earlier
+# version of this comment claimed that it did. It does not: CI runs
+# `ruff check src tests --select E9,F63,F7,F82`, i.e. only the import-breaking
+# and undefined-name rules. Bare `ruff check` applies ruff's whole default set
+# and currently reports ~85 findings, all pre-existing style debt (unused
+# imports, line length) in files this work never touched.
+#
+# So: CI is the gate, and to reproduce it locally run the same command CI runs.
+# Narrowing the findings to the selected rules is deliberate -- adopting the full
+# default set is 85 findings of unrelated cleanup that would bury a bug fix.
 line-length = 120

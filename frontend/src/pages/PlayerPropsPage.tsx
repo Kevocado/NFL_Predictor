@@ -6,6 +6,10 @@ export function PlayerPropsPage({ season, week }: { season: number; week: number
   const [props, setProps] = useState<PlayerPropPrediction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // The rows came from an earlier snapshot build. Worth showing rather than
+  // swallowing: a reader told "unavailable" yesterday and shown numbers today
+  // deserves to know the numbers are older than the page looks.
+  const [stale, setStale] = useState(false);
   const [sortBy, setSortBy] = useState<"anytime_td_prob" | "rushing_yards" | "receiving_yards" | "passing_yards">(
     "anytime_td_prob",
   );
@@ -17,12 +21,17 @@ export function PlayerPropsPage({ season, week }: { season: number; week: number
     // reading to a visitor as "no props for this game yet".
     setLoading(true);
     setError(null);
+    setStale(false);
     api
       .playerProps(season, week)
-      .then(setProps)
+      .then(({ data, stale: isStale }) => {
+        setProps(data);
+        setStale(isStale);
+      })
       .catch((err) => {
         setError(err.message);
         setProps([]);
+        setStale(false);
       })
       .finally(() => setLoading(false));
   }, [season, week]);
@@ -38,10 +47,16 @@ export function PlayerPropsPage({ season, week }: { season: number; week: number
           Player props could not be loaded: {error}
         </p>
       )}
-      {!loading && !error && props.length === 0 && (
-        <p>No player projection props available for this specific game yet.</p>
+      {!loading && !error && stale && (
+        <p>
+          These projections come from an earlier build &mdash; the latest rebuild of this
+          week failed, so they may not reflect the current model.
+        </p>
       )}
-      {!error && (
+      {!loading && !error && !stale && props.length === 0 && (
+        <p>No player projection props available for this week yet.</p>
+      )}
+      {!error && !loading && (
         <>
           <label>
             Sort by:{" "}

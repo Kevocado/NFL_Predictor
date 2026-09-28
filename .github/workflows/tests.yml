@@ -63,7 +63,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 20.19, not "20". jsdom 29 declares
+          # `node: ^20.19.0 || ^22.13.0 || >=24.0.0`; a bare "20" resolves to
+          # whichever 20.x is newest today, so the job passes until that stops
+          # being true, and then fails on a Node floor rather than on anything
+          # in this repo. Pinned to the floor the dependency actually declares.
+          node-version: "20.19"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
@@ -74,6 +79,7 @@ jobs:
         # This renders the real component through vite's SSR pipeline with fetch
         # stubbed and asserts on the markup, which is the only thing that pins
         # the "no props" empty state to mean "no props" rather than "the fetch
-        # failed". tsc cannot: a deleted error branch still typechecks (M11 in
-        # tests/mutation_check.py is exactly that case).
+        # failed". tsc cannot: deleting the error branch (M9) or the loading
+        # branch (M11) in tests/mutation_check.py still typechecks clean, and both
+        # mutations are caught only here.
         run: node props_state_check.mjs
