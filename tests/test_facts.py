@@ -34,6 +34,13 @@ class Facts(BaseModel):
     drivers: list[dict] = []
     context: dict = {}
     players: list[dict] = []
+    # Declared, not just tolerated. The local model is a copy of predictor-hub's
+    # contract, and pydantic ignores extras, so leaving this out would mean the
+    # contract test could not notice if `players_unavailable` were dropped from the
+    # bundle -- the exact "a key nothing reads" defect. Declaring it here makes the
+    # consumer's obligation explicit on this side too, and the field is documented
+    # at facts.py:526 as having no reader in this repo.
+    players_unavailable: bool = False
     record: dict | None = None
     result: dict | None = None
 
@@ -713,3 +720,26 @@ def test_a_finished_game_never_claims_its_props_are_unavailable(live, monkeypatc
     assert body["status"] == "live"
     assert body["players"] == []
     assert body["players_unavailable"] is False
+
+
+def test_the_contract_model_round_trips_players_unavailable(public, monkeypatch):
+    """The flag has to survive the contract, not just the dict.
+
+    `Facts` is the local copy of the explainer's contract and pydantic ignores
+    extras, so a bundle carrying `players_unavailable` validated perfectly well
+    against a model that had never heard of it -- which is how a field can be
+    added to the bundle and never once checked. Reading it back off the model
+    fails loudly if the declaration is ever dropped, and it is the only assertion
+    here that ties the producer to the contract rather than to a dict key.
+    """
+    snapshot = _snapshot(props=[])
+    snapshot["weeks"]["5"]["player_props_status"] = "unavailable"
+    _install_snapshot(monkeypatch, snapshot)
+
+    body = public.get(f"/facts/{GAME_ID}").json()
+    parsed = Facts(**body)
+
+    assert parsed.players_unavailable is True
+    assert "players_unavailable" in Facts.model_fields, (
+        "the local contract model no longer declares the field, so nothing pins it"
+    )

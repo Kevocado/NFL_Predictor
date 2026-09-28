@@ -35,6 +35,10 @@ in the run is suspect, so that fails the whole harness. This is what makes a
 broken harness loud instead of green.
 
 Verdicts: CAUGHT / SURVIVED / INCONCLUSIVE / SKIPPED.
+
+Known rough edge, not fixed: this block-buffers, so a redirected run shows nothing
+until it exits. Not a defect in any verdict, only in watching one.
+
 """
 from __future__ import annotations
 
@@ -265,6 +269,35 @@ MUTATIONS: list[Mutation] = [
       """      {!loading && !error && !stale && props.length === 0 && (""",
       """      {!loading && !error && props.length === 0 && (""",
       "frontend"),
+    # --- round 2: the holes the review's probes found ------------------------
+    M("M27", "roster-fallback failure logged as `pass` (the outage goes quiet)",
+      "src/nfl_predictor/api/routes.py",
+      '''                logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)''',
+      '''                pass''',
+      "python"),
+    M("M28", "stale notice reworded into something that no longer says it is stale",
+      "frontend/src/pages/PlayerPropsPage.tsx",
+      """          These projections come from an earlier build &mdash; the latest rebuild of this
+          week failed, so they may not reflect the current model.""",
+      """          Data refreshed recently.""",
+      "frontend"),
+    M("M29", "backend 503 sentence reverts to 'for this game' (wrong unit, rendered verbatim)",
+      "src/nfl_predictor/api/routes.py",
+      '''    "Player props are temporarily unavailable for this week. The projections could "
+    "not be produced. This is a failure, not a week without props."''',
+      '''    "Player props are temporarily unavailable for this game. The projections could "
+    "not be produced. This is a failure, not a game without props."''',
+      "python"),
+    M("M30", "CORS expose_headers dropped (the marker is set but a browser cannot read it)",
+      "src/nfl_predictor/api/main.py",
+      "    expose_headers=[PROPS_STALE_HEADER],\n",
+      "",
+      "python"),
+    M("M31", "facts contract model drops players_unavailable again",
+      "tests/test_facts.py",
+      "    players_unavailable: bool = False\n",
+      "",
+      "python"),
     # --- the canaries ------------------------------------------------------
     # Each must report SURVIVED. If one reports CAUGHT, the detector has stopped
     # detecting and every other verdict in the run is void -- so that fails the
@@ -434,6 +467,18 @@ def run_frontend(tree: Path) -> tuple[str, str]:
     like one that caught an assertion, and reading those as the same thing is how
     a broken harness reported `all mutations caught`.
     """
+    # The frontend arm's equivalent of `assert_copy_is_under_test`. The python
+    # guard exists because that arm silently tested the real tree once already;
+    # this one keeps the other arm honest for the same reason. A missing source
+    # file means vite's SSR loader would resolve nothing and the runner would
+    # report INCONCLUSIVE for every mutation, which is confusing rather than
+    # honest, so it is caught here and named.
+    for required in ("src/pages/PlayerPropsPage.tsx", "src/api/client.ts", "props_state_check.mjs"):
+        if not (tree / "frontend" / required).exists():
+            return "INCONCLUSIVE", f"the copy is missing frontend/{required}; node would not load the copy"
+    if not (tree / "frontend" / "node_modules").exists():
+        return "INCONCLUSIVE", "the copy has no frontend/node_modules; node would not resolve react"
+
     try:
         proc = subprocess.run(
             ["node", "props_state_check.mjs"],
@@ -482,6 +527,13 @@ def main(argv: list[str]) -> int:
         # Restore the pristine file first. The copy is shared between mutations,
         # and a stale edit from the previous one would make the next verdict a
         # lie -- which is the failure mode this harness is meant to be immune to.
+        # Re-checked per mutation, not just once before the loop. A mutation that
+        # altered import resolution -- an `__init__.py`, a `sys.path` edit, a
+        # `pyproject.toml` `[tool.pytest.ini_options]` change -- would otherwise
+        # silently point the suite back at the real tree and every verdict after it
+        # would be about code nobody edited.
+        assert_copy_is_under_test(tree)
+
         target = tree / mutation.relpath
         pristine = target.read_text()
         try:

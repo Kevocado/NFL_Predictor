@@ -441,9 +441,14 @@ class PlayerPropsUnavailable(RuntimeError):
 #: port=443): Read timed out` into a public response body, and bolting "could not
 #: be loaded" onto a message that already said "could not be loaded" read as two
 #: separate failures. The log carries the detail; the body does not.
+#: "this week", not "this game". The route is keyed on a week and renders one
+#: props table for it, and this string is rendered verbatim by the frontend
+#: (`client.ts` puts `body.detail` in the Error, the component puts `err.message`
+#: in the alert), so "for this game" put the same unit mismatch in the error
+#: message that the empty state was fixed for.
 PROPS_UNAVAILABLE_DETAIL = (
-    "Player props are temporarily unavailable for this game. The projections could "
-    "not be produced. This is a failure, not a game without props."
+    "Player props are temporarily unavailable for this week. The projections could "
+    "not be produced. This is a failure, not a week without props."
 )
 
 #: Set on a 200 whose rows came from a previous snapshot build because this
@@ -491,9 +496,19 @@ def get_player_props(season: int, week: int, response: Response = None):
     """The HTTP endpoint.
 
     `response` is FastAPI's per-request object, used only to set the stale
-    header. It defaults to None because `facts._props` calls this function
-    directly, off-HTTP, to reuse the PUBLIC_MODE snapshot rule; FastAPI still
-    injects a real Response for a served request and ignores the default.
+    header, and it defaults to None for one reason: **`facts._props` calls this
+    function directly, off-HTTP, in the non-PUBLIC_MODE branch only**
+    (`facts.py`: `routes.get_player_props(season, week)`). FastAPI injects a real
+    Response for a served request and ignores the default.
+
+    The narrower the reason, the better here. A previous version of this comment
+    claimed the call was to "reuse the PUBLIC_MODE snapshot rule" -- false, since
+    `_props` calls `routes.snapshot_props_unavailable` directly in PUBLIC_MODE and
+    never reaches this function. That mattered beyond the prose: reintroducing a
+    PUBLIC_MODE call from `_props` would pass `response=None`, and the stale-header
+    branch would raise `AttributeError` on it, outside the `try` below -- Critical
+    1's exact 500, reintroduced through a comment. The PUBLIC_MODE branch must
+    call `snapshot_props_unavailable`, not this function.
     """
     if PUBLIC_MODE:
         snap = _snapshot_week(season, week)

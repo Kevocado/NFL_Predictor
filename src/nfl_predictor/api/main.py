@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS, TRACKING_DB_BACKUP_PATH, TRACKING_DB_PATH
 from .facts import router as facts_router
+from .routes import PROPS_STALE_HEADER
 from .routes import (
     current_season_and_week,
     refresh_public_snapshot_from_remote,
@@ -110,11 +111,20 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(title="NFL Predictor API", lifespan=lifespan)
 
 # Allow cross-origin requests from the Sports_Predictor frontend dashboard
+#
+# `expose_headers` is load-bearing, not decoration. A cross-origin response
+# exposes only the CORS-safelisted response headers to `Headers.get()`, and the
+# props route marks a stale week with `X-Player-Props-Stale` -- which is not one of
+# them. Without this line the header is on the wire and a browser hands the client
+# `null` for it, so the marker round 1 added could never reach a reader. The
+# frontend is served from a different origin than the API (nothing in this app
+# mounts `frontend/dist`), so this is the normal case and not an edge case.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[PROPS_STALE_HEADER],
 )
 
 app.include_router(router)

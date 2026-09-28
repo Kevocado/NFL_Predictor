@@ -523,9 +523,22 @@ def get_facts(game_id: str) -> dict:
         "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
         "context": _context(game, game.get("home_rest"), game.get("away_rest")),
         "players": [] if started else _players(props_rows, {home_team, away_team}),
-        # True when props exist upstream but could not be produced. The panel can
-        # then say "unavailable" rather than rendering an empty list, which is
-        # indistinguishable from a game whose players simply have no prop markets.
+        # True when props exist upstream but could not be produced, so a consumer
+        # can say "unavailable" rather than rendering an empty list, which is
+        # indistinguishable from a game whose players have no prop markets.
+        #
+        # **This repo has no reader for it.** The consumer is the match explainer
+        # in predictor-hub, which is outside this tree; the local `Facts` contract
+        # model in tests/test_facts.py ignores extras, so the contract test does
+        # not pin the field either. So the honest statement is: this exists for a
+        # consumer this repo does not own, and until that consumer renders it, the
+        # only reader-visible change from this work is that a 500 became a 200 --
+        # in PUBLIC_MODE a reader still sees `players: []` exactly as before.
+        #
+        # Flagged rather than invented around: making the panel lie-safe without a
+        # consumer would mean either dropping the field (losing the distinction the
+        # next consumer needs) or changing `players` to carry a sentinel this repo
+        # would then be obliged to keep.
         "players_unavailable": players_unavailable,
         "record": _record(),
         "result": _result(game, status, pick_timing, stored),

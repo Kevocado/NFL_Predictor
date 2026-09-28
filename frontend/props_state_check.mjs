@@ -36,7 +36,17 @@ import react from '@vitejs/plugin-react';
 import React from 'react';
 
 const EMPTY_STATE_SENTENCE = 'No player projection props available for this week yet.';
-const STALE_NOTICE = 'earlier build';
+// Pinned on TWO independent fragments, not one. A single substring -- 'earlier
+// build' -- meant the notice could be reworded into something that no longer says
+// it is stale, or into a fragment of pure filler, and the assertion would still
+// pass. Rewording is a real risk on a notice nobody else owns, so the fragments
+// below are what the notice has to *mean*, and the whole sentence is checked for
+// the claim it makes about the current model.
+const STALE_FRAGMENTS = [
+  'earlier build',
+  'rebuild',
+  'current model',
+];
 
 let failures = 0;
 let currentTest = '';
@@ -163,6 +173,35 @@ const PROP_ROW = (id, name) => ({
   player_id: id, player_name: name, anytime_td_prob: 0.42, passing_yards: 275,
 });
 
+/**
+ * Read PROPS_UNAVAILABLE_DETAIL out of routes.py rather than retyping it.
+ *
+ * The 503 body is rendered verbatim by the client and the component, so a copy
+ * in this file would drift from what the server actually sends -- which is
+ * exactly what round 1 shipped: the runner asserted on its own "for this game"
+ * wording while the backend sent its own, equally wrong, "for this game".
+ */
+async function backendUnavailableDetail() {
+  const { readFileSync } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const here = fileURLToPath(import.meta.url);
+  const routesPy = here.replace(/frontend\/props_state_check\.mjs$/, 'src/nfl_predictor/api/routes.py');
+  const src = readFileSync(routesPy, 'utf8');
+  const match = src.match(/PROPS_UNAVAILABLE_DETAIL\s*=\s*\(([^)]*)\)/s);
+  if (!match) {
+    assert(false, `PROPS_UNAVAILABLE_DETAIL not found in ${routesPy}; the runner cannot check the 503 copy`);
+    return '';
+  }
+  return match[1]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^"|"$/g, ''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 try {
   // --- 1. a genuine empty week says the empty-state sentence ---------------
   currentTest = 'empty week';
@@ -175,18 +214,24 @@ try {
 
   // --- 2. a 503 does NOT render the empty-state sentence -------------------
   currentTest = 'failed fetch';
-  html = await render(() => ({
-    status: 503,
-    body: { detail: 'Player props are temporarily unavailable for this game.' },
-  }));
+  // The backend's real sentence, read from the source rather than retyped here.
+  // Round 1 fed its own game-scoped wording into this case, so the assertion
+  // passed on wording the backend does not send -- and the backend's own string
+  // still said "for this game" on a week-keyed route.
+  const detail = await backendUnavailableDetail();
+  html = await render(() => ({ status: 503, body: { detail } }));
   assert(
     !html.includes(EMPTY_STATE_SENTENCE),
     `a failed fetch must not claim the week has no props (got: ${JSON.stringify(html.slice(0, 200))})`,
   );
   assert(html.includes('role="alert"'), 'a failed fetch is announced to the reader');
   assert(
-    html.includes('temporarily unavailable'),
-    `the reader is told why it failed (got: ${JSON.stringify(html.slice(0, 200))})`,
+    html.includes(detail),
+    `the reader is shown the backend's own sentence verbatim (got: ${JSON.stringify(html.slice(0, 220))})`,
+  );
+  assert(
+    !/this game/.test(detail),
+    `the backend sentence names the wrong unit: ${detail}`,
   );
 
   // --- 3. a 200 with rows shows the props, not the empty state -------------
@@ -233,10 +278,13 @@ try {
     body: [PROP_ROW('p1', 'A. Back')],
     headers: { 'X-Player-Props-Stale': 'true' },
   }));
-  assert(
-    html.includes(STALE_NOTICE),
-    `a stale week says so (got: ${JSON.stringify(html.slice(0, 240))})`,
-  );
+  for (const fragment of STALE_FRAGMENTS) {
+    assert(
+      html.includes(fragment),
+      `the stale notice says "${fragment}" -- reworded into something that no longer ` +
+      `tells a reader the rows are old (got: ${JSON.stringify(html.slice(0, 240))})`,
+    );
+  }
   assert(html.includes('A. Back'), 'a stale week still shows its rows');
   assert(!html.includes(EMPTY_STATE_SENTENCE), 'a stale week with rows is not an empty week');
 
@@ -251,15 +299,22 @@ try {
     !html.includes(EMPTY_STATE_SENTENCE),
     `a stale empty week does not also claim the week has no props (got: ${JSON.stringify(html.slice(0, 240))})`,
   );
-  assert(html.includes(STALE_NOTICE), 'a stale empty week still says the rows are stale');
+  for (const fragment of STALE_FRAGMENTS) {
+    assert(
+      html.includes(fragment),
+      `a stale empty week still says "${fragment}" (got: ${JSON.stringify(html.slice(0, 240))})`,
+    );
+  }
 
   // --- 9. a fresh week carries no stale notice -----------------------------
   currentTest = 'fresh week';
   html = await render(() => ({ status: 200, body: [PROP_ROW('p1', 'A. Back')] }));
-  assert(
-    !html.includes(STALE_NOTICE),
-    'a week rebuilt this run is not labelled stale',
-  );
+  for (const fragment of STALE_FRAGMENTS) {
+    assert(
+      !html.includes(fragment),
+      `a week rebuilt this run is not labelled stale (no "${fragment}" in the markup)`,
+    );
+  }
 } finally {
   await server.close();
 }

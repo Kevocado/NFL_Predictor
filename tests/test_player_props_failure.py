@@ -616,3 +616,85 @@ def test_the_committed_snapshot_never_serves_an_empty_200_for_a_week_with_games(
     # future snapshot that fixes it should show up as a change in this number
     # rather than as a silently different file.
     print(f"\nweeks with games but no props (all now answered 503): {empty_but_played}")
+
+
+# --- coverage holes the review's probes found ------------------------------
+#
+# Both of the mutations below SURVIVED round 1, which is the only reason they are
+# written down here. Neither is a behavioural change: they are the two places
+# where the code has a branch and no test looks at it.
+
+
+def test_a_roster_fallback_failure_does_not_turn_a_good_week_into_an_empty_one(client, monkeypatch, caplog):
+    """`routes.py:590`: the roster fallback's `except` logs a warning and carries
+    on. Nothing asserted that, so `except Exception: pass` survived every mutation
+    run -- and passing would make the code *quieter* on a real nflverse outage,
+    which is the wrong direction for a file whose whole point is that failures are
+    visible.
+
+    The shape: the week has real history for one of its teams, so `latest_players`
+    is non-empty, but the other team has no current-season rows, so `missing_teams`
+    is non-empty and the roster fetch runs. It fails. The good rows must still be
+    served, and the failure must be recorded.
+    """
+    monkeypatch.setattr(
+        routes, "_load_player_history",
+        lambda season: pd.concat(
+            [_stat_rows(season, 1, team="KC"), _stat_rows(season, 1, team="NYJ", player_id="00-002")],
+            ignore_index=True,
+        ),
+    )
+    # Only KC is in the week, so missing_teams is empty and the fallback never
+    # runs -- which is the point: the test has to make it run to be worth anything.
+    active = pd.DataFrame([{**_game_row(), "home_team": "BAL", "away_team": "KC"}])
+    monkeypatch.setattr(routes.schedules, "fetch_upcoming_games", lambda season, week: active)
+    monkeypatch.setattr(
+        routes.player_stats, "fetch_seasonal_roster",
+        lambda season: (_ for _ in ()).throw(ConnectionError("nflverse roster fetch failed")),
+    )
+
+    with caplog.at_level("WARNING", logger="nfl_predictor.api.routes"):
+        response = client.get(f"/api/players/{SEASON}/{WEEK}/props")
+
+    assert response.status_code == 200, (
+        f"a roster-fallback failure took out a week that had real props: "
+        f"{response.status_code} {response.text[:160]}"
+    )
+    names = {row["player_name"] for row in response.json()}
+    assert names == {"Pat Mahomes"}, f"the good row was lost: {names}"
+    logged = "\n".join(r.getMessage() for r in caplog.records)
+    assert "roster" in logged.lower(), f"the fallback failure was swallowed silently: {logged!r}"
+
+
+def test_the_roster_fallback_actually_runs_in_the_test_above(client, monkeypatch):
+    """A guard on the guard.
+
+    `test_a_roster_fallback_failure_...` is only meaningful if the fallback is
+    entered. If a future change made `missing_teams` empty in this shape, the
+    exception would never be raised, `caplog` would be empty, and the test would
+    still pass on the 200 and the one row -- asserting nothing about the failure
+    path. So the seam is proved to be reached.
+    """
+    calls = []
+
+    def _boom(season):
+        calls.append(season)
+        raise ConnectionError("nflverse roster fetch failed")
+
+    monkeypatch.setattr(
+        routes, "_load_player_history",
+        lambda season: _stat_rows(season, 1, team="KC"),
+    )
+    monkeypatch.setattr(
+        routes.schedules, "fetch_upcoming_games",
+        lambda season, week: pd.DataFrame([{**_game_row(), "home_team": "BAL", "away_team": "KC"}]),
+    )
+    monkeypatch.setattr(routes.player_stats, "fetch_seasonal_roster", _boom)
+
+    response = client.get(f"/api/players/{SEASON}/{WEEK}/props")
+
+    assert calls, (
+        "the roster fallback was never reached, so the failure-path test beside this "
+        "one would pass without exercising anything"
+    )
+    assert response.status_code == 200

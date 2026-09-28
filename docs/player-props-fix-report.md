@@ -29,7 +29,7 @@ were reverted.
 | **m14** | "for this specific game" on a week-keyed route | **DONE** | `PlayerPropsPage.tsx:57` — "for this week yet". The reader is on a week page; the old copy named a unit the page does not have. |
 | **m15** | test named for a "model backend" that is in-process | **DONE** | `test_player_props_failure.py:252` — `test_a_prediction_error_on_every_player_is_not_silently_dropped`, and the injected fault is `ValueError("xgboost model file is corrupt")`, which is what an in-process model failure actually looks like. |
 | **m16** | jsdom needs Node `^20.19.0`; CI pins `"20"` | **DONE — both** | `tests.yml:71` pins `20.19`, and `frontend/package.json` gains an `engines` block repeating jsdom's own range. Pinning alone is a comment; the `engines` field is what a contributor's `npm install` reads. |
-| **m17** | `props_state_check.mjs` outside `tsconfig.app.json`'s include | **DONE by stating what actually covers it** | `props_state_check.mjs:32` records that it is linted, not typechecked. I tried `tsconfig.check.json` with `allowJs`+`checkJs` first: 11 errors, all of them "implicitly has an `any` type" on parameters, plus `@types/jsdom` missing — that is a JSDoc-types project, not a bug fix. Proved the coverage is real rather than assumed by injecting an unused binding into the file and watching oxlint warn, then restoring it byte-identical. |
+| **m17** | `props_state_check.mjs` outside `tsconfig.app.json`'s include | **DONE by stating what actually covers it** | `props_state_check.mjs:32` records that it is linted, not typechecked. I tried `tsconfig.check.json` with `allowJs`+`checkJs` first: 11 errors, all of them "implicitly has an `any` type" on parameters, plus `@types/jsdom` missing — that is a JSDoc-types project, not a bug fix. Coverage proved by injecting `eval()` and `debugger;` and watching oxlint report `no-eval` and `no-debugger`, then restoring the file byte-identical. **The evidence I gave in round 1 was wrong and is corrected in round 2 below** — `no-unused-vars` is not in oxlint's default set, so the unused-binding probe I cited reported 0 warnings. The conclusion held; the demonstration did not. |
 | **m18** | `pyproject.toml` claims bare `ruff check` matches CI | **DONE — the claim, not the findings** | `pyproject.toml:47` now says the opposite of what it used to: CI runs `ruff check src tests --select E9,F63,F7,F82` and bare `ruff check` reports ~85 pre-existing style findings in files this work never touched. Adopting the full default set is unrelated cleanup that would bury a bug fix, so the claim is what changed. |
 
 ### The `test_facts.py` question, answered
@@ -195,11 +195,9 @@ traceback that discards the verdicts already gathered.
    to run unless `nfl_predictor.__file__` resolves inside the copy. That check
    would have caught it on the first run.
 
-2. **`pyproject.toml`'s `pythonpath = ["src"]` is inert.** With pytest 9.1.1 the
-   ini does not put `src` on `sys.path` at all — the editable `.pth` is the only
-   reason imports work, locally and in CI (`pip install -e .`). Not changed: it is
-   harmless, and nothing in this bug's scope depends on it. Worth knowing before
-   anyone relies on that ini.
+2. **`src` reaches `sys.path` only through the editable install.** *The
+   justification I gave here in round 1 was wrong* — see round 2 for the
+   correction and for the `git log` evidence.
 
 3. **A fourth network leak, pre-existing.** `nfl_data_py.import_schedules` reads
    `http://www.habitatring.com/games.csv` — plain HTTP, a third-party personal
@@ -244,3 +242,240 @@ one, and the agreed replacement shape is:
   `.mjs`, and the Vite-SSR pipeline.
 
 Not started in this PR, per the ruling.
+
+## Fix round 2
+
+Two headline claims from round 1 were not true, and four comments described
+behaviour the code does not have. Both claims and all four comments are fixed;
+the two coverage holes the review's probes found are closed.
+
+### Blocker 1 — the stale marker could not cross the origin boundary
+
+Round 1 added a header, a reader and a renderer, and the renderer could never
+fire. `main.py` configured CORSMiddleware with `allow_origins=["*"]` and no
+`expose_headers`, and per the Fetch spec a cross-origin response exposes only the
+CORS-safelisted response headers to `Headers.get()`. Reproduced before the fix:
+
+```
+status: 200
+raw header present          : true
+Access-Control-Allow-Origin : *
+Access-Control-Expose-Headers: None
+=> res.headers.get('X-Player-Props-Stale') = null
+```
+
+**Chose the CORS fix over moving the marker into the JSON body**, for the reason
+the review anticipated: the CORS change is safe under either serving arrangement.
+If the frontend is ever served same-origin, `expose_headers` is a harmless no-op
+and the header keeps working. Moving the marker into the body would change the
+response shape from a bare array to an object, which is a breaking change for
+every existing reader of this endpoint, and would still leave `stale` invisible
+to any consumer that ignores the new key.
+
+`src/nfl_predictor/api/main.py` now passes `expose_headers=[PROPS_STALE_HEADER]`,
+imported from `routes` so the name is written down once. After:
+
+```
+status: 200
+raw header present       : true
+Access-Control-Expose-Headers: X-Player-Props-Stale
+=> res.headers.get('X-Player-Props-Stale') = 'true'
+```
+
+and on routes that carry no marker (`/`, `/api/snapshot-meta`) the declaration is
+still present, which is what keeps the readable set from changing under a reader
+who switches weeks.
+
+**Could CORS be exercised in a test? Not in a DOM test — and it does not need to
+be.** CORS is enforced by the browser, and the whole decision is made by the
+server: what a cross-origin caller may read is exactly what
+`Access-Control-Expose-Headers` lists. So the server response header *is* the
+contract, and `tests/test_props_stale_header_cors.py` pins it at the request
+level — the header is set, the header is declared readable, the middleware
+configuration contains the name, a fresh week does not carry the marker, and the
+503 body names the right unit. `props_state_check.mjs` replaces `fetch`
+wholesale, so it can never exercise this; that is a property of it, not a gap, and
+what it does check is the other two links (that the client reads the header, that
+the component renders when the flag is set). A browser-level test would need a
+real browser, which this project has no harness for.
+
+**The caveat this repo cannot discharge.** If the frontend is served same-origin
+behind a gateway, the whole marker path is inert: the header would be same-origin
+and always readable, `expose_headers` would be doing nothing, and nothing in the
+suite would notice. The evidence says cross-origin: `main.py` never mounts
+`frontend/dist` (no `StaticFiles` anywhere under `src/`), the Dockerfile copies
+`dist` into the image without serving it, and the container exposes only uvicorn
+on 8001. So the API has no same-origin route to the bundle. **This is recorded as
+`test_the_frontend_base_url_is_cross_origin_in_a_deployed_build`, which fails if
+that ever stops being true, and it is a thing the deployer must confirm** — if
+there is a gateway putting the bundle and the API behind one origin, say so, and
+the marker path can be simplified or dropped.
+
+### Blocker 2 — the guard was defeatable, was being defeated, and the zero meant nothing
+
+Three problems, all fixed.
+
+1. **The metric could not see its own blind spot.** `ATTEMPTS` counted only
+   *blocked* connects. `_offline_policy` lifts the guard for
+   `@pytest.mark.network`, and those tests connect for real and
+   `except Exception: pytest.skip`, so the run stayed green and the counter read
+   0. "Measured: 0 blocked connections" was true and misleading in the same
+   breath. `ATTEMPTS` now records `(kind, target, guarded)` and the summary
+   reports blocked, unguarded, remote-DNS and loopback-DNS separately.
+2. **The count was invisible under the documented command.** A `print` in a
+   teardown fixture is captured; under `pytest -q` it appeared 0 times. The
+   summary now goes out through `pytest_terminal_summary`, which the terminal
+   reporter writes past the capture, so it shows without anyone having to
+   remember `-s`.
+3. **`conftest.py:26` was false.** The two `network`-marked tests run on every
+   local `pytest`, not only in CI; only the gating CI *job* deselects them. The
+   docstring now says so and says the marker means "this test hits the internet",
+   not "this test only runs in CI".
+
+**What the guard does not cover, now stated in the docstring instead of implied
+away.** `socket.getaddrinfo` is counted, not blocked — blocking it would break
+anything that resolves loopback, which is most ASGI clients. `connect_ex` is not
+patched. `_socket.socket.connect` called on the C extension type bypasses the
+patched attribute. So the honest claim is "connections are blocked and every
+attempt is counted", not "the network is unreachable". Patching
+`connect`/`create_connection` remains the right design: it is the narrowest point
+that covers `requests`, `urllib3`, `http.client` and `pandas.read_csv`, and
+`test_the_guard_does_not_break_socket_construction` still guards the
+mocking-transport case.
+
+Measured on this machine, the reported numbers are all 0 — including remote DNS —
+because `data/cache/` satisfies the two `network`-marked fetches locally. The
+reviewer's probe found 4 non-loopback resolutions because it ran where the cache
+did not cover them. The counting path is unit-proven instead, against a
+`.invalid` host that can never resolve.
+
+### Four comments that described code that does not exist
+
+- **`facts.py:526`** claimed in the present tense that the panel "can then say
+  'unavailable'". It cannot: `grep -rn players_unavailable` over `src/`,
+  `frontend/src/` and `tests/` found only the producer, my mutation, and test
+  assertions. The consumer is the explainer in predictor-hub, outside this tree.
+  The comment now says the flag exists for a consumer this repo does not own, and
+  the local `Facts` contract model declares the field so it is pinned on this side
+  too (it ignores extras, so leaving it undeclared would have meant the contract
+  test could not notice the field disappearing — the same "a key nothing reads"
+  defect one layer down).
+
+  **The honest consequence, stated plainly: in PUBLIC_MODE a reader still sees
+  `players: []` exactly as before. The only reader-visible change from this work
+  is that a 500 became a 200.** The flag is groundwork for a consumer that does
+  not live here, not a fix to anything a reader can see yet.
+
+- **`routes.py:493`** gave the reason `response: Response = None` exists as
+  "because `facts._props` calls this function directly, off-HTTP, to reuse the
+  PUBLIC_MODE snapshot rule". False since round 1: `_props` calls
+  `get_player_props` only in its **non-PUBLIC_MODE** branch, and its PUBLIC_MODE
+  branch calls `snapshot_props_unavailable` directly. It was also a live trap —
+  reintroduce a PUBLIC_MODE call from `_props` and `response.headers` is an
+  `AttributeError` on `None`, outside the `try`, i.e. Critical 1's exact 500.
+  The comment now states the true reason and names the trap.
+
+- **`PROPS_UNAVAILABLE_DETAIL`** still read "unavailable **for this game**" while
+  the frontend copy said "for this **week** yet" — and the backend string is
+  rendered verbatim by `client.ts` and the component. Now "for this week",
+  asserted by `test_the_public_503_body_uses_the_same_unit_as_the_frontend_copy`.
+  The runner also stopped retyping the sentence: it reads
+  `PROPS_UNAVAILABLE_DETAIL` out of `routes.py`, because feeding its own
+  game-scoped wording into the 503 case is how the mismatch passed unnoticed.
+
+- **The report's `pythonpath` claim was wrong.** I wrote that
+  `pyproject.toml`'s `pythonpath = ["src"]` was inert. It is not:
+  `pythonpath = ["./pp2_marker_dir"]` puts the marker on `sys.path` under pytest
+  9.1.1, verified. The real reason imports depend on the editable install is that
+  **`pythonpath` has never been in this repo's `pyproject.toml` on any commit**:
+
+  ```
+  $ git show origin/main:pyproject.toml | grep -A6 ini_options
+  41:[tool.pytest.ini_options]
+  42-markers = [
+  43:  "network: hits a live upstream API; deselect with '-m \"not network\"'",
+  44-]
+  $ git log --oneline -S'pythonpath' -- pyproject.toml
+  (no output)
+  ```
+
+  The task brief's statement that this ini exists is wrong about this repo. The
+  **real** reason the harness needs an explicit `PYTHONPATH` is therefore
+  stronger than the one I gave: with the key absent, the only thing putting `src`
+  on `sys.path` is the editable install, and that points at *this* checkout — so a
+  copy's tests would import the original tree. `assert_copy_is_under_test()`
+  remains correct and is now backed by the real mechanism.
+
+  The oxlint evidence for Minor 17 was also wrong and is corrected: `no-unused-vars`
+  is not in oxlint's default set, so the unused-binding probe I cited reported
+  "Found 0 warnings and 0 errors". The conclusion (oxlint does cover the file)
+  held and is now demonstrated with rules that are in the default set:
+
+  ```
+  appended: const _unusedProbeBinding = 41;
+  Found 0 warnings and 0 errors.          <- the probe I cited: useless
+  appended: eval() and debugger;
+  ! eslint(no-eval): eval can be harmful.
+  ! eslint(no-debugger): `debugger` statement is not allowed
+  Found 2 warnings and 0 errors.          <- the evidence that holds
+  ```
+
+### Two coverage holes the review's probes found
+
+Both SURVIVED, which is the only reason they are here. Neither is behavioural:
+they are the two places with a branch and no test looking at it.
+
+- **`routes.py` roster-fallback `except` → `pass`.** Test
+  `test_a_roster_fallback_failure_does_not_turn_a_good_week_into_an_empty_one`:
+  the week has real history for one of its teams and the roster fetch fails, and
+  both the good row and the logged warning must survive. Because that test is
+  only meaningful if the fallback is *entered*, it is paired with
+  `test_the_roster_fallback_actually_runs_in_the_test_above`, which fails if a
+  future change makes `missing_teams` empty in that shape and turns the first test
+  into one that passes without exercising anything. Mutation **M27** CAUGHT.
+- **The stale-notice copy, pinned by the single substring `'earlier build'`.**
+  Reworded into something that no longer says it is stale and nothing noticed.
+  The runner now pins three independent fragments — `earlier build`, `rebuild`,
+  `current model` — and asserts each in both the stale and stale-empty cases and
+  its absence in the fresh case. Mutation **M28** CAUGHT.
+
+Plus the unit mismatch as a mutation: **M29** reverts the backend sentence to
+"for this game" and is CAUGHT by both the Python contract test and the runner.
+
+### Optional items, taken
+
+- `assert_copy_is_under_test()` now runs **inside the mutation loop**, not only
+  once before it. A mutation that altered import resolution would otherwise point
+  the suite back at the real tree and every later verdict would be about code
+  nobody edited.
+- The frontend arm got the equivalent pre-flight: `run_frontend` checks that the
+  copy's `frontend/src/pages/PlayerPropsPage.tsx`, `src/api/client.ts`,
+  `props_state_check.mjs` and `node_modules` are all present, and returns
+  INCONCLUSIVE naming the missing piece rather than letting vite resolve nothing
+  and every frontend mutation come back uninformative.
+- `mutation_check.py` block-buffers stdout, so a redirected run shows nothing
+  until it exits. Noted in the harness docstring as a known rough edge; not fixed,
+  since it changes no verdict.
+
+### Round 2 verification
+
+```
+302 passed, 15 skipped          (was 292 / 15)
+[offline guard] connection attempts this session:
+    blocked while the guard was up : 0
+    made with the guard lifted    : 0   <- @pytest.mark.network tests; expected, and not 'clean'
+    DNS to a non-loopback host    : 0   <- counted, not blocked; see the module docstring
+    DNS to loopback               : 0
+```
+
+Mutations: **30 caught, 0 survived, 0 inconclusive, 5 canary (all correct)** — M27
+through M31 added this round, all CAUGHT. M30 (`expose_headers` dropped) was also
+run by hand so the caught-by is visible rather than asserted:
+
+```
+### M30 applied: src/nfl_predictor/api/main.py -> expose_headers removed
+FAILED tests/test_props_stale_header_cors.py::test_the_stale_header_is_exposed_to_cross_origin_callers
+FAILED tests/test_props_stale_header_cors.py::test_the_marker_header_is_exposed_globally_not_only_on_the_props_route
+FAILED tests/test_props_stale_header_cors.py::test_a_fresh_week_declares_the_same_readable_set
+3 failed, 302 passed, 15 skipped
+```
