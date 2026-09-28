@@ -17,11 +17,12 @@ from fastapi import APIRouter, HTTPException
 
 from ..config import (
     CURRENT_SEASON,
+    DEPTH_CHARTS_CACHE_DIR,
     PUBLIC_MODE,
     PUBLIC_SNAPSHOT_PATH,
     PUBLIC_SNAPSHOT_REFRESH_URL,
 )
-from ..data import player_stats, schedules, teams as teams_data
+from ..data import depth_charts, player_stats, schedules, teams as teams_data
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
 from ..features import build as feature_build
@@ -465,6 +466,21 @@ def _get_player_props_live(season: int, week: int):
             except Exception as roster_err:
                 logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)
 
+        # Starter flags from the depth chart, when it is available. The chart is
+        # keyed on full_name + club_code, and `recent_team` is the same club
+        # abbreviation, so the join needs no id mapping.
+        #
+        # An unavailable chart is NOT an error and must not raise: it leaves
+        # `is_starter` as None, which the UI renders as the visible "Projected
+        # order" state. `False` would be a different and much worse claim --
+        # it would say this player is known to be on the bench, which is an
+        # assertion about depth-chart data we do not have.
+        try:
+            chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+        except Exception as chart_err:  # noqa: BLE001 - never fatal to props
+            logger.warning("depth charts unavailable for %s wk%s: %s", season, week, chart_err)
+            chart_flags = {}
+
         results = []
         for _, player in latest_players.iterrows():
             try:
@@ -482,11 +498,16 @@ def _get_player_props_live(season: int, week: int):
                     # CFB route, which already skipped.
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
+                flag = chart_flags.get(player["player_name"])
                 results.append({
                     "player_id": player["player_id"],
                     "player_name": player["player_name"],
                     "recent_team": player["recent_team"],
                     "position": player["position"],
+                    # None when there is no depth-chart data. See above: this is
+                    # "unknown", not "not a starter".
+                    "is_starter": flag["is_starter"] if flag else None,
+                    "depth_slot": flag["depth_slot"] if flag else None,
                     **props,
                 })
             except Exception as player_err:
@@ -500,7 +521,12 @@ def _get_player_props_live(season: int, week: int):
 
 @router.get("/track-record")
 def get_track_record():
-    return store.get_track_record()
+    # The season and week come from the schedule, not from the data: `weekly` has to
+    # list every elapsed week, and only the calendar knows which of them are elapsed.
+    # Without them the store falls back to the newest week it happens to hold, so a
+    # week with no tracked picks at the tail of the record would silently drop off.
+    season, week = current_season_and_week()
+    return store.get_track_record(current_week=week, season=season)
 
 
 @router.get("/kalshi-feed")

@@ -46,7 +46,14 @@ def client(monkeypatch):
             "over_prob": 0.52, "under_prob": 0.48,
         },
     )
-    monkeypatch.setattr(routes.store, "get_track_record", lambda: {"n_resolved_games": 0, "pct_moneyline_correct": None})
+    # Accepts **kwargs because /track-record now threads the season and week through
+    # (the `weekly` rows have to span every elapsed week, and only the calendar knows
+    # which those are). `test_get_track_record_passes_the_calendar_to_the_store` below
+    # pins that the two really arrive.
+    monkeypatch.setattr(
+        routes.store, "get_track_record",
+        lambda **kwargs: {"n_resolved_games": 0, "pct_moneyline_correct": None},
+    )
     return TestClient(app)
 
 
@@ -95,11 +102,38 @@ def test_get_game_prediction_404s_for_unknown_game(client):
     assert response.status_code == 404
 
 
-def test_get_track_record(client):
+def test_get_track_record(client, monkeypatch):
+    # `current_season_and_week` reads the real schedule to anchor week 1, and the
+    # store below ignores the value, so it is stubbed rather than fetched: this
+    # route is not what is under test, and the suite-wide live-upstream guard
+    # (tests/live_upstream.py) fails any run that reaches for it.
+    monkeypatch.setattr(routes, "current_season_and_week", lambda: (2025, 1))
     response = client.get("/api/track-record")
 
     assert response.status_code == 200
     assert response.json()["n_resolved_games"] == 0
+
+
+def test_get_track_record_passes_the_calendar_to_the_store(monkeypatch):
+    """The store can only list every elapsed week if it is told which week it is.
+
+    Without these two it falls back to the newest week it happens to hold, and a week
+    at the tail of the record that nobody picked in drops off the end of the chart --
+    the exact silent absence this payload exists to remove. `current_season_and_week`
+    reads the real schedule, so it is stubbed rather than recomputed.
+    """
+    seen = {}
+
+    def fake_get_track_record(**kwargs):
+        seen.update(kwargs)
+        return {"games": {}, "player_props": {}}
+
+    monkeypatch.setattr(routes, "current_season_and_week", lambda: (2026, 7))
+    monkeypatch.setattr(routes.store, "get_track_record", fake_get_track_record)
+
+    routes.get_track_record()
+
+    assert seen == {"current_week": 7, "season": 2026}
 
 
 def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):
@@ -175,6 +209,17 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
         routes.player_props, "predict_props",
         lambda player_models, feature_row, position: {"anytime_td_prob": 0.42, "passing_yards": 275.0},
     )
+    # Two fetches `_get_player_props_live` makes that this test is not about: the
+    # season-roster fallback for a team with no current-season stats yet (the
+    # fixture's slate carries BAL, and only KC is in the history above), and the
+    # depth chart. Both are network reads, so the suite-wide guard
+    # (tests/live_upstream.py) fails a run that reaches them, and an empty answer
+    # is what a team with no roster data and no chart already produces live.
+    monkeypatch.setattr(
+        routes.player_stats, "fetch_seasonal_roster",
+        lambda season: pd.DataFrame(columns=["player_id", "player_name", "position", "recent_team", "season"]),
+    )
+    monkeypatch.setattr(routes.depth_charts, "flags_for_season_week", lambda *a, **k: {})
 
     response = client.get("/api/players/2025/1/props")
 

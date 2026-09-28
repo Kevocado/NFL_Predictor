@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-28T14:00:47.886093+00:00",
+  "generated_at": "2026-09-28T16:29:47.851639+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8818,8 +8818,8 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_TEN_NYG": {
-          "home_win_prob": 0.8732259192777378,
-          "away_win_prob": 0.12677408072226215,
+          "home_win_prob": 0.8732259192777381,
+          "away_win_prob": 0.12677408072226193,
           "home_cover_prob": 0.8296317997616025,
           "away_cover_prob": 0.1703682002383975,
           "over_prob": 0.8162763506678199,
@@ -8956,7 +8956,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -2.5,
-          "total_line": 37.5
+          "total_line": 38.5
         },
         {
           "game_id": "2026_04_IND_WAS",
@@ -9146,7 +9146,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 10.0,
-          "total_line": 39.5
+          "total_line": 38.5
         },
         {
           "game_id": "2026_04_KC_LV",
@@ -9250,8 +9250,8 @@
           "away_win_prob": 0.5940195938556396,
           "home_cover_prob": 0.4805254318219593,
           "away_cover_prob": 0.5194745681780407,
-          "over_prob": 0.5973134965656606,
-          "under_prob": 0.4026865034343394,
+          "over_prob": 0.5660451531442474,
+          "under_prob": 0.4339548468557526,
           "predicted_margin": -3.145751476287842,
           "predicted_total": 40.57671356201172,
           "sigma": 13.223153618916728,
@@ -9300,8 +9300,8 @@
         "2026_04_NYJ_CHI": {
           "home_win_prob": 0.7969835201427906,
           "away_win_prob": 0.2030164798572094,
-          "home_cover_prob": 0.7270848955878694,
-          "away_cover_prob": 0.2729151044121306,
+          "home_cover_prob": 0.7270848955878695,
+          "away_cover_prob": 0.2729151044121305,
           "over_prob": 0.6551000079746985,
           "under_prob": 0.3448999920253015,
           "predicted_margin": 10.987051963806152,
@@ -9380,8 +9380,8 @@
           "away_win_prob": 0.19940837061694117,
           "home_cover_prob": 0.5348578372072126,
           "away_cover_prob": 0.4651421627927874,
-          "over_prob": 0.6856454943337502,
-          "under_prob": 0.3143545056662498,
+          "over_prob": 0.7134970205845219,
+          "under_prob": 0.2865029794154781,
           "predicted_margin": 11.156855583190918,
           "predicted_total": 45.537872314453125,
           "sigma": 13.223153618916728,

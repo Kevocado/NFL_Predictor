@@ -121,13 +121,17 @@ def test_record_game_predictions_persists_spread_and_total_lines():
 
 
 def _insert_legacy_row(conn, *, game_id, ats_hit, home_cover_prob, away_cover_prob,
-                       total_hit=None, over_prob=None, under_prob=None):
+                       total_hit=None, over_prob=None, under_prob=None,
+                       season=None, week=None):
     """Write a row in the shape the pre-`_present` build produced.
 
     The current write path cannot produce this -- `_compute_hits` leaves `ats_hit`
     and `total_hit` NULL when the probabilities are missing -- so the only way to
     test the read path is to insert the row directly. The deployed database holds
     these.
+
+    `season`/`week` default to NULL, which is what the deployed legacy rows hold;
+    a test that needs the row to appear on the weekly chart has to say so.
     """
     conn.execute(
         """
@@ -135,19 +139,20 @@ def _insert_legacy_row(conn, *, game_id, ats_hit, home_cover_prob, away_cover_pr
             game_id, home_team, away_team, commence_time, snapshotted_at,
             home_win_prob, away_win_prob, home_cover_prob, away_cover_prob,
             over_prob, under_prob, home_spread_line, total_line,
+            season, week,
             resolved, actual_home_score, actual_away_score, moneyline_hit,
             ats_hit, total_hit
         ) VALUES (?, 'SF', 'DAL', '2025-09-14T20:20:00', '2025-09-14T17:00:00',
-                  0.55, 0.45, ?, ?, ?, ?, -3.5, 51.5,
+                  0.55, 0.45, ?, ?, ?, ?, -3.5, 51.5, ?, ?,
                   1, 20, 24, 1, ?, ?)
         """,
         (game_id, home_cover_prob, away_cover_prob, over_prob, under_prob,
-         ats_hit, total_hit),
+         season, week, ats_hit, total_hit),
     )
     conn.commit()
 
 
-def _record_one_genuine_hit():
+def _record_one_genuine_hit(**overrides):
     """One real graded game, a HIT on *both* markets.
 
     30-30 with a -3.5 spread and a 51.5 total: home covers (-3.5) and the game
@@ -155,8 +160,13 @@ def _record_one_genuine_hit():
     is a HIT on every market -- a fabricated MISS is then the only thing that can
     move an aggregate off 1.0, so a filter that fails to exclude it is visible on
     each market independently.
+
+    Its moneyline is a MISS: a 30-30 tie is an away win, the model picked home, so
+    a test that needs a known moneyline rate can read it off the grade directly
+    instead of recomputing it. `overrides` reach `_future_game`, so a test that
+    needs the row on the weekly chart can give it a week.
     """
-    store.record_game_predictions([_future_game()])
+    store.record_game_predictions([_future_game(**overrides)])
     results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 30}])
     store.reconcile_game_predictions(results)
 
@@ -226,6 +236,97 @@ def test_track_record_aggregate_excludes_a_legacy_totals_row_with_no_probabiliti
         )
 
     assert store.get_track_record()["games"]["pct_totals_correct"] == 1.0
+
+
+def test_the_weekly_ats_figure_excludes_a_legacy_null_probability_row_too():
+    """The merge of #15 and B3, pinned. Neither change's own tests can hold both.
+
+    #15 taught the ATS/totals aggregate to refuse a row whose probability pair is
+    missing, because `get_game_verdict` already refuses it. B3 (the weekly rows)
+    later re-derived the same aggregate from `_grade`, which filtered on the grade
+    column alone -- so the rule had to survive being rebuilt, or it silently did
+    not. B3's weekly tests and #15's aggregate tests each passed against a version
+    that broke the other; only a test asserting both figures at once fails if
+    either half is dropped.
+
+    Three rows in one week, so the week is the denominator that matters:
+
+    * a genuine ATS/totals HIT, both pairs present (the only real grade there is);
+    * a legacy row with a fabricated ATS and totals MISS and no probabilities --
+      the per-game view refuses it (`get_game_verdict(...)["ats"] is None`), so
+      every aggregate has to;
+    * a row the current build recorded with a moneyline only: no line and no
+      probability but the two required win probabilities, so both flags are NULL.
+      It is the canary for the *other* half -- the moneyline has no pair to check,
+      so any pair requirement applied to it drops a real grade here.
+
+    The fabricated row is a MISS and the genuine one a HIT, and the ungraded row
+    carries no flag, so leaking either into a count is visible in the number
+    itself rather than in a rate that could round to the right thing.
+    """
+    import contextlib
+
+    # (a) fully graded. `season`/`week` put it on the weekly chart.
+    _record_one_genuine_hit(season=2099, week=3)
+    # (b) `ats_hit`/`total_hit` set by a build that graded without the pairs.
+    with contextlib.closing(store._connect()) as conn:
+        _insert_legacy_row(
+            conn, game_id="2025_05_SF_DAL", ats_hit=0,
+            home_cover_prob=None, away_cover_prob=None,
+            total_hit=0, over_prob=None, under_prob=None,
+            season=2099, week=3,
+        )
+    # (c) never graded: the current build leaves both flags NULL without a line,
+    # and the odds feed yields games with no spread market at all, so every
+    # graded probability except the two the schema requires is absent.
+    store.record_game_predictions([_future_game(
+        game_id="2025_06_SF_DAL", home_spread_line=None, total_line=None,
+        home_cover_prob=None, away_cover_prob=None, over_prob=None, under_prob=None,
+        season=2099, week=3,
+    )])
+    store.reconcile_game_predictions(
+        pd.DataFrame([{"game_id": "2025_06_SF_DAL", "home_score": 24, "away_score": 20}])
+    )
+
+    # The per-game view's answer, which is the rule the aggregate has to match.
+    assert store.get_game_verdict("2025_05_SF_DAL")["ats"] is None
+    assert store.get_game_verdict("2025_05_SF_DAL")["totals"] is None
+
+    games = store.get_track_record()["games"]
+
+    # Headline: (b) is out of the ATS count and the ATS rate. Counting it gives
+    # n_ats 2 and 0.5, which are both legible wrong answers.
+    assert games["n_resolved"] == 3
+    assert games["n_ats"] == 1
+    assert games["pct_ats_correct"] == pytest.approx(1.0)
+    assert games["n_totals"] == 1
+    assert games["pct_totals_correct"] == pytest.approx(1.0)
+    # ...and the moneyline is untouched by any of it. (a) is a moneyline MISS
+    # (a 30-30 tie went to the away side), (b) and (c) are both hits, so the rate
+    # is 2/3 over 3. Row (c) has no cover or over/under probability at all, so
+    # borrowing either pair for the moneyline reports 1/2 over 2 -- the
+    # over-filter, and the one that loses real grades.
+    assert games["n_moneyline"] == 3
+    assert games["pct_moneyline_correct"] == pytest.approx(2 / 3)
+
+    week3 = {row["week"]: row for row in games["weekly"]}[3]
+
+    # The weekly ATS figure is the same aggregate over one week, and B3's rule is
+    # that its rate ships with its own denominator. Both must exclude (b).
+    assert week3["n_ats"] == 1
+    assert week3["pct_ats_correct"] == pytest.approx(1.0)
+    assert week3["n_totals"] == 1
+    assert week3["pct_totals_correct"] == pytest.approx(1.0)
+    assert week3["n_moneyline"] == 3
+    assert week3["pct_moneyline_correct"] == pytest.approx(2 / 3)
+    # `n_games` stays 3, and this is the point rather than an oversight. It is
+    # volume -- how many resolved games the tracker holds for the week -- and (b)
+    # IS one: the game was picked and graded, it just has no ATS call. The ATS
+    # figure's denominator is `n_ats`, which excludes it. Shrinking `n_games`
+    # instead would also shrink the moneyline denominator, i.e. over-filter a
+    # market that never needed the rule.
+    assert week3["n_games"] == 3
+    assert week3["tracked"] is True
 
 
 def test_reconcile_grades_moneyline_ats_and_totals():

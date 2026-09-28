@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..config import PUBLIC_MODE, PUBLIC_SNAPSHOT_POLL_SECONDS, TRACKING_DB_BACKUP_PATH, TRACKING_DB_PATH
+from ..tracking import store
 from .facts import router as facts_router
 from .routes import (
     current_season_and_week,
@@ -37,6 +38,29 @@ def _restore_tracking_db() -> None:
             shutil.copy2(TRACKING_DB_BACKUP_PATH, TRACKING_DB_PATH)
         except Exception:
             logger.exception("tracking db restore failed")
+
+
+def _migrate_tracking_db() -> None:
+    """Bring the restored local database up to the current schema, before the
+    tracking loop starts.
+
+    A schema migration on this file is a schema migration on the *live tracker*,
+    and this is the only point in the process where that is safe: the restored
+    file is in place, no connection is open, and the next thing that touches the
+    database is the first tick -- which then backs up a fully migrated file. Any
+    later would mean a DDL running concurrently with a request, or a backup that
+    could capture a half-written page.
+
+    Deliberately NOT wrapped in try/except. `store.migrate_tracking_db` raises
+    `TrackingDbOnPersistentMount` if the path has been pointed at the Azure Files
+    mount, and that is a misconfiguration worth refusing to start over: the
+    alternative is a tracker that fails inside a DDL statement on every boot, with
+    a "database is locked" that names neither the mount nor the fix. See
+    config.py::TRACKING_DB_BACKUP_PATH for the pattern this is following.
+    """
+    added = store.migrate_tracking_db()
+    if added:
+        logger.info("tracking db migrated: added %s", ", ".join(added))
 
 
 def _backup_tracking_db() -> None:
@@ -86,6 +110,9 @@ async def lifespan(_app: FastAPI):
     # (including the first tracking tick, below) can touch it -- the live
     # db is on local ephemeral disk, wiped by every cold start, otherwise.
     _restore_tracking_db()
+    # Then migrate the local file, still at a quiescent point: nothing has the db
+    # open and the backup on the mount has not been re-copied over it yet.
+    _migrate_tracking_db()
 
     # The public deployment serves games/predictions/player-props from
     # public_snapshot.py's precomputed file (see routes.py's PUBLIC_MODE
