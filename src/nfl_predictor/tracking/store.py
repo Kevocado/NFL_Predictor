@@ -741,11 +741,31 @@ _POINT_FORECASTS = (
 # --- B5: the model against the market ---------------------------------------
 #
 # The closing spread is already stored (`home_spread_line`, nflverse convention:
-# the home team's expected margin; home covers when the real margin exceeds it).
-# Turning a line into a probability needs one assumption: how wide a game's final
-# margin typically is, in points. That is σ_league, and it is the only invented
-# number in this block, which is why it is a named constant with a test asserting
-# its value rather than an inline 13.5 in three places.
+# the home team's expected margin, so a POSITIVE value means home is favoured;
+# home covers when the real margin exceeds it). Turning a line into a probability
+# needs one assumption: how wide a game's final margin typically is, in points.
+# That is σ_league, and it is the only invented number in this block, which is why
+# it is a named constant with a test asserting its value rather than an inline
+# 13.5 in three places.
+#
+# THE SIGN, and it is the fact that makes the whole block correct: this column is
+# ALREADY NEGATED relative to how a book words a line. A book prints "BAL -3.5" for
+# a game where Baltimore is favoured by 3.5, and nflverse (and therefore this
+# column) records the same game as +3.5, the home team's expected margin. So the
+# spec's `Φ(spread / σ_league)` -- written in book convention, where a positive
+# number is points the favourite gives -- becomes `Φ(-spread / σ_league)` here, and
+# the negation happens ONCE, at the conversion in `implied_home_cover_prob`. Every
+# other line in this block reads the column as the home team's expected margin and
+# must not negate it again. `api/facts.py::_spread_line` negates it a second time,
+# but for the opposite reason: the site words a favourite as giving points.
+#
+# Negating twice is invisible, which is the whole danger: every implied probability
+# comes out exactly mirrored around 0.5, so the numbers still look reasonable, and
+# the disagreement cohort silently becomes the set of games where the model AGREED
+# with the line. `tests/test_track_record_vs_market.py` pins the convention against
+# `margin_to_probabilities` and `_compute_hits` -- the two functions that already
+# encode it -- rather than restating it, because a test written from the same
+# misreading is not a test.
 #
 # PROVENANCE: NFL 13.5, from the design spec
 # `docs/superpowers/specs/2026-09-27-predicted-box-score-and-track-record-design.md`
@@ -770,10 +790,16 @@ _VS_MARKET_METHOD = {
         "into a probability."
     ),
     "implied_probability": (
-        f"The closing line is a margin, so the probability the market is asserting is "
-        f"Φ(spread / {SIGMA_LEAGUE_NFL}), the Normal cumulative at the spread divided by "
-        f"{SIGMA_LEAGUE_NFL}. A line of {SIGMA_LEAGUE_NFL} points is a 50/50 cover; a line "
-        "favouring the home team is a probability below 50% for the home side to cover."
+        f"The closing line is a margin -- the home team's expected margin -- so the "
+        f"probability the market is asserting for the home side to cover it is "
+        f"Φ(-spread / {SIGMA_LEAGUE_NFL}), the Normal cumulative at the NEGATED line "
+        f"divided by {SIGMA_LEAGUE_NFL}. The minus sign is not a preference: lines are "
+        f"quoted here in the expected-margin convention, where a POSITIVE line means "
+        f"the home team is favoured, and the home side covers by beating that line. A "
+        f"line of {SIGMA_LEAGUE_NFL} points either way is a 50/50 cover, and a line "
+        "favouring the home team is a probability below 50% for the home side to "
+        "cover it -- exactly as it is below 50% that a team favoured by seven wins "
+        "by more than seven."
     ),
     "edge": (
         "Edge is the model's cover probability minus the probability the closing line "
@@ -801,13 +827,22 @@ _VS_MARKET_METHOD = {
 def implied_home_cover_prob(spread: float, sigma_league: float = SIGMA_LEAGUE_NFL) -> float:
     """P(home covers) implied by a closing spread, under the league margin sigma.
 
-    The sign convention is the whole function, and getting it backwards is invisible:
-    every implied probability would be exactly mirrored around 0.5, so the numbers
-    would still look reasonable. A negative `home_spread_line` means the home team is
-    expected to win by that many points, and therefore is expected to cover LESS than
-    half the time, so the line goes into the Normal cumulative un-negated.
+    `spread` is `home_spread_line`: the home team's EXPECTED margin, positive when
+    home is favoured, and the home side covers when the real margin exceeds it. So
+    the threshold is the line itself and the quantity wanted is P(margin > spread),
+    which under a zero-centred margin of width `sigma_league` is Φ(-spread / σ).
+    The negation is applied here, once; every other reader of the column in this
+    module reads it un-negated.
+
+    The sign is the whole function, and getting it backwards is invisible: every
+    implied probability comes out exactly mirrored around 0.5, so the numbers still
+    look reasonable while the mean edge flips sign and the disagreement cohort
+    becomes the set of games where the model AGREED with the line. The spec writes
+    the same probability as `Φ(spread / σ)` in book convention, where a book prints
+    "BAL -3.5" for the game this column stores as +3.5; the spec is right and this
+    is where the two conventions meet.
     """
-    return float(norm.cdf(spread / sigma_league))
+    return float(norm.cdf(-spread / sigma_league))
 
 
 def _market_row(frame: pd.DataFrame) -> dict:
@@ -869,6 +904,13 @@ def _actual_away(frame: pd.DataFrame) -> pd.Series:
 def _disagreeing_games(eligible: pd.DataFrame) -> pd.DataFrame:
     """Games where the model backed the side the closing line did not favour.
 
+    `home_spread_line` is the home team's expected margin, so `line > 0` is the
+    line favouring home -- the same reading as `margin_to_probabilities` and
+    `_compute_hits`, and the same reading `implied_home_cover_prob` negates once at
+    the boundary. Reading it the other way inverts the entire cohort: the games
+    where the model took the seven-point dog disappear from it and the games where
+    the model agreed with the line take their place.
+
     Three exclusions, each for a stated reason:
 
     - **Pick'em** (`home_spread_line == 0`): the line favours nobody, so there is no
@@ -887,7 +929,7 @@ def _disagreeing_games(eligible: pd.DataFrame) -> pd.DataFrame:
     line = eligible["home_spread_line"].astype(float)
     home = eligible["home_cover_prob"].astype(float)
     away = eligible["away_cover_prob"].astype(float)
-    line_favours_home = line < 0
+    line_favours_home = line > 0
     model_favours_home = home > away
     return eligible[
         (line != 0)
