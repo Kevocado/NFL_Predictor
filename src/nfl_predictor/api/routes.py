@@ -770,7 +770,32 @@ def background_tracking_tick(season: int, week: int) -> None:
     try:
         if not completed.empty:
             actual_stats = player_stats.fetch_weekly_player_stats([season])
-            store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
+            if actual_stats.empty:
+                # `hub_cache.cached_frame` catches the upstream 404 and returns an
+                # empty frame on purpose, so the site shows dashes instead of
+                # erroring, and it logs at INFO -- below the default threshold, and
+                # per season per tick, so raising it there would flood. The
+                # consequence lands here, so it is reported here: once per tick, at a
+                # level that is actually visible.
+                #
+                # `n_resolved: 0` on the track record with snapshots still being
+                # written looks exactly like a tracking bug. It is this. Verified
+                # URLs, and why a prop backfill would be the wrong fix:
+                # docs/player-prop-accuracy-blocker.md
+                #
+                # Note the `else`, not a `return`. The game backfill below is a
+                # separate `try` block in the same tick, and returning would let a
+                # missing *player* stats file silently stop *game* reconciliation --
+                # which is the part that works, and would have regressed from 30 of
+                # 33 resolved to 0 with no error anywhere.
+                logger.warning(
+                    "player prop reconciliation skipped: no nflverse player stats for season %s "
+                    "(player_stats_%s.parquet is 404 upstream); n_resolved will stay 0 until "
+                    "the file is published -- see docs/player-prop-accuracy-blocker.md",
+                    season, season,
+                )
+            else:
+                store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
     except Exception:
         logger.exception("player prop reconciliation failed")
 
