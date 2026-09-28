@@ -510,6 +510,42 @@ def test_the_market_comparison_is_reported_by_week():
     assert weekly[3]["mean_edge_points"] is None
     assert weekly[3]["disagreement_n"] == 0
     assert weekly[3]["disagreement_hit_rate"] is None
+    assert weekly[3]["tracked"] is False
+
+
+def test_a_week_whose_only_games_are_incomparable_is_not_marked_tracked():
+    """`tracked` means games COMPARED with a price, not rows the tracker holds.
+
+    B3 made this key the page's visible "Not tracked" marker, so `tracked = week
+    in groups` would tell a visitor that week 2 was tracked when nothing in it
+    was ever compared to a line. Two ways to be ineligible, both real: a game
+    with no spread at all, and a game whose cover probabilities were never
+    recorded. Neither is a comparison, so the week is not tracked.
+    """
+    # Week 1 has one comparable game, so the key is true for a real reason and the
+    # assertion below cannot pass by the key being constant.
+    _resolve("real", 1, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10)
+    # Week 2: a real line and a real result, but no cover probabilities.
+    _resolve("noline", 2, home_cover_prob=0.45, away_cover_prob=0.55, spread=None,
+             home_score=20, away_score=10)
+    store.record_game_predictions([{
+        "game_id": "noprobs", "home_team": "BAL", "away_team": "KC",
+        "commence_time": "2099-09-11T20:20:00",
+        "home_win_prob": 0.6, "away_win_prob": 0.4,
+        "home_spread_line": 7.0, "season": 2026, "week": 2,
+    }])
+    store.reconcile_game_predictions(
+        pd.DataFrame([{"game_id": "noprobs", "home_score": 20, "away_score": 10}])
+    )
+
+    weekly = {row["week"]: row for row in _vs_market(current_week=2)["weekly"]}
+
+    assert weekly[1]["tracked"] is True
+    assert weekly[1]["n"] == 1
+    assert weekly[2]["n"] == 0, "two rows the tracker holds, zero comparisons"
+    assert weekly[2]["tracked"] is False
+    assert weekly[2]["mean_edge_points"] is None
 
 
 def test_a_push_is_neither_a_hit_nor_a_miss_in_the_cohort():

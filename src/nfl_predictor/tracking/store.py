@@ -945,10 +945,26 @@ def _vs_market_weekly(
     groups = _week_groups(resolved, current_week, season)
     return {
         "weekly": [
-            {**_market_row(groups.get(week)), "week": int(week), "tracked": week in groups}
+            _vs_market_week(week, groups.get(week))
             for week in range(1, _window_end(current_week, groups) + 1)
         ]
     }
+
+
+def _vs_market_week(week: int, frame: pd.DataFrame | None) -> dict:
+    """One week of the model-vs-market comparison.
+
+    `tracked` is `n > 0` -- games actually COMPARED with a price -- and not
+    "the tracker holds rows for this week". A week whose only rows have no
+    spread, no cover probabilities or no scores was never compared with the
+    market, and B3 makes this key the page's visible "Not tracked" marker, so
+    `week in groups` would tell a visitor a week was tracked when zero games
+    were compared. Same rule as `_weekly_row` (`n_games > 0`) and `_point_forecast_week`
+    (`n > 0`); the tracker holding a row and the tracker having something to
+    compare are two different facts, and only one of them is this key.
+    """
+    summary = _market_row(frame if frame is not None else pd.DataFrame())
+    return {"week": int(week), "tracked": summary["n"] > 0, **summary}
 
 
 def _point_forecast_weekly(
