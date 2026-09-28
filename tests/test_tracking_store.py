@@ -120,6 +120,58 @@ def test_record_game_predictions_persists_spread_and_total_lines():
     assert row["total_line"] == 51.5
 
 
+def _insert_legacy_ats_row(conn, *, game_id, ats_hit, home_cover_prob, away_cover_prob):
+    """Write a row in the shape the pre-`_present` build produced.
+
+    The current write path cannot produce this -- `_compute_hits` leaves `ats_hit`
+    NULL when the cover probabilities are missing -- so the only way to test the
+    read path is to insert the row directly. The deployed database holds these.
+    """
+    conn.execute(
+        """
+        INSERT INTO game_predictions (
+            game_id, home_team, away_team, commence_time, snapshotted_at,
+            home_win_prob, away_win_prob, home_cover_prob, away_cover_prob,
+            home_spread_line, resolved, actual_home_score, actual_away_score,
+            moneyline_hit, ats_hit
+        ) VALUES (?, 'SF', 'DAL', '2025-09-14T20:20:00', '2025-09-14T17:00:00',
+                  0.55, 0.45, ?, ?, -3.5, 1, 20, 24, 1, ?)
+        """,
+        (game_id, home_cover_prob, away_cover_prob, ats_hit),
+    )
+    conn.commit()
+
+
+def test_track_record_aggregate_excludes_a_legacy_ats_row_with_no_cover_probabilities():
+    """`get_game_verdict` already refuses to show an ATS market for a row whose cover
+    probabilities are missing. The aggregate must agree: `pct_ats_correct` counted
+    those same rows, so one game produced two opposite answers -- a per-game view
+    with no ATS market beside an ATS percentage that included it.
+
+    The fabricated row is a MISS and the genuine row is a HIT, so including the
+    fabricated one moves the aggregate to 0.5 and the two cases cannot be confused.
+    """
+    import contextlib
+
+    store.record_game_predictions([_future_game()])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 20}])
+    store.reconcile_game_predictions(results)
+
+    with contextlib.closing(store._connect()) as conn:
+        _insert_legacy_ats_row(
+            conn, game_id="2025_02_SF_DAL", ats_hit=0,
+            home_cover_prob=None, away_cover_prob=None,
+        )
+
+    track = store.get_track_record()
+
+    # the per-game view already declines to report an ATS market for it
+    # (`ats` is present but None -- the guard at store.py:593 leaves it unset)
+    assert store.get_game_verdict("2025_02_SF_DAL")["ats"] is None
+    # and the aggregate must not count it either
+    assert track["games"]["pct_ats_correct"] == 1.0
+
+
 def test_reconcile_grades_moneyline_ats_and_totals():
     import contextlib
 
