@@ -102,7 +102,12 @@ def test_get_game_prediction_404s_for_unknown_game(client):
     assert response.status_code == 404
 
 
-def test_get_track_record(client):
+def test_get_track_record(client, monkeypatch):
+    # `current_season_and_week` reads the real schedule to anchor week 1, and the
+    # store below ignores the value, so it is stubbed rather than fetched: this
+    # route is not what is under test, and the suite-wide live-upstream guard
+    # (tests/live_upstream.py) fails any run that reaches for it.
+    monkeypatch.setattr(routes, "current_season_and_week", lambda: (2025, 1))
     response = client.get("/api/track-record")
 
     assert response.status_code == 200
@@ -204,6 +209,17 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
         routes.player_props, "predict_props",
         lambda player_models, feature_row, position: {"anytime_td_prob": 0.42, "passing_yards": 275.0},
     )
+    # Two fetches `_get_player_props_live` makes that this test is not about: the
+    # season-roster fallback for a team with no current-season stats yet (the
+    # fixture's slate carries BAL, and only KC is in the history above), and the
+    # depth chart. Both are network reads, so the suite-wide guard
+    # (tests/live_upstream.py) fails a run that reaches them, and an empty answer
+    # is what a team with no roster data and no chart already produces live.
+    monkeypatch.setattr(
+        routes.player_stats, "fetch_seasonal_roster",
+        lambda season: pd.DataFrame(columns=["player_id", "player_name", "position", "recent_team", "season"]),
+    )
+    monkeypatch.setattr(routes.depth_charts, "flags_for_season_week", lambda *a, **k: {})
 
     response = client.get("/api/players/2025/1/props")
 

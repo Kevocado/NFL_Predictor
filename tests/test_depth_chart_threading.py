@@ -100,6 +100,14 @@ def _props_for(monkeypatch, names: list[str]) -> list[dict]:
     # carry the same columns the real player_history does.
     monkeypatch.setattr(routes, "_load_player_history", lambda season: players)
     monkeypatch.setattr(routes.schedules, "fetch_upcoming_games", lambda season, week: games)
+    # BUF is on the slate and has no row above, so the season-roster fallback
+    # fires for it. That is an nfl_data_py call, and the suite-wide guard
+    # (tests/live_upstream.py) fails a run that reaches one; an empty roster is
+    # the answer a team with no published roster already gets.
+    monkeypatch.setattr(
+        routes.player_stats, "fetch_seasonal_roster",
+        lambda season: pd.DataFrame(columns=["player_id", "player_name", "position", "recent_team", "season"]),
+    )
     monkeypatch.setattr(routes.player_usage, "build_features_for_player", lambda *a, **k: pd.DataFrame({"x": [1]}))
     monkeypatch.setattr(routes.player_props, "predict_props", fake_predict)
 

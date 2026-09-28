@@ -16,7 +16,42 @@ from typing import Any
 
 import pytest
 
+from live_upstream import (
+    FORBIDDEN_CALLS,
+    assert_no_live_upstream,
+    install_builder_guard,
+)
 from nfl_predictor import public_snapshot as ps
+
+
+# --------------------------------------------------------------------------- #
+# No test in this file may reach a live builder.
+#
+# `build_snapshot` calls four live builders unconditionally and wraps every one
+# of them in a bare `except Exception`, so a test that stubs only
+# `_get_standings_live` gets a green run *and* a live call. A raise alone is not
+# enough here, precisely because `build_snapshot` swallows every one of these:
+# the fixture records each forbidden call and asserts at teardown that none was
+# hit.
+#
+# Suite-wide, the network boundary itself -- the data modules' fetch functions,
+# as `routes` sees them -- is already refused for every test by
+# `tests/conftest.py`. This layer is the one below it, and it is file-local on
+# purpose: the four live builders and the per-week calls are real code under
+# test elsewhere in this suite (`tests/test_hub_routes.py` drives
+# `_get_hub_teams_live` deliberately, `tests/test_api_routes.py` drives
+# `_get_games_live` through a TestClient), so stubbing or forbidding them
+# suite-wide would delete coverage that exists today. Measured: a blanket
+# conftest guard broke 14 tests across 3 files.
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(autouse=True)
+def _no_live_builder(monkeypatch):
+    FORBIDDEN_CALLS.clear()
+    install_builder_guard(monkeypatch)
+    yield
+    assert_no_live_upstream()
 
 
 def _week(*prop_rows: dict, games: list | None = None) -> dict:
