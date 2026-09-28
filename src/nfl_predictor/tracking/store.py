@@ -407,13 +407,34 @@ def _calibration_buckets(pairs: list[tuple[float, int]], n_buckets: int) -> list
     return buckets
 
 
-def get_calibration(n_buckets: int = 10) -> dict:
+# 4 buckets, not 10, ruled 2026-09-27.
+#
+# The trade hub gates an edge on `n >= calibration_min_n` in the bucket the edge's own probability
+# falls in, and it does so for EVERY bucket before it will admit anything. So the settled contracts
+# needed to open the gate are `n_buckets x calibration_min_n`: at 10 x 20 that is 200, while the
+# hub's own reviewer renders a verdict at 100. The product had to be twice as strict about admitting
+# an edge as it was about judging one, and on the real distribution (42 settled for CFB winner) the
+# winner gate admitted nothing at all at 100 settled.
+#
+# At 4 x 20 that is 80, under the reviewer's bar, and the same measurement shows 4 buckets admitting
+# 95% / 82% / 97% of edge mass at 100 settled where 10 admitted 0% / 46% / 66%.
+#
+# Fewer buckets also means each one is thicker, which matters because the hub compares each bucket's
+# mean probability to its hit rate. Fewer, better-populated buckets are a more honest reliability
+# record, not a coarser one.
+CALIBRATION_N_BUCKETS = 4
+
+
+def get_calibration(n_buckets: int = CALIBRATION_N_BUCKETS) -> dict:
     """Reliability buckets over resolved, genuinely pre-game snapshots: home win probability vs
     home won, home cover probability vs covered (at the recorded line), over probability vs went
     over. Ties and pushes are left out.
 
     Rebuilt rows are excluded by the same predicate the feed uses, so the buckets the hub
     calibrates against and the rows it prices come from the same population.
+
+    The bucket count is the hub's gate arithmetic reaching this side: see CALIBRATION_N_BUCKETS. It
+    stays a parameter so a caller can still ask for a finer view without changing the default.
     """
     with contextlib.closing(_connect()) as conn:
         rows = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
