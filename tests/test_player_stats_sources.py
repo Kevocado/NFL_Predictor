@@ -253,6 +253,44 @@ def test_reading_2024_is_unchanged_by_the_fallback_being_added(upstream, cache_d
     assert upstream["parquet_urls"] == []
 
 
+def test_only_the_requested_seasons_survive_the_fetch(upstream, cache_dir, monkeypatch):
+    """A release that answers with a neighbouring season must not poison this one.
+
+    The season filter is what stops 2025's rows being cached as 2026, and it
+    predates the fallback, so it is easy to lose in a rewrite of this loop.
+    """
+    both = pd.concat(
+        [_raw_player_stats_frame(2024), _raw_player_stats_frame(2026)], ignore_index=True
+    )
+    monkeypatch.setattr(player_stats, "_import_weekly_data", lambda years, columns=None: both)
+
+    frame = player_stats.fetch_weekly_player_stats([2026])
+
+    assert frame["season"].unique().tolist() == [2026]
+    # and the cache for 2026 holds only 2026, not its neighbour
+    cached = pd.read_parquet(cache_dir / "2026.parquet")
+    assert cached["season"].unique().tolist() == [2026]
+
+
+def test_a_missing_cache_directory_is_created(upstream, monkeypatch, tmp_path):
+    """`PLAYER_STATS_CACHE_DIR` does not exist on a fresh deployment.
+
+    Nothing else in the request path creates it, so without the `mkdir` the
+    `to_parquet` raises, the season is silently dropped by the `except`, and
+    the caller gets an empty frame -- the exact failure this whole change
+    exists to remove, reappearing on a clean machine.
+    """
+    absent = tmp_path / "not" / "there" / "yet"
+    assert not absent.exists(), "precondition: the cache dir does not exist"
+    monkeypatch.setattr(player_stats, "PLAYER_STATS_CACHE_DIR", absent)
+
+    frame = player_stats.fetch_weekly_player_stats([2024])
+
+    assert len(frame) == 2, "the fetch was dropped because the cache dir was missing"
+    assert (absent / "2024.parquet").exists()
+    assert (absent / "2024.source").read_text().strip() == "player_stats"
+
+
 def test_a_cached_season_is_served_without_touching_either_release(upstream, cache_dir):
     upstream["player_missing"] = {2026}
     player_stats.fetch_weekly_player_stats([2026])
