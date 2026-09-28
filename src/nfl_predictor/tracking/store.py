@@ -11,20 +11,39 @@ from __future__ import annotations
 import contextlib
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 
-from ..config import TRACKING_DB_PATH
+from ..config import CACHE_DIR, TRACKING_DB_PATH
 
 
 def _connect() -> sqlite3.Connection:
     """Open the tracking database and ensure its schema exists."""
+    conn = _open()
+    _ensure_schema(conn)
+    return conn
+
+
+def _open() -> sqlite3.Connection:
+    """A connection to the live local tracking file, with SQLite's own timeout
+    pragmas set. Schema work is `_ensure_schema`'s job, not this function's, so the
+    two can be told apart: `_connect` ensures and discards the result,
+    `migrate_tracking_db` ensures and reports it."""
     conn = sqlite3.connect(str(TRACKING_DB_PATH), timeout=15)
     conn.execute("PRAGMA busy_timeout = 15000")
     try:
         conn.execute("PRAGMA journal_mode = WAL")
     except sqlite3.OperationalError:
         pass
+    return conn
+
+
+def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
+    """Bring the schema up to date and return the columns that were added (empty if
+    it was already current). Split out from `_connect` so `migrate_tracking_db` can
+    report what a boot actually changed, rather than discovering it had already been
+    applied by the `_connect` it called."""
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS game_predictions (
@@ -50,21 +69,7 @@ def _connect() -> sqlite3.Connection:
         )
         """
     )
-    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(game_predictions)")}
-    for column in ("home_spread_line", "total_line", "ats_hit", "total_hit", "season", "week"):
-        if column not in existing_cols:
-            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} REAL" if column in ("home_spread_line", "total_line")
-                         else f"ALTER TABLE game_predictions ADD COLUMN {column} INTEGER")
-    # Kalshi feed: the predicted distribution behind each frozen snapshot, so the trade hub can
-    # price a strike from the model's own margin/total distribution instead of a point estimate.
-    #
-    # Deliberately NOT a `backfilled` column. Pre-game-ness is already derived, live, by
-    # `_snapshotted_after_kickoff` (snapshotted_at >= commence_time, failing closed): it cannot
-    # drift out of step with the timestamps, and a database written before this change needs no
-    # migration pass over its rows.
-    for column, sql_type in _FEED_COLUMNS.items():
-        if column not in existing_cols:
-            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} {sql_type}")
+    added = _apply_schema_migrations(conn)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS player_prop_predictions (
@@ -86,16 +91,113 @@ def _connect() -> sqlite3.Connection:
     prop_cols = {row[1] for row in conn.execute("PRAGMA table_info(player_prop_predictions)")}
     if "position" not in prop_cols:
         conn.execute("ALTER TABLE player_prop_predictions ADD COLUMN position TEXT")
-    return conn
+        added.append("player_prop_predictions.position")
+    return added
 
 
-_FEED_COLUMNS = {
-    "predicted_margin": "REAL",
-    "sigma": "REAL",
-    "predicted_total": "REAL",
-    "total_sigma": "REAL",
-    "model_version": "TEXT",
-}
+# Every column added to `game_predictions` after the original CREATE TABLE, as
+# (name, SQL type), in the order it was added. One declaration, so the migration
+# cannot grow a column in one place and forget it in the other.
+#
+# The last five are the Kalshi feed's predicted distribution, and the first six
+# are the lines and grades the track record grades. `predicted_total` and
+# `predicted_margin` are in BOTH features' territory: the model has computed them
+# for as long as it has computed `over_prob` (`_predict_game_from_models` returns
+# them to every caller, and `margin_to_probabilities` turns the total into
+# `over_prob`), so the feed could record them and nothing ever summarised them.
+_MIGRATION_COLUMNS = (
+    ("home_spread_line", "REAL"),
+    ("total_line", "REAL"),
+    ("ats_hit", "INTEGER"),
+    ("total_hit", "INTEGER"),
+    ("season", "INTEGER"),
+    ("week", "INTEGER"),
+    ("predicted_margin", "REAL"),
+    ("sigma", "REAL"),
+    ("predicted_total", "REAL"),
+    ("total_sigma", "REAL"),
+    ("model_version", "TEXT"),
+)
+
+
+def _apply_schema_migrations(conn: sqlite3.Connection) -> list[str]:
+    """Add whichever declared columns are missing, and return their names.
+
+    Idempotent: it runs on every connection the app opens, and on every cold
+    start, so a second pass must add nothing and must not raise.
+
+    One `ALTER TABLE` per column, each its own statement, because that is the
+    only form SQLite can run against an existing table.
+    """
+    # Refreshed after each add rather than cached up front. Caching is what let the
+    # original two-loop version below drift: the second loop tested against a
+    # `existing_cols` set the first loop had already invalidated, so a column
+    # named in both would be attempted twice. One list, one loop, no cache.
+    added = []
+    for column, sql_type in _MIGRATION_COLUMNS:
+        present = {row[1] for row in conn.execute("PRAGMA table_info(game_predictions)")}
+        if column not in present:
+            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} {sql_type}")
+            added.append(column)
+    return added
+
+
+class TrackingDbOnPersistentMount(RuntimeError):
+    """Raised instead of migrating. SQLite's locking does not survive the Azure
+    Files mount, and the fix for that is not a longer timeout."""
+
+
+def _is_on_persistent_mount(path) -> bool:
+    """Whether `path` is inside the Azure Files cache mount.
+
+    Fails SAFE in the only direction that matters: a path it cannot place is
+    reported as not-on-the-mount, because guessing "yes" would refuse a perfectly
+    good local database and guessing the other way here is the thing the guard
+    exists to prevent.
+    """
+    try:
+        return Path(path).resolve().is_relative_to(Path(CACHE_DIR).resolve())
+    except (OSError, ValueError):
+        return False
+
+
+def migrate_tracking_db() -> list[str]:
+    """Apply the schema, idempotently, on the LIVE local database. Returns the
+    columns added, empty when there was nothing to do.
+
+    **This must never run against the Azure Files mount.** SQLite does not work
+    reliably over SMB/Azure Files -- confirmed live: "database is locked" the
+    moment `TRACKING_DB_PATH` itself pointed at the mounted cache volume. The fix
+    this repo already carries (commit 458bed2) is not a longer `busy_timeout` and
+    not a retry loop: the live database stays on local, ephemeral container disk
+    and is COPIED to and from the persistent mount at a quiescent point, with no
+    connection open at either end (`api/main.py::_restore_tracking_db` /
+    `_backup_tracking_db`). Copy files; never open the database across the share.
+
+    So the migration runs on the local file, and this refuses to start at all if
+    the path has been pointed at the mount by mistake. Failing loudly here is the
+    point: the alternative is a live tracker that dies inside a DDL statement on
+    first boot, which is strictly worse than never migrating. Nothing is created
+    on the mount when this raises.
+
+    Called from `api/main.py`'s lifespan, immediately after the backup is restored
+    and before any task exists -- the same quiescent-point discipline the restore
+    and backup already follow, and before the first tick can copy a
+    half-migrated file onto the mount.
+    """
+    if _is_on_persistent_mount(TRACKING_DB_PATH):
+        raise TrackingDbOnPersistentMount(
+            f"Refusing to migrate {TRACKING_DB_PATH}: it is inside the persistent cache mount "
+            f"({CACHE_DIR}), and SQLite's locking does not survive Azure Files/SMB. The live "
+            f"database belongs on local disk and is copied to the mount at a quiescent point -- "
+            f"see api/main.py::_restore_tracking_db and config.py::TRACKING_DB_BACKUP_PATH."
+        )
+    # `_open` + `_ensure_schema`, not `_connect`: `_connect` would apply the same DDL
+    # and throw away the list of what it added, so a boot could never report a
+    # migration. `with conn` commits, then contextlib.closing closes: committed AND
+    # closed before this returns, which is the precondition for copying the file.
+    with contextlib.closing(_open()) as conn, conn:
+        return _ensure_schema(conn)
 
 
 def _parse_utc(value: str) -> datetime:
@@ -550,33 +652,135 @@ def _weekly_window(resolved: pd.DataFrame, current_week: int | None, season: int
     that do not (facts.py, tests) get the newest season and week actually present in the
     data, which is still a complete, gap-free list.
     """
+    by_week = _week_groups(resolved, current_week, season)
+    return [
+        _weekly_row(week, by_week[week]) if week in by_week else _untracked_week(week)
+        for week in range(1, _window_end(current_week, by_week) + 1)
+    ]
+
+
+def _week_groups(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict[int, pd.DataFrame]:
+    """Week number -> that week's rows, scoped to one season.
+
+    Week numbering restarts every season, so an unfiltered group-by collapses 2025
+    week 12 into 2026 week 12 and reports a 2025 accuracy on this season's chart.
+    Callers that know the calendar pass `season`; callers that do not (facts.py,
+    tests) get the newest season present, which is still a complete, gap-free list.
+    """
     if "season" in resolved.columns:
         seasons = resolved["season"].dropna()
         if season is None and not seasons.empty:
             season = int(seasons.max())
     if season is not None and "week" in resolved.columns:
-        in_season = resolved[resolved["season"] == season]
-        if current_week is None:
-            weeks = in_season["week"].dropna()
-            current_week = int(weeks.max()) if not weeks.empty else 0
-        by_week = {int(w): group for w, group in in_season.groupby("week") if pd.notna(w)}
+        scoped = resolved[resolved["season"] == season]
     else:
-        # Nothing identifies a season here (no rows at all, or a caller building a
+        # Nothing identifies a season here (no rows at all, or a caller assembling a
         # frame by hand). Emit the window unfiltered rather than emitting nothing.
-        by_week = {int(w): group for w, group in resolved.groupby("week") if pd.notna(w)} if "week" in resolved.columns else {}
-        if current_week is None:
-            current_week = max(by_week, default=0)
+        scoped = resolved
+    if "week" not in scoped.columns:
+        return {}
+    return {int(w): group for w, group in scoped.groupby("week") if pd.notna(w)}
 
-    return [
-        _weekly_row(week, by_week[week]) if week in by_week else _untracked_week(week)
-        for week in range(1, int(current_week) + 1)
-    ]
+
+def _point_forecast(frame: pd.DataFrame, column: str, actual: pd.Series) -> dict:
+    """Mean absolute error and mean signed error of a points forecast, in points.
+
+    `column` holds the predicted value and `actual` the realised one for the same
+    rows, so the error is `predicted - actual` in both cases; only what `actual`
+    *is* differs (a margin for `predicted_margin`, a total for `predicted_total`).
+
+    **A NULL forecast is EXCLUDED, never read as 0.0.** Rows written before
+    `predicted_total`/`predicted_margin` existed have no points forecast at all --
+    every one of the 48 rows in the real tracking database -- and 0.0 is a perfectly
+    legible points forecast. Coercing them to zero would put a fabricated
+    `predicted_total = 0` error of "however many points the game scored" on every
+    legacy row, permanently, and would make the live season's MAE look like a model
+    that predicts near-zero football. A row with no forecast has no error, only a
+    prediction.
+
+    `signed_error` is the mean of `predicted - actual`: positive means the model
+    systematically over-forecast, negative under. It is the repo's existing
+    `mean_signed_error` on player props under a shorter name, same definition.
+    """
+    if column not in frame.columns:
+        return {"n": 0, "mae": None, "signed_error": None}
+    eligible = frame[frame[column].notna() & actual.notna()]
+    if eligible.empty:
+        return {"n": 0, "mae": None, "signed_error": None}
+    error = eligible[column] - actual[eligible.index]
+    return {
+        "n": int(len(eligible)),
+        "mae": float(error.abs().mean()),
+        "signed_error": float(error.mean()),
+    }
+
+
+def _total_points(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns or "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"] + frame["actual_away_score"]
+
+
+def _point_spread(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns or "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"] - frame["actual_away_score"]
+
+
+# (payload key, forecast column, what the realised value is). Kept as a list so the
+# overall block and every weekly row are computed by the same call and cannot drift.
+_POINT_FORECASTS = (
+    ("totals", "predicted_total", _total_points),
+    ("margin", "predicted_margin", _point_spread),
+)
+
+
+def _point_forecast_weekly(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict[str, dict]:
+    """The same forecast block, but split by week, on the same window as `weekly`.
+
+    Enumerated from the calendar rather than from the groups, for the same reason
+    `weekly` is (B3): a week with no forecast must read as "not forecast", not
+    vanish. And it is the per-week numbers that carry the season's shape -- a
+    model 10 points high in week 1 and 10 low in week 3 averages to nothing and is
+    wrong every single week.
+    """
+    groups = _week_groups(resolved, current_week, season)
+    return {
+        key: {
+            "weekly": [
+                _point_forecast_week(week, groups.get(week), column, realised)
+                for week in range(1, _window_end(current_week, groups) + 1)
+            ]
+        }
+        for key, column, realised in _POINT_FORECASTS
+    }
+
+
+def _window_end(current_week: int | None, groups: dict) -> int:
+    if current_week is not None:
+        return int(current_week)
+    return max(groups, default=0)
+
+
+def _point_forecast_week(week: int, frame: pd.DataFrame | None, column: str, realised) -> dict:
+    summary = _point_forecast(frame if frame is not None else pd.DataFrame(), column, realised(frame) if frame is not None else pd.Series(dtype="float64"))
+    return {"week": int(week), "tracked": summary["n"] > 0, **summary}
 
 
 def _summarize_games(
     resolved: pd.DataFrame, current_week: int | None = None, season: int | None = None
 ) -> dict:
     graded = {column: _grade(resolved, column) for column, _, _ in _GRADED_MARKETS}
+    forecasts = {
+        key: {**_point_forecast(resolved, column, realised(resolved)), "weekly": []}
+        for key, column, realised in _POINT_FORECASTS
+    }
+    for key, block in _point_forecast_weekly(resolved, current_week, season).items():
+        forecasts[key]["weekly"] = block["weekly"]
     return {
         "n_resolved": int(len(resolved)),
         # The headline counts too. A rate without its denominator is exactly the
@@ -584,6 +788,7 @@ def _summarize_games(
         **{count: graded[column]["n"] for column, count, _ in _GRADED_MARKETS},
         **{pct: graded[column]["pct"] for column, _, pct in _GRADED_MARKETS},
         "weekly": _weekly_window(resolved, current_week, season),
+        **forecasts,
     }
 
 
