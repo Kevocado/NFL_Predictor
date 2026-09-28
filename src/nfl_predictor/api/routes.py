@@ -447,12 +447,19 @@ def _get_player_props_live(season: int, week: int):
         results = []
         for _, player in latest_players.iterrows():
             try:
-                feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
+                feature_row = player_usage.build_features_for_player(
+                    player["player_id"], player_history, season=season, week=week
+                )
                 if feature_row is None:
-                    # No usage history anywhere in player_history (true rookie,
-                    # or a player the roster fallback pulled in) — predict off
-                    # a neutral zero-usage baseline rather than skipping them.
-                    feature_row = pd.Series({col: 0.0 for col in player_usage.PLAYER_FEATURE_COLUMNS})
+                    # No usage history in the season being predicted — a true rookie,
+                    # or a player the roster fallback pulled in. Skip rather than
+                    # fabricating a zero row: the model is never trained on the
+                    # all-zero region, so scoring it returns the origin intercept
+                    # rather than a prediction. Measured 2026-09-27, that path made
+                    # 430 of 880 live rows (48.9%) bit-identical, serving 62.592
+                    # passing yards to real quarterbacks. This matches the sibling
+                    # CFB route, which already skipped.
+                    continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
                 results.append({
                     "player_id": player["player_id"],

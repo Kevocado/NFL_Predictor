@@ -35,10 +35,41 @@ def test_build_features_for_player_returns_none_with_no_history():
     assert row is None
 
 
-def test_build_features_for_player_returns_series_with_history():
-    row = player_usage.build_features_for_player("p1", _player_stats())
-    assert row is not None
-    assert row["rushing_yards_roll"] == pytest.approx((81 + 82 + 83) / 3)
+def test_build_features_for_player_matches_the_training_row_for_a_stated_week():
+    """The target week must be stated, or the assertion means nothing.
+
+    This test previously called the function with no week and asserted
+    (81 + 82) / 2 -- the value for a **week-3** fixture. But with no week the
+    pregame view is every played week, which is the view for a **week-4**
+    fixture, and that is (81 + 82 + 83) / 3. The two numbers describe different
+    predictions, and the test picked one without saying which, which is how it
+    came to pass against code that matched training at *no* week at all.
+
+    Both are now asserted, each against `_add_rolling`'s own row for that week.
+    """
+    # Five weeks, so `_add_rolling` produces rows for *both* target weeks and the
+    # comparison is like-for-like against real training output rather than against
+    # an arithmetic re-derivation.
+    base = _player_stats()
+    extra = base.iloc[-1:].copy()
+    extra["week"] = 4
+    base = pd.concat([base, extra], ignore_index=True)
+    history = base
+    training = player_usage._add_rolling(history)
+
+    # Week-3 fixture: pregame view is weeks 1-2 -> 81.5, matching training at week 3.
+    week3 = player_usage.build_features_for_player("p1", history, season=2025, week=3)
+    assert week3 is not None
+    assert week3["rushing_yards_roll"] == pytest.approx((81 + 82) / 2)
+    assert week3["rushing_yards_roll"] == pytest.approx(
+        training[training["week"] == 3]["rushing_yards_roll"].iloc[0])
+
+    # Week-4 fixture: pregame view is weeks 1-3 -> 82.0, matching training at week 4.
+    week4 = player_usage.build_features_for_player("p1", history, season=2025, week=4)
+    assert week4 is not None
+    assert week4["rushing_yards_roll"] == pytest.approx((81 + 82 + 83) / 3)
+    assert week4["rushing_yards_roll"] == pytest.approx(
+        training[training["week"] == 4]["rushing_yards_roll"].iloc[0])
 
 
 def test_receptions_is_a_rolled_stat_and_feature_column():

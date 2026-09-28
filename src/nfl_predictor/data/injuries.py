@@ -5,6 +5,7 @@ player-prop predictions on real availability."""
 from __future__ import annotations
 
 import pandas as pd
+from pathlib import Path
 
 from ..config import INJURIES_CACHE_DIR
 
