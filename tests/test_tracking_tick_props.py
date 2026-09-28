@@ -1,18 +1,33 @@
-"""Is there a real props/game pairing bug in the tracking tick at all?
+"""Props must be stored against the game they describe.
 
-The review said: "`team_to_game` is now built from this week AND next week's
-games, but the props come from `_get_player_props_live(season, week)`, which
-can fall back to the current week. So midweek, a team's old-week props get
-stored under next week's `game_id`."
+`background_tracking_tick` maps a prop to a game with `team_to_game`, then
+writes the pair with `INSERT OR IGNORE` — and those rows are immutable, so the
+first write is the snapshot forever. If the map and the props disagree about
+which week they are talking about, a wrong pair is written once and can never be
+corrected.
 
-The first clause does not hold against the code at this commit:
+**This file's premise changed, and the correction matters.** When it was first
+written, the tick's `games` was `fetch_upcoming_games(season, week)` — one week.
+The report that prompted it ("`team_to_game` is now built from this week AND
+next week's games") was therefore true of neither repo *at that commit*, and
+saying so was correct.
 
-    games = schedules.fetch_upcoming_games(season, week)      # routes.py:597
-    # and fetch_upcoming_games is df[df["week"] == week]      # schedules.py:99
+The Kalshi feed (PR #3) then made the report's first clause true:
+`_games_to_snapshot` fetches `(week, week + 1)` and concatenates, because
+`current_season_and_week()` rolls over on week 1's first kickoff rather than on
+a fixed week boundary. So today the map really is built from two weeks of games,
+and a team in both weeks is genuinely ambiguous.
 
-so `team_to_game` is built from ONE week. These tests pin that, so the claim
-cannot be reintroduced silently, and they probe the fallback — the only place
-the two sides can actually disagree — for a real mispairing.
+What stops it is one line — `for _, g in games[games["week"] == week]` — so that
+filter is the load-bearing thing, and it is what these tests pin. The first
+version of this file asserted the single-week fetch instead, which was true then
+and stopped being true without anyone noticing: the test was shaped like the
+consumer, not like the producer.
+
+The end-to-end test at the bottom is the one that matters, and its prop belongs
+to the team that plays in BOTH weeks. A prop for a team that appears once lands
+on the right game whether or not the filter exists, so it cannot tell the two
+cases apart — which is exactly how the first version of it proved nothing.
 """
 from __future__ import annotations
 
@@ -25,20 +40,52 @@ from nfl_predictor.data import schedules
 
 def _game(game_id: str, week: int, home: str, away: str, played: bool = False) -> dict:
     score = 24 if played else None
+    kickoff = f"2026-09-{(week * 7) % 28 + 1:02d}T19:00:00Z"
     return {
         "game_id": game_id, "season": 2026, "week": week,
         "home_team": home, "away_team": away,
         "home_score": score, "away_score": score,
+        # The Kalshi window filters on `gameday`, so this field is load-bearing
+        # now: leaving it out made this whole file raise KeyError instead of
+        # testing anything.
+        "gameday": kickoff,
+        "commence_time": kickoff,
         "spread_line": None, "total_line": None,
     }
 
 
-def test_fetch_upcoming_games_is_a_single_week(monkeypatch):
-    """The load-bearing fact behind the review's first clause.
+@pytest.fixture
+def store(monkeypatch):
+    """A store that records instead of writing, so a wrong pairing is visible."""
+    recorded: list[dict] = []
 
-    If this ever widens to two weeks, `team_to_game` becomes ambiguous for any
-    team playing in both, and the last row wins.
-    """
+    class FakeStore:
+        def record_game_predictions(self, rows):
+            pass
+
+        def record_player_prop_predictions(self, rows):
+            recorded.extend(rows)
+
+        def reconcile_resolved_games(self, games):
+            pass
+
+        def reconcile_game_predictions(self, rows):
+            pass
+
+        def get_untracked_game_ids(self, ids):
+            return []
+
+    monkeypatch.setattr(routes, "store", FakeStore())
+    # Wide enough that both weeks are inside the window regardless of when the
+    # suite runs: the window is about kickoff distance, and this test is about
+    # which week the pairing comes from.
+    monkeypatch.setattr(routes, "SNAPSHOT_LEAD_HOURS", 24 * 30)
+    return recorded
+
+
+def test_the_snapshot_window_really_does_span_two_weeks(monkeypatch):
+    """The report's first clause is true today. Pinning it, because the fix is
+    the filter below and not the absence of the second week."""
     frame = pd.DataFrame([
         _game("W3_1", 3, "BUF", "MIA"),
         _game("W4_1", 4, "BUF", "KC"),  # same team, next week
@@ -46,64 +93,85 @@ def test_fetch_upcoming_games_is_a_single_week(monkeypatch):
     monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: frame)
     monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
 
-    got = schedules.fetch_upcoming_games(2026, 3)
-    assert set(got["week"]) == {3}, "fetch_upcoming_games must stay single-week"
-    assert "W4_1" not in set(got["game_id"])
+    # The window filters on the upper bound only (`kickoff <= now + lead`), so
+    # `now` has to be near the fixtures' kickoffs for either week to be in it.
+    snapshot = routes._games_to_snapshot(
+        2026, 3, pd.Timestamp("2026-09-01", tz="UTC").to_pydatetime(), lead_hours=24 * 30,
+    )
+    assert set(snapshot["week"]) == {3, 4}, (
+        "the snapshot window no longer spans next week. If that is deliberate, the "
+        "week filter below is no longer load-bearing and this file needs rewriting."
+    )
 
 
-def test_team_to_game_cannot_be_ambiguous_for_a_two_week_frame(monkeypatch):
-    """If the tick is ever handed two weeks, the map silently keeps the LAST.
+def test_the_props_map_is_built_from_this_week_only(monkeypatch):
+    """The load-bearing line: `for _, g in games[games["week"] == week]`.
 
-    That is the failure mode the review described, and today it cannot happen
-    because the tick's own fetch is single-week. This test says so explicitly:
-    given a single-week frame the map is unambiguous, and it documents what
-    would break if that changed.
+    Without the filter, a team in both weeks maps to whichever row came last, and
+    the prop is frozen against the wrong game.
     """
-    one_week = pd.DataFrame([_game("W3_1", 3, "BUF", "MIA")])
-    team_to_game = {}
-    for _, g in one_week.iterrows():
-        team_to_game[g["home_team"]] = g["game_id"]
-        team_to_game[g["away_team"]] = g["game_id"]
-    assert team_to_game == {"BUF": "W3_1", "MIA": "W3_1"}
-
-
-def test_a_team_playing_both_weeks_is_not_reachable_today(monkeypatch):
-    """The review's exact scenario, run against the real code path.
-
-    BUF plays in week 3 and week 4. The tick runs for week 3. If the map could
-    hold both weeks, BUF's props would be filed under whichever came last.
-    """
-    both_weeks = pd.DataFrame([
+    both = pd.DataFrame([
         _game("W3_1", 3, "BUF", "MIA"),
         _game("W4_1", 4, "BUF", "KC"),
     ])
-    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: both_weeks)
-    monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
-
-    games = schedules.fetch_upcoming_games(2026, 3)
     team_to_game = {}
-    for _, g in games.iterrows():
+    for _, g in both[both["week"] == 3].iterrows():
         team_to_game[g["home_team"]] = g["game_id"]
         team_to_game[g["away_team"]] = g["game_id"]
 
-    # Only week 3's game is reachable, so the map is not ambiguous.
-    assert team_to_game == {"BUF": "W3_1", "MIA": "W3_1"}
+    assert team_to_game == {"BUF": "W3_1", "MIA": "W3_1"}, (
+        f"the map is ambiguous across weeks: {team_to_game}"
+    )
+
+
+def test_a_team_playing_both_weeks_is_not_stored_against_next_week(monkeypatch, store):
+    """End to end through background_tracking_tick.
+
+    BUF plays in week 3 and week 4. The tick runs for week 3 and the snapshot
+    window returns both games. **BUF's** prop must be stored against week 3's
+    game: those rows are INSERT OR IGNORE, so a wrong pairing is permanent.
+    """
+    both = pd.DataFrame([
+        _game("W3_1", 3, "BUF", "MIA"),
+        _game("W4_1", 4, "BUF", "KC"),
+    ])
+    monkeypatch.setattr(schedules, "fetch_upcoming_games", lambda season, week: both[both["week"] == week])
+    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: both)
+    monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
+    monkeypatch.setattr(routes, "_load_models_cached", lambda: {})
+    monkeypatch.setattr(routes, "_load_game_history", lambda season: pd.DataFrame())
+    monkeypatch.setattr(
+        routes, "_get_player_props_live",
+        lambda season, week: [{
+            "player_id": "1", "player_name": "A Player", "position": "WR",
+            # The team in BOTH weeks. See the module docstring: a prop for a team
+            # that appears once cannot distinguish the two cases.
+            "recent_team": "BUF", "anytime_td_prob": 0.55, "rec_td_prob": 0.4,
+            "rec_yds": 60.0, "rush_yds": None, "rush_att": None,
+        }],
+    )
+
+    routes.background_tracking_tick(2026, 3)
+
+    assert store, "the tick stored no props at all, so this proves nothing"
+    for row in store:
+        assert row["game_id"] == "W3_1", (
+            f"a week-3 prop was stored against {row['game_id']!r}; those rows are "
+            f"immutable, so the wrong pairing is permanent"
+        )
 
 
 def test_the_props_fallback_still_filters_to_the_same_week(monkeypatch):
-    """The only real divergence: the props' fallback, which reaches for the
-    season's COMPLETED games. It re-filters to `week`, so even then the two
-    sides agree on the week. This pins that re-filter, because removing it is
-    the one change that would actually mispair props."""
-    played_this_week = pd.DataFrame([_game("W3_1", 3, "BUF", "MIA", played=True)])
+    """The one other place the two sides can disagree. `_get_player_props_live`
+    falls back to the season's completed games, which spans every week; it
+    re-filters to `week`, and removing that re-filter is what would mispair."""
+    this_week = pd.DataFrame([_game("W3_1", 3, "BUF", "MIA", played=True)])
     next_week = pd.DataFrame([_game("W4_1", 4, "BUF", "KC", played=True)])
-
     monkeypatch.setattr(
         schedules, "fetch_current_season_partial",
-        lambda: pd.concat([played_this_week, next_week], ignore_index=True),
+        lambda: pd.concat([this_week, next_week], ignore_index=True),
     )
-    # The fallback, as written in routes.py:393-394.
+
     fallback = schedules.fetch_current_season_partial()
     fallback = fallback[fallback["week"] == 3]
-    assert set(fallback["week"]) == {3}
     assert set(fallback["game_id"]) == {"W3_1"}
