@@ -69,3 +69,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Player-props state assertions
+        # Not a `npm test` script -- there is no JS test runner in this project.
+        # This renders the real component through vite's SSR pipeline with fetch
+        # stubbed and asserts on the markup, which is the only thing that pins
+        # the "no props" empty state to mean "no props" rather than "the fetch
+        # failed". tsc cannot: a deleted error branch still typechecks (M11 in
+        # tests/mutation_check.py is exactly that case).
+        run: node props_state_check.mjs

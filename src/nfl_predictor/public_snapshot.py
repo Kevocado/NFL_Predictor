@@ -34,7 +34,18 @@ REBUILD_WEEKS_BEHIND = 1
 MAX_WEEK = 22
 
 
-def _build_week(season: int, week: int) -> dict:
+def _build_week(season: int, week: int, previous: dict | None = None) -> dict:
+    """One week of precomputed data.
+
+    `previous` is that same week from the last snapshot, and it exists so a props
+    rebuild that fails keeps the props already computed. The previous `except
+    Exception: player_props = []` overwrote real rows with an empty list, which is
+    how the committed file came to hold 14-16 games and zero props for weeks 2-7
+    -- a transient failure frozen into a tracked artifact and then served as a
+    permanent, honest-looking empty state. Serving the last good props with
+    status "stale" is strictly better than a blank, and the status key is what
+    stops the two from being confused again.
+    """
     games = routes._get_games_live(season, week)
     predictions: dict[str, dict] = {}
     for game in games:
@@ -45,10 +56,23 @@ def _build_week(season: int, week: int) -> dict:
             print(f"    ! skipped prediction for {game_id}: {exc}")
     try:
         player_props = routes._get_player_props_live(season, week)
+        props_status = "ok"
     except Exception as exc:
-        print(f"    ! skipped player props for week {week}: {exc}")
-        player_props = []
-    return {"games": games, "predictions": predictions, "player_props": player_props}
+        carried = (previous or {}).get("player_props") or []
+        if carried:
+            print(f"    ! player props for week {week} failed ({exc}); keeping {len(carried)} from the previous snapshot")
+            player_props, props_status = carried, "stale"
+        else:
+            # Nothing to carry and nothing computed. Record that, so the route can
+            # answer 503 instead of claiming the week has no props.
+            print(f"    ! player props for week {week} failed and there is nothing to carry: {exc}")
+            player_props, props_status = [], "unavailable"
+    return {
+        "games": games,
+        "predictions": predictions,
+        "player_props": player_props,
+        "player_props_status": props_status,
+    }
 
 
 def build_snapshot(previous: dict | None = None) -> dict:
@@ -68,7 +92,7 @@ def build_snapshot(previous: dict | None = None) -> dict:
         key = str(week)
         if rebuild_from <= week <= rebuild_to or key not in previous_weeks:
             print(f"  week {week}")
-            weeks[key] = _build_week(season, week)
+            weeks[key] = _build_week(season, week, previous=previous_weeks.get(key))
         else:
             weeks[key] = previous_weeks[key]
 

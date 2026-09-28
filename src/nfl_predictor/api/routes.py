@@ -414,13 +414,64 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
     return predictions
 
 
+class PlayerPropsUnavailable(RuntimeError):
+    """Player props for a week could not be produced, as opposed to there being
+    none to produce.
+
+    These are different facts and the difference is the whole point. A reader
+    shown "no props for this game" when the pipeline actually broke has been told
+    something false, and there is no way to tell the two apart from the response
+    alone -- the old `except Exception: return []` made a stalled nflverse socket,
+    a 404 on the season's stats, and a genuine empty week all arrive as `200 []`.
+
+    Raised rather than logged-and-returned so the HTTP layer can answer 503 and
+    the snapshot builder can tell a failed rebuild from a week with nothing in
+    it. The live path's other callers (background_tracking_tick, _build_week)
+    already wrap this call in their own try/except, so they keep their behaviour.
+    """
+
+
 @router.get("/players/{season}/{week}/props")
 def get_player_props(season: int, week: int):
     if PUBLIC_MODE:
         snap = _snapshot_week(season, week)
         if snap is not None:
-            return snap["player_props"]
-    return _get_player_props_live(season, week)
+            props = snap.get("player_props")
+            # A week that has games but no props is a build that failed, not a
+            # week without props -- every NFL game has players in it, so zero
+            # props alongside a real slate is only reachable by something
+            # breaking. This deliberately keys off `games` rather than the
+            # `player_props_status` key, so it also covers snapshots committed
+            # before that key existed -- including the current one, where weeks
+            # 2-7 have a full slate and no props.
+            if not props and snap.get("games"):
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        f"Player props for season {season} week {week} are unavailable: the "
+                        f"precomputed snapshot has {len(snap['games'])} game(s) and no player "
+                        "props for it. This is a data/build failure, not a week without props."
+                    ),
+                )
+            if not props:
+                # No games either -- an honest empty. Weeks 19-22 in the committed
+                # snapshot look exactly like this: the schedule hasn't reached them.
+                return []
+            return props
+    try:
+        return _get_player_props_live(season, week)
+    except PlayerPropsUnavailable as exc:
+        # 503, not 200 []. A bare 500 would be honest but unactionable, and
+        # returning an empty list here is the bug this whole path exists to fix.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"player props for season {season} week {week} could not be loaded: {exc}. "
+                "This is a failure, not a week without props."
+            ),
+        ) from exc
 
 
 def _get_player_props_live(season: int, week: int):
@@ -436,6 +487,9 @@ def _get_player_props_live(season: int, week: int):
             upcoming_games = upcoming_games[upcoming_games["week"] == week]
 
         if upcoming_games.empty:
+            # No games in this week at all. Nothing to project and nothing broken --
+            # this is the one empty result that is a true answer, and it is the
+            # only one allowed to reach a reader as an empty list.
             return []
 
         active_teams = set(upcoming_games["home_team"]).union(set(upcoming_games["away_team"]))
@@ -449,6 +503,19 @@ def _get_player_props_live(season: int, week: int):
             [["player_id", "player_name", "position", "recent_team"]]
             .drop_duplicates("player_id")
         )
+
+        # The season being predicted has no player stats of its own. This is a
+        # real, currently-live condition: nflverse 404s player_stats_2026.parquet
+        # (see docs/player-prop-accuracy-blocker.md), so `_load_player_history`
+        # returns other seasons only. Every player below would then be skipped for
+        # want of a pregame feature row and the route answered `200 []` -- an
+        # empty state indistinguishable from a week with no props. Say so instead.
+        if latest_players.empty and (player_history["season"] == season).sum() == 0:
+            raise PlayerPropsUnavailable(
+                f"no player stats are available for season {season}, so no props can be "
+                f"projected for week {week} of it (upstream player_stats_{season}.parquet is "
+                "not published); this is an upstream data gap, not a week without props"
+            )
 
         # 3. Fallback: a team with no current-season stats yet (week 1, or a
         # bye-to-opener gap) has no rows above even though its roster exists —
@@ -466,6 +533,7 @@ def _get_player_props_live(season: int, week: int):
                 logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)
 
         results = []
+        failed = []
         for _, player in latest_players.iterrows():
             try:
                 feature_row = player_usage.build_features_for_player(
@@ -490,12 +558,32 @@ def _get_player_props_live(season: int, week: int):
                     **props,
                 })
             except Exception as player_err:
+                failed.append(player.get("player_id"))
                 logger.warning("Failed to predict props for player_id=%s: %s", player.get("player_id"), player_err)
                 continue
+        # Every player failing is an outage, not a week without props. One bad
+        # player is a tolerable gap and is still a partial result, so only the
+        # total-failure case is promoted to an error. Silently returning `[]`
+        # here is what made a model backend timing out look like an empty slate.
+        if latest_players.shape[0] and not results:
+            raise PlayerPropsUnavailable(
+                f"every player in season {season} week {week} failed to predict "
+                f"({len(failed)} of {latest_players.shape[0]} failed, first={failed[:3]}); "
+                "this is a prediction failure, not a week without props"
+            )
         return results
+    except PlayerPropsUnavailable:
+        # Already carries the reason. Logging it again as a traceback here would
+        # bury the message that explains the 503 a reader is about to get.
+        raise
     except Exception as e:
+        # The old `return []`. A stalled nflverse socket, a 404 on the season's
+        # stats and a 500 in feature building all used to land here and reach a
+        # reader as an empty props table.
         logger.exception("Failed to load player props for season=%s week=%s", season, week)
-        return []
+        raise PlayerPropsUnavailable(
+            f"player props for season {season} week {week} could not be loaded: {e}"
+        ) from e
 
 
 @router.get("/track-record")
