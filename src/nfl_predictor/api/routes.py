@@ -448,7 +448,7 @@ def _get_player_props_live(season: int, week: int):
         for _, player in latest_players.iterrows():
             try:
                 feature_row = player_usage.build_features_for_player(
-                    player["player_id"], player_history, season=season
+                    player["player_id"], player_history, season=season, week=week
                 )
                 if feature_row is None:
                     # No usage history in the season being predicted — a true rookie,

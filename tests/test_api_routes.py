@@ -159,12 +159,18 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
               "recent_team": "KC", "season": season}]
         ),
     )
-    monkeypatch.setattr(
-        routes.player_usage, "build_features_for_player",
-        # `season` is now passed as a keyword so a 2026 roster is not scored on
-        # 2024 stat lines; the stub has to accept it.
-        lambda player_id, history, season=None, window=5: pd.Series({"dummy_feature": 1.0}),
-    )
+    # `season` and `week` are both passed as keywords -- `season` so a 2026 roster is
+    # not scored on 2024 stat lines, `week` so the feature is the pregame view of the
+    # gameweek being predicted rather than every played week. Recorded so the
+    # assertions below can check the call site actually passes them; a
+    # default-accepting lambda that ignores them let both be deleted silently.
+    seen_kwargs: list[dict] = []
+
+    def _stub(player_id, history, season=None, week=None, window=5):
+        seen_kwargs.append({"player_id": player_id, "season": season, "week": week, "window": window})
+        return pd.Series({"dummy_feature": 1.0})
+
+    monkeypatch.setattr(routes.player_usage, "build_features_for_player", _stub)
     monkeypatch.setattr(
         routes.player_props, "predict_props",
         lambda player_models, feature_row, position: {"anytime_td_prob": 0.42, "passing_yards": 275.0},
@@ -176,6 +182,14 @@ def test_get_player_props_includes_recent_team_and_position(client, monkeypatch)
     body = response.json()
     assert body[0]["recent_team"] == "KC"
     assert body[0]["position"] == "QB"
+
+    # The call site must pass the season AND the gameweek being predicted. Deleting
+    # either keyword left this suite green, because the stub above accepted
+    # defaults for both and nothing looked at what it was handed.
+    assert seen_kwargs, "build_features_for_player was never called"
+    for call in seen_kwargs:
+        assert call["season"] == 2025, f"season not forwarded: {call}"
+        assert call["week"] == 1, f"week not forwarded: {call}"
 
 
 def test_get_game_verdict_404s_for_untracked_game(client, monkeypatch):
