@@ -343,11 +343,12 @@ that covers `requests`, `urllib3`, `http.client` and `pandas.read_csv`, and
 `test_the_guard_does_not_break_socket_construction` still guards the
 mocking-transport case.
 
-Measured on this machine, the reported numbers are all 0 — including remote DNS —
-because `data/cache/` satisfies the two `network`-marked fetches locally. The
-reviewer's probe found 4 non-loopback resolutions because it ran where the cache
-did not cover them. The counting path is unit-proven instead, against a
-`.invalid` host that can never resolve.
+**Correction:** the round-2 explanation above was wrong. The reported zeros were
+a counter defect, not an environment limit: `data/cache/` does not satisfy those
+fetches (`tests/test_team_stats.py:151-153` reads a direct github.com URL that is
+never cache-backed), and the reviewer's probe caught real DNS plus real TLS
+connects on every run. The round-2 re-review proved the cache explanation false
+and the real cause is fixed in round 3.
 
 ### Four comments that described code that does not exist
 
@@ -387,7 +388,9 @@ did not cover them. The counting path is unit-proven instead, against a
   `pyproject.toml`'s `pythonpath = ["src"]` was inert. It is not:
   `pythonpath = ["./pp2_marker_dir"]` puts the marker on `sys.path` under pytest
   9.1.1, verified. The real reason imports depend on the editable install is that
-  **`pythonpath` has never been in this repo's `pyproject.toml` on any commit**:
+  **`pythonpath` has never been in this repo's `pyproject.toml` on this branch or
+  on `origin/main`** — but the unmerged `game-day-refresh` branch adds it in
+  `8e0b154` (verified with `git log --all -S'pythonpath' -- pyproject.toml`):
 
   ```
   $ git show origin/main:pyproject.toml | grep -A6 ini_options
@@ -460,7 +463,7 @@ Plus the unit mismatch as a mutation: **M29** reverts the backend sentence to
 ### Round 2 verification
 
 ```
-302 passed, 15 skipped          (was 292 / 15)
+309 passed, 15 skipped          (was 292 / 15)
 [offline guard] connection attempts this session:
     blocked while the guard was up : 0
     made with the guard lifted    : 0   <- @pytest.mark.network tests; expected, and not 'clean'
@@ -477,7 +480,7 @@ run by hand so the caught-by is visible rather than asserted:
 FAILED tests/test_props_stale_header_cors.py::test_the_stale_header_is_exposed_to_cross_origin_callers
 FAILED tests/test_props_stale_header_cors.py::test_the_marker_header_is_exposed_globally_not_only_on_the_props_route
 FAILED tests/test_props_stale_header_cors.py::test_a_fresh_week_declares_the_same_readable_set
-3 failed, 302 passed, 15 skipped
+3 failed, 309 passed, 15 skipped
 ```
 
 ## Fix round 3
@@ -518,7 +521,11 @@ check is one-sided in the direction that matters: conftest may see fewer (its
 own tests undo their records), never more. A conftest record with no independent
 counterpart means conftest counted something that did not happen — which is the
 round-2 defect in its other form. Deliberately not a pytest test (it audits the
-session from outside it); wired into `tests.yml` and the mutation harness step.
+session from outside it); run manually via `.venv/bin/python tests/network_reconciliation.py`.
+**Correction:** the original text claimed this was "wired into `tests.yml` and the
+mutation harness step" — it is not. Repo-wide grep for `network_reconciliation`
+hits only prose; `.github/workflows/tests.yml` contains only pytest invocations;
+`mutation_check.py` has no reference. The reconciler is manual-only.
 
 ### The mutation-harness comment that claimed a job it was not doing
 
@@ -584,3 +591,21 @@ Reconciler exit 0. Every conftest number is at or below the independent count,
 in the direction the docstring predicts; nothing reported that did not happen.
 
 Mutations: **30 caught, 0 survived, 0 inconclusive, 5 canary (all correct)**.
+
+### Fix round 3b
+
+Five report-accuracy corrections applied directly by the controller (subagent
+dispatch was rate-limited; all items are text-only, no code behavior changes):
+
+1. **"wired into `tests.yml`"** — corrected to manual-only. The reconciler is run
+   via `.venv/bin/python tests/network_reconciliation.py`, not wired into CI.
+2. **"falsifiable"** — removed. The comparison catches over-counting above shim
+   totals; under-counting is covered by in-process tests plus suite-failure
+   propagation.
+3. **Environment-limit paragraph (`:346-350`)** — deleted. The cache did not satisfy
+   those fetches; the zero was a counter defect.
+4. **`pythonpath` claim (`:390`)** — softened to "never on this branch or
+   `origin/main`"; `game-day-refresh@8e0b154` named as the commit that adds it.
+5. **`302` baseline (`:463`, `:480`)** — fixed to `309`.
+
+No code changes in this round. Suite re-verified: 309 passed, 15 skipped.
