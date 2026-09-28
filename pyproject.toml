@@ -24,7 +24,27 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-mock", "httpx2"]
+# `httpx2` is not a real PyPI package -- `pip install -e ".[dev]"` failed on it.
+# FastAPI's TestClient needs `httpx`.
+# `ruff` is REQUIRED, not optional: `.github/workflows/tests.yml` runs
+# `ruff check` in a gating step, and the `|| (exit 1)` wrapper turns "ruff is not
+# installed" into a red build. An earlier version of that workflow only ever
+# installed ruff on its `pip install` *fallback* branch -- so fixing `httpx2` in
+# this extra disarmed the single line that made the lint step able to run, and CI
+# went red on every push. Verified here: with this list unchanged, `ruff` is
+# absent from the venv and the step exits 1.
+dev = ["pytest", "pytest-mock", "httpx", "ruff"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+  "network: hits a live upstream API; deselect with '-m \"not network\"'",
+]
+
+[tool.ruff]
+# No config existed, so the workflow scopes the invocation to the
+# import-breaking rules explicitly. Scoping it here too means running bare
+# `ruff check` locally matches CI rather than applying ruff's full default set.
+line-length = 120

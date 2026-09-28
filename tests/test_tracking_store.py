@@ -484,3 +484,141 @@ def test_track_record_leaves_rebuilt_picks_out_of_every_rate():
 def test_an_unreadable_snapshot_time_counts_as_rebuilt():
     """When the timing can't be proven, the honest default is 'rebuilt'."""
     assert store._snapshotted_after_kickoff("not a time", "2025-09-07T17:00:00+00:00") is True
+
+
+# --- a missing probability must not become a recorded verdict ------------------
+#
+# The same defect shape as CFB's `tracking/store.py`, at the same line numbers, and
+# the two files are evidently the same lineage. What makes it serious here is the
+# destination: these values are the **track record**, the page a reader uses to
+# judge the model.
+#
+# `_compute_hits` guarded on the LINE being present and then wrote
+# `(home_cover_prob or 0) >= (away_cover_prob or 0)`. The probabilities were never
+# checked, so a game with a spread but no cover probabilities -- what the odds feed
+# produces when it has a spread without a matching market -- was graded as though
+# the model had called `0.0 >= 0.0`, which `>=` resolves to the home side.
+
+def test_reconcile_leaves_ats_null_when_the_line_is_present_but_the_cover_probabilities_are_not():
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=-3.5, home_cover_prob=None, away_cover_prob=None,
+    )])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 31, "away_score": 24}])
+
+    store.reconcile_game_predictions(results)
+
+    import contextlib
+    with contextlib.closing(store._connect()) as conn:
+        row = pd.read_sql(
+            "SELECT * FROM game_predictions WHERE game_id = '2025_01_BAL_KC'", conn
+        ).iloc[0]
+
+    # home did cover, so a fabricated call reads as ats_hit == 1. There was no call.
+    assert pd.isna(row["ats_hit"]), (
+        f"a missing cover probability must not be recorded as a verdict, got {row['ats_hit']}"
+    )
+    assert row["moneyline_hit"] == 1, "the moneyline call was real and is still gradable"
+
+
+def test_reconcile_leaves_total_null_when_the_line_is_present_but_the_total_probabilities_are_not():
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        total_line=51.5, over_prob=None, under_prob=None,
+    )])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 31, "away_score": 24}])
+
+    store.reconcile_game_predictions(results)
+
+    with contextlib.closing(store._connect()) as conn:
+        row = pd.read_sql(
+            "SELECT * FROM game_predictions WHERE game_id = '2025_01_BAL_KC'", conn
+        ).iloc[0]
+
+    assert pd.isna(row["total_hit"]), (
+        f"a missing over/under probability must not be recorded as a verdict, got {row['total_hit']}"
+    )
+    assert row["ats_hit"] == 1, "the ATS call was real (probs present) and is unaffected"
+
+
+def test_reconcile_does_not_grade_a_one_sided_market():
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=-3.5, home_cover_prob=0.6, away_cover_prob=None,
+    )])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 31, "away_score": 24}])
+
+    store.reconcile_game_predictions(results)
+
+    with contextlib.closing(store._connect()) as conn:
+        row = pd.read_sql(
+            "SELECT * FROM game_predictions WHERE game_id = '2025_01_BAL_KC'", conn
+        ).iloc[0]
+
+    assert pd.isna(row["ats_hit"])
+
+
+def test_get_game_verdict_does_not_re_derive_a_prediction_from_missing_probabilities():
+    """The read path, for a row an older build already wrote.
+
+    New rows never reach this state, but the deployed database already holds them:
+    every game the old code snapshotted with a spread line and no cover
+    probabilities was written with a fabricated `ats_hit`. Those rows are permanent
+    unless something backfills them, so `get_game_verdict` must not manufacture a
+    `predicted` side next to a stored `hit` flag.
+    """
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=-3.5, home_cover_prob=None, away_cover_prob=None,
+    )])
+    with contextlib.closing(store._connect()) as conn, conn:
+        conn.execute(
+            "UPDATE game_predictions SET resolved = 1, ats_hit = 1, moneyline_hit = 1, "
+            "actual_home_score = 30, actual_away_score = 20 WHERE game_id = '2025_01_BAL_KC'"
+        )
+
+    verdict = store.get_game_verdict("2025_01_BAL_KC")
+
+    assert verdict is not None
+    assert verdict["ats"] is None, (
+        f"a null-probability row must not report a predicted side, got {verdict['ats']}"
+    )
+    assert verdict["moneyline"]["hit"] is True
+    assert verdict["actual_home_score"] == 30
+    assert verdict["home_spread_line"] == -3.5
+
+
+def test_get_game_verdict_keeps_reconciling_markets_when_probabilities_are_present():
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game()])
+    store.reconcile_game_predictions(
+        pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 20}])
+    )
+
+    verdict = store.get_game_verdict("2025_01_BAL_KC")
+
+    assert verdict["ats"] is not None
+    assert verdict["ats"]["predicted"] == "home_cover"
+    assert verdict["ats"]["hit"] is True
+    assert verdict["totals"] is not None

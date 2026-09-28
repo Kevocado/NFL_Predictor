@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import date
+import math
+import os
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 
 import pandas as pd
@@ -76,11 +78,28 @@ def refresh_public_snapshot_from_remote() -> bool:
     return True
 
 
+def _json_safe(value):
+    """NaN/inf -> None, recursively.
+
+    Snapshots written before missing lines were handled contain NaN, and Starlette refuses to
+    serialize it, so the live /batch returned 500. Sanitizing at the serving edge also covers
+    every other non-finite value that a stale snapshot might carry.
+    """
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    return value
+
+
 def _snapshot_week(season: int, week: int) -> dict | None:
     snap = _public_snapshot()
     if snap.get("season") != season:
         return None
-    return snap.get("weeks", {}).get(str(week))
+    week_snap = snap.get("weeks", {}).get(str(week))
+    return None if week_snap is None else _json_safe(week_snap)
 
 
 def current_season_and_week() -> tuple[int, int]:
@@ -166,6 +185,8 @@ def _predict_game_from_models(
     result["predicted_total"] = predicted_total
     result["sigma"] = models["sigma"]
     result["total_sigma"] = models["total_sigma"]
+    # Which model produced this number, so the frozen snapshot carries its own provenance.
+    result["model_version"] = models.get("model_version")
     return result
 
 
@@ -447,12 +468,19 @@ def _get_player_props_live(season: int, week: int):
         results = []
         for _, player in latest_players.iterrows():
             try:
-                feature_row = player_usage.build_features_for_player(player["player_id"], player_history)
+                feature_row = player_usage.build_features_for_player(
+                    player["player_id"], player_history, season=season, week=week
+                )
                 if feature_row is None:
-                    # No usage history anywhere in player_history (true rookie,
-                    # or a player the roster fallback pulled in) — predict off
-                    # a neutral zero-usage baseline rather than skipping them.
-                    feature_row = pd.Series({col: 0.0 for col in player_usage.PLAYER_FEATURE_COLUMNS})
+                    # No usage history in the season being predicted — a true rookie,
+                    # or a player the roster fallback pulled in. Skip rather than
+                    # fabricating a zero row: the model is never trained on the
+                    # all-zero region, so scoring it returns the origin intercept
+                    # rather than a prediction. Measured 2026-09-27, that path made
+                    # 430 of 880 live rows (48.9%) bit-identical, serving 62.592
+                    # passing yards to real quarterbacks. This matches the sibling
+                    # CFB route, which already skipped.
+                    continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
                 results.append({
                     "player_id": player["player_id"],
@@ -473,6 +501,24 @@ def _get_player_props_live(season: int, week: int):
 @router.get("/track-record")
 def get_track_record():
     return store.get_track_record()
+
+
+@router.get("/kalshi-feed")
+def get_kalshi_feed():
+    """Read-only feed for the Algo Trade Hub: frozen pre-game snapshots for games that have not
+    kicked off, plus reliability buckets over graded pre-game snapshots.
+
+    Served from the tracking database only, so it never recomputes a prediction: a live forecast
+    is a different number from the snapshot the hub graded, and recomputing would swap the series
+    out from under the calibration check with no error anywhere.
+    """
+    return {
+        "sport": "nfl",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "lead_hours": SNAPSHOT_LEAD_HOURS,
+        "games": store.get_feed_predictions(),
+        "calibration": store.get_calibration(),
+    }
 
 
 @router.get("/games/{game_id}/verdict")
@@ -610,12 +656,42 @@ def _attach_game_id(stats_df: pd.DataFrame, games_df: pd.DataFrame) -> pd.DataFr
     return stats_df.merge(team_game, on=["season", "week", "recent_team"], how="inner")
 
 
+# How close to kickoff a game's prediction is frozen. The first snapshot inside this window is
+# kept forever (INSERT OR IGNORE), so it is the one the track record grades and the Kalshi feed
+# serves. 48h lands after the prior week's Monday night game for every slot (Thu/Sat/Sun/Mon).
+SNAPSHOT_LEAD_HOURS = float(os.getenv("SNAPSHOT_LEAD_HOURS", "48"))
+
+
+def _games_to_snapshot(season: int, week: int, now: datetime, lead_hours: float | None = None) -> pd.DataFrame:
+    """Upcoming games from this week AND next whose kickoff is within the lead window.
+
+    Next week is included because `current_season_and_week()` rolls over on the UTC date of week
+    1's first kickoff (a Friday for NFL, a Saturday for CFB). Relying on the current week left
+    Thursday-night games unsnapshotted until after their kickoff, at which point
+    `record_game_predictions` rejects them -- so they were never tracked at all. It also froze
+    next week's games on the previous Saturday, before that day's results.
+
+    The window filters on the UPPER bound only: past games still reach `record_game_predictions`,
+    which rejects them itself, and the tick's own test depends on that.
+    """
+    lead = timedelta(hours=SNAPSHOT_LEAD_HOURS if lead_hours is None else lead_hours)
+    frames = [f for f in (schedules.fetch_upcoming_games(season, wk) for wk in (week, week + 1)) if not f.empty]
+    if not frames:
+        return pd.DataFrame()
+    games = pd.concat(frames, ignore_index=True)
+    kickoff = pd.to_datetime(games["gameday"], utc=True, errors="coerce")
+    horizon = pd.Timestamp(now + lead)
+    # A NaT kickoff cannot be placed relative to the window, and snapshotting it would freeze a
+    # prediction at an unknown distance from kickoff.
+    return games[kickoff.notna() & (kickoff <= horizon)].drop_duplicates("game_id").reset_index(drop=True)
+
+
 def background_tracking_tick(season: int, week: int) -> None:
     """Snapshot this week's upcoming-game (and player-prop) predictions,
     then reconcile anything now resolved. Called on a timer from
     api/main.py's lifespan the same way PL_Predictor's own
     background_tracking_tick is."""
-    games = schedules.fetch_upcoming_games(season, week)
+    games = _games_to_snapshot(season, week, datetime.now(timezone.utc))
     if not games.empty:
         models = _load_models_cached()
         history = _load_game_history(season)
@@ -629,7 +705,10 @@ def background_tracking_tick(season: int, week: int) -> None:
                 predictions.append(
                     {
                         "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],
-                        "commence_time": str(game["gameday"]), "season": season, "week": week,
+                        "commence_time": str(game["gameday"]), "season": season,
+                        # This tick also snapshots NEXT week's games, so each row must carry its
+                        # own week rather than the tick's.
+                        "week": int(game["week"]) if pd.notna(game.get("week")) else week,
                         "home_spread_line": game.get("spread_line"), "total_line": game.get("total_line"),
                         **pred,
                     }
@@ -640,8 +719,13 @@ def background_tracking_tick(season: int, week: int) -> None:
         store.record_game_predictions(predictions)
 
         try:
+            # THIS week's games only. `_get_player_props_live(season, week)` is this week's prop feed
+            # (it can fall back to the current week), while `games` also holds next week's -- so a
+            # team playing in both had its prop stored under next week's game_id, and
+            # `record_player_prop_predictions` is INSERT OR IGNORE, which would freeze that wrong
+            # snapshot forever.
             team_to_game = {}
-            for _, g in games.iterrows():
+            for _, g in games[games["week"] == week].iterrows():
                 team_to_game[g["home_team"]] = g["game_id"]
                 team_to_game[g["away_team"]] = g["game_id"]
             prop_rows = []
@@ -707,7 +791,32 @@ def background_tracking_tick(season: int, week: int) -> None:
     try:
         if not completed.empty:
             actual_stats = player_stats.fetch_weekly_player_stats([season])
-            store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
+            if actual_stats.empty:
+                # `hub_cache.cached_frame` catches the upstream 404 and returns an
+                # empty frame on purpose, so the site shows dashes instead of
+                # erroring, and it logs at INFO -- below the default threshold, and
+                # per season per tick, so raising it there would flood. The
+                # consequence lands here, so it is reported here: once per tick, at a
+                # level that is actually visible.
+                #
+                # `n_resolved: 0` on the track record with snapshots still being
+                # written looks exactly like a tracking bug. It is this. Verified
+                # URLs, and why a prop backfill would be the wrong fix:
+                # docs/player-prop-accuracy-blocker.md
+                #
+                # Note the `else`, not a `return`. The game backfill below is a
+                # separate `try` block in the same tick, and returning would let a
+                # missing *player* stats file silently stop *game* reconciliation --
+                # which is the part that works, and would have regressed from 30 of
+                # 33 resolved to 0 with no error anywhere.
+                logger.warning(
+                    "player prop reconciliation skipped: no nflverse player stats for season %s "
+                    "(player_stats_%s.parquet is 404 upstream); n_resolved will stay 0 until "
+                    "the file is published -- see docs/player-prop-accuracy-blocker.md",
+                    season, season,
+                )
+            else:
+                store.reconcile_player_prop_predictions(_attach_game_id(actual_stats, completed))
     except Exception:
         logger.exception("player prop reconciliation failed")
 

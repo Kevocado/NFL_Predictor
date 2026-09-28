@@ -245,15 +245,39 @@ def _status(game: dict, now: datetime) -> str:
     return "upcoming"
 
 
-def _markets(game: dict, prediction: dict | None) -> list[dict]:
+def _markets(game: dict, prediction: dict | None, moneyline_from: dict | None = None) -> list[dict]:
+    """The markets, from `prediction` — except the moneyline, which may come from
+    `moneyline_from`.
+
+    Why the exception: the bundle's `pick` is deliberately the number that was
+    snapshotted before kickoff, because that is the record which will be judged.
+    For an UPCOMING game the snapshot also holds today's model, recomputed, and
+    the two genuinely differ. Emitting the moneyline from the recomputation meant
+    the bundle stated the same pick twice at two probabilities:
+
+        pick    : {'label': 'BAL', 'prob': 0.62}
+        markets : [{'market': 'moneyline', 'model': {'BAL': 0.55, 'KC': 0.45}}]
+
+    which is not cosmetic. The v2 panel computes its confidence band from
+    `pick.prob` and draws its moneyline tile and split bar from the market, so it
+    would have shown 55% beside a band derived from 62%.
+
+    The spread and the total are left on `prediction`, and that is a real
+    trade-off rather than a proof: they are different claims with their own
+    numbers, the row carries none, and nothing in the bundle dates them. A
+    future decision could take the whole market set from the row and lose the
+    spread and total for every snapshotted pick; that is a product call, and it
+    is not this bug.
+    """
     if not prediction:
         return []
     home_team = game["home_team"]
     away_team = game["away_team"]
     out: list[dict] = []
 
-    home_prob = _num(prediction.get("home_win_prob"))
-    away_prob = _num(prediction.get("away_win_prob"))
+    source = moneyline_from if moneyline_from is not None else prediction
+    home_prob = _num(source.get("home_win_prob"))
+    away_prob = _num(source.get("away_win_prob"))
     if home_prob is not None and away_prob is not None:
         out.append({
             "market": "moneyline",
@@ -442,7 +466,10 @@ def get_facts(game_id: str) -> dict:
         pick_timing = "pre_kickoff"
 
     # A started game with no stored pick has no honest spread/total to quote.
-    markets = [] if (started and stored is None) else _markets(game, stored)
+    # The moneyline comes from `pick_source` so the bundle states the pick once,
+    # at one probability -- see _markets' docstring for why that is not the
+    # same thing as taking every market from the row.
+    markets = [] if (started and stored is None) else _markets(game, stored, moneyline_from=pick_source)
 
     return {
         "sport": "nfl",
