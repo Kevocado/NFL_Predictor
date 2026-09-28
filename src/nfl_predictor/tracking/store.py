@@ -464,29 +464,74 @@ def get_calibration(n_buckets: int = CALIBRATION_N_BUCKETS) -> dict:
     }
 
 
+# The three graded markets, as (grade column, hit count key, accuracy key). One list so a
+# week row cannot grow an accuracy without also growing the count behind it -- a rate with
+# no denominator is not a fact, and a *weekly* rate is where that mistake hides best: 5
+# games, 3 ATS grades and 2 totals grades are three different denominators, and a chart
+# that shows all three accuracies as bare percentages is asserting they share one.
+_GRADED_MARKETS = (
+    ("moneyline_hit", "n_moneyline", "pct_moneyline_correct"),
+    ("ats_hit", "n_ats", "pct_ats_correct"),
+    ("total_hit", "n_totals", "pct_totals_correct"),
+)
+
+
+def _grade(frame: pd.DataFrame, column: str) -> dict:
+    """Hit rate and its count for one graded market over `frame`.
+
+    A market is graded per game, and not always: ATS needs a real spread line plus both
+    cover probabilities, totals needs a real total line plus both over/under
+    probabilities (see `_present`). So the denominator is the graded subset, never the
+    row count, and an ungraded market is `None` rather than 0.0 -- 0% is a legible claim
+    that every game was missed, which is not what "never measured" means.
+    """
+    if column not in frame.columns:
+        return {"n": 0, "pct": None}
+    graded = frame[frame[column].notna()]
+    return {"n": int(len(graded)), "pct": float(graded[column].mean()) if not graded.empty else None}
+
+
+def _weekly_row(week: int, frame: pd.DataFrame) -> dict:
+    """One week of the trend.
+
+    `n_games` is volume and each `n_*` is the denominator behind the accuracy beside it.
+    They are deliberately separate keys. `TrackRecordPage.tsx` builds its bar width as
+    `(n_games / max_games) * pct_moneyline_correct`, which multiplies accuracy by a
+    volume share: a 1-game perfect week then draws at 0.25 of a 4-game 50% week. The
+    backend cannot fix that formula, but it can refuse to offer a single fused number
+    for it to consume -- and `n_games` next to an unfused accuracy is what lets the
+    page draw the two separately.
+    """
+    row = {"week": int(week), "n_games": int(len(frame))}
+    for column, count_key, pct_key in _GRADED_MARKETS:
+        graded = _grade(frame, column)
+        row[count_key], row[pct_key] = graded["n"], graded["pct"]
+    return row
+
+
 def _summarize_games(resolved: pd.DataFrame) -> dict:
     if resolved.empty:
         return {
             "n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None,
-            "pct_totals_correct": None, "weekly_trend": [],
+            "pct_totals_correct": None, "n_moneyline": 0, "n_ats": 0, "n_totals": 0,
+            "weekly_trend": [],
         }
-    ats = resolved[resolved["ats_hit"].notna()]
-    totals = resolved[resolved["total_hit"].notna()]
+    overall = {column: _grade(resolved, column) for column, _, _ in _GRADED_MARKETS}
 
     weekly_trend = []
     with_week = resolved[resolved["week"].notna()]
     if not with_week.empty:
-        grouped = with_week.groupby("week")["moneyline_hit"].agg(["mean", "size"]).reset_index()
         weekly_trend = [
-            {"week": int(r["week"]), "pct_moneyline_correct": float(r["mean"]), "n_games": int(r["size"])}
-            for _, r in grouped.sort_values("week").iterrows()
+            _weekly_row(week, group) for week, group in with_week.groupby("week")
         ]
+        weekly_trend.sort(key=lambda row: row["week"])
 
     return {
         "n_resolved": int(len(resolved)),
-        "pct_moneyline_correct": float(resolved["moneyline_hit"].mean()),
-        "pct_ats_correct": float(ats["ats_hit"].mean()) if not ats.empty else None,
-        "pct_totals_correct": float(totals["total_hit"].mean()) if not totals.empty else None,
+        # The headline counts too. A rate without its denominator is exactly the
+        # ambiguity B1 shipped on this page, one level up.
+        **{count: overall[column]["n"] for column, count, _ in _GRADED_MARKETS},
+        **{pct: overall[column]["pct"] for column, _, pct in _GRADED_MARKETS},
         "weekly_trend": weekly_trend,
     }
 
