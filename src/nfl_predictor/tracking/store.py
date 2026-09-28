@@ -327,11 +327,18 @@ def backfill_unresolved_games(schedules_module) -> int:
     return reconcile_game_predictions(finished[["game_id", "home_score", "away_score"]])
 
 
-def get_track_record() -> dict:
+def get_track_record(current_week: int | None = None, season: int | None = None) -> dict:
     """Aggregate accuracy summary across every reconciled game and player
     prop -- not a per-game list (the frontend already has that in the game
     detail modal's own verdict section; this is the "how good is the model
-    overall" view, same shape as PL_Predictor's Data Hub track record)."""
+    overall" view, same shape as PL_Predictor's Data Hub track record).
+
+    `current_week`/`season` bound the `weekly` rows. The route passes both from
+    `routes.current_season_and_week()`, which is the only place that knows the
+    calendar; a caller that does not (facts.py, which reads two numbers off the
+    headline) gets the newest week actually recorded. Either way the list runs
+    from week 1 to that bound with no gaps -- see `_weekly_window`.
+    """
     with contextlib.closing(_connect()) as conn, conn:
         resolved_games = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
         resolved_props = pd.read_sql("SELECT * FROM player_prop_predictions WHERE resolved = 1", conn)
@@ -342,7 +349,8 @@ def get_track_record() -> dict:
         rebuilt = pd.Series(dtype=bool)
     n_rebuilt = int(rebuilt.sum())
     resolved_games = resolved_games[~rebuilt] if not resolved_games.empty else resolved_games
-    return {"games": {**_summarize_games(resolved_games), "n_rebuilt": n_rebuilt}, "player_props": _summarize_player_props(resolved_props)}
+    summary = _summarize_games(resolved_games, current_week=current_week, season=season)
+    return {"games": {**summary, "n_rebuilt": n_rebuilt}, "player_props": _summarize_player_props(resolved_props)}
 
 
 def get_feed_predictions(now: datetime | None = None) -> list[dict]:
@@ -492,7 +500,7 @@ def _grade(frame: pd.DataFrame, column: str) -> dict:
 
 
 def _weekly_row(week: int, frame: pd.DataFrame) -> dict:
-    """One week of the trend.
+    """One week of the record.
 
     `n_games` is volume and each `n_*` is the denominator behind the accuracy beside it.
     They are deliberately separate keys. `TrackRecordPage.tsx` builds its bar width as
@@ -501,38 +509,81 @@ def _weekly_row(week: int, frame: pd.DataFrame) -> dict:
     backend cannot fix that formula, but it can refuse to offer a single fused number
     for it to consume -- and `n_games` next to an unfused accuracy is what lets the
     page draw the two separately.
+
+    `tracked` is `n_games > 0`, and a week with nothing in it still gets a row. See
+    `_weekly_window`.
     """
-    row = {"week": int(week), "n_games": int(len(frame))}
+    row = {"week": int(week), "n_games": int(len(frame)), "tracked": bool(len(frame))}
     for column, count_key, pct_key in _GRADED_MARKETS:
         graded = _grade(frame, column)
         row[count_key], row[pct_key] = graded["n"], graded["pct"]
     return row
 
 
-def _summarize_games(resolved: pd.DataFrame) -> dict:
-    if resolved.empty:
-        return {
-            "n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None,
-            "pct_totals_correct": None, "n_moneyline": 0, "n_ats": 0, "n_totals": 0,
-            "weekly_trend": [],
-        }
-    overall = {column: _grade(resolved, column) for column, _, _ in _GRADED_MARKETS}
+def _untracked_week(week: int) -> dict:
+    """A week the tracker holds nothing for. Present, marked, and empty of rates.
 
-    weekly_trend = []
-    with_week = resolved[resolved["week"].notna()]
-    if not with_week.empty:
-        weekly_trend = [
-            _weekly_row(week, group) for week, group in with_week.groupby("week")
-        ]
-        weekly_trend.sort(key=lambda row: row["week"])
+    `n_games` and the three `n_*` are 0 because 0 is the *true count* of nothing
+    tracked. The rates are None because no rate was measured -- 0.0 would claim the
+    model was wrong on every game in a week it never picked in.
+    """
+    return {
+        "week": int(week), "n_games": 0, "tracked": False,
+        "n_moneyline": 0, "pct_moneyline_correct": None,
+        "n_ats": 0, "pct_ats_correct": None,
+        "n_totals": 0, "pct_totals_correct": None,
+    }
 
+
+def _weekly_window(resolved: pd.DataFrame, current_week: int | None, season: int | None) -> list[dict]:
+    """One row for every elapsed week of `season`, 1..`current_week`.
+
+    Grouping the rows by week and emitting one row per group only ever draws the weeks
+    the tracker happened to cover. A week with no picks then does not read as "not
+    tracked" -- it reads as *not part of the season*, which is a much stronger claim and
+    a false one, since a reader cannot tell a gap from an absence. So the weeks are
+    enumerated from the calendar and the empty ones are filled in.
+
+    `season` scopes the window, because week numbers restart every season: an
+    unfiltered group-by collapses 2025 week 12 into 2026 week 12 and reports a 2025
+    accuracy on this season's chart. Callers that know the calendar pass it; callers
+    that do not (facts.py, tests) get the newest season and week actually present in the
+    data, which is still a complete, gap-free list.
+    """
+    if "season" in resolved.columns:
+        seasons = resolved["season"].dropna()
+        if season is None and not seasons.empty:
+            season = int(seasons.max())
+    if season is not None and "week" in resolved.columns:
+        in_season = resolved[resolved["season"] == season]
+        if current_week is None:
+            weeks = in_season["week"].dropna()
+            current_week = int(weeks.max()) if not weeks.empty else 0
+        by_week = {int(w): group for w, group in in_season.groupby("week") if pd.notna(w)}
+    else:
+        # Nothing identifies a season here (no rows at all, or a caller building a
+        # frame by hand). Emit the window unfiltered rather than emitting nothing.
+        by_week = {int(w): group for w, group in resolved.groupby("week") if pd.notna(w)} if "week" in resolved.columns else {}
+        if current_week is None:
+            current_week = max(by_week, default=0)
+
+    return [
+        _weekly_row(week, by_week[week]) if week in by_week else _untracked_week(week)
+        for week in range(1, int(current_week) + 1)
+    ]
+
+
+def _summarize_games(
+    resolved: pd.DataFrame, current_week: int | None = None, season: int | None = None
+) -> dict:
+    graded = {column: _grade(resolved, column) for column, _, _ in _GRADED_MARKETS}
     return {
         "n_resolved": int(len(resolved)),
         # The headline counts too. A rate without its denominator is exactly the
         # ambiguity B1 shipped on this page, one level up.
-        **{count: overall[column]["n"] for column, count, _ in _GRADED_MARKETS},
-        **{pct: overall[column]["pct"] for column, _, pct in _GRADED_MARKETS},
-        "weekly_trend": weekly_trend,
+        **{count: graded[column]["n"] for column, count, _ in _GRADED_MARKETS},
+        **{pct: graded[column]["pct"] for column, _, pct in _GRADED_MARKETS},
+        "weekly": _weekly_window(resolved, current_week, season),
     }
 
 

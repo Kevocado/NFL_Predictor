@@ -521,7 +521,12 @@ def _get_player_props_live(season: int, week: int):
 
 @router.get("/track-record")
 def get_track_record():
-    return store.get_track_record()
+    # The season and week come from the schedule, not from the data: `weekly` has to
+    # list every elapsed week, and only the calendar knows which of them are elapsed.
+    # Without them the store falls back to the newest week it happens to hold, so a
+    # week with no tracked picks at the tail of the record would silently drop off.
+    season, week = current_season_and_week()
+    return store.get_track_record(current_week=week, season=season)
 
 
 @router.get("/kalshi-feed")

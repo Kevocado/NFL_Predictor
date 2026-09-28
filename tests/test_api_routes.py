@@ -46,7 +46,14 @@ def client(monkeypatch):
             "over_prob": 0.52, "under_prob": 0.48,
         },
     )
-    monkeypatch.setattr(routes.store, "get_track_record", lambda: {"n_resolved_games": 0, "pct_moneyline_correct": None})
+    # Accepts **kwargs because /track-record now threads the season and week through
+    # (the `weekly` rows have to span every elapsed week, and only the calendar knows
+    # which those are). `test_get_track_record_passes_the_calendar_to_the_store` below
+    # pins that the two really arrive.
+    monkeypatch.setattr(
+        routes.store, "get_track_record",
+        lambda **kwargs: {"n_resolved_games": 0, "pct_moneyline_correct": None},
+    )
     return TestClient(app)
 
 
@@ -100,6 +107,28 @@ def test_get_track_record(client):
 
     assert response.status_code == 200
     assert response.json()["n_resolved_games"] == 0
+
+
+def test_get_track_record_passes_the_calendar_to_the_store(monkeypatch):
+    """The store can only list every elapsed week if it is told which week it is.
+
+    Without these two it falls back to the newest week it happens to hold, and a week
+    at the tail of the record that nobody picked in drops off the end of the chart --
+    the exact silent absence this payload exists to remove. `current_season_and_week`
+    reads the real schedule, so it is stubbed rather than recomputed.
+    """
+    seen = {}
+
+    def fake_get_track_record(**kwargs):
+        seen.update(kwargs)
+        return {"games": {}, "player_props": {}}
+
+    monkeypatch.setattr(routes, "current_season_and_week", lambda: (2026, 7))
+    monkeypatch.setattr(routes.store, "get_track_record", fake_get_track_record)
+
+    routes.get_track_record()
+
+    assert seen == {"current_week": 7, "season": 2026}
 
 
 def test_get_games_handles_nan_scores_for_unplayed_games(client, monkeypatch):

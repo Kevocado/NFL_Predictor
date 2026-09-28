@@ -58,6 +58,17 @@ def _snapshot(game_id, week, *, home_wins, spread=None, total=None):
     return game
 
 
+def _week_row(week):
+    """One row of the weekly record.
+
+    B3 renamed `weekly_trend` to `weekly` and made the list gap-free, so this helper
+    reads the current key. The assertions below are unchanged from when they were
+    written against `weekly_trend`; only the key they read moved.
+    """
+    rows = {row["week"]: row for row in store.get_track_record()["games"]["weekly"]}
+    return rows[week]
+
+
 def test_weekly_row_reports_games_and_accuracy_as_separate_numbers():
     """The exact shape the fused width formula gets wrong.
 
@@ -71,7 +82,7 @@ def test_weekly_row_reports_games_and_accuracy_as_separate_numbers():
         _snapshot(f"w1g{i}", 1, home_wins=(i < 2))
     _snapshot("w2g0", 2, home_wins=True)
 
-    weekly = {row["week"]: row for row in store.get_track_record()["games"]["weekly_trend"]}
+    weekly = {row["week"]: row for row in store.get_track_record()["games"]["weekly"]}
 
     assert weekly[1]["n_games"] == 4
     assert weekly[1]["pct_moneyline_correct"] == pytest.approx(0.5)
@@ -95,7 +106,7 @@ def test_weekly_row_carries_the_count_behind_every_accuracy():
     _snapshot("g4", 1, home_wins=False, spread=None, total=45.5)
     _snapshot("g5", 1, home_wins=True, spread=None, total=None)
 
-    week1 = next(r for r in store.get_track_record()["games"]["weekly_trend"] if r["week"] == 1)
+    week1 = _week_row(1)
 
     assert week1["n_games"] == 5
     assert week1["n_moneyline"] == 5
@@ -113,7 +124,7 @@ def test_a_market_with_no_grades_in_a_week_is_null_not_zero():
     never graded."""
     _snapshot("g1", 1, home_wins=True, spread=None, total=None)
 
-    week1 = next(r for r in store.get_track_record()["games"]["weekly_trend"] if r["week"] == 1)
+    week1 = _week_row(1)
 
     assert week1["n_ats"] == 0
     assert week1["pct_ats_correct"] is None
