@@ -279,3 +279,49 @@ review-round table and did not carry it into this document, so both instances he
 survived it. This is the same failure mode as the retracted section above — a
 plausible mechanism written down as a finding — and it is corrected in place rather
 than quietly deleted.
+
+## Update 2026-09-28: measurable, via a fallback source — the 404 diagnosis stands, its "until" has arrived
+
+`player_stats` still 404s for 2025/2026 and that is unchanged. What changed is that
+we stopped waiting for it. PR #19 (merged 2026-09-28, deployed same day) adds a
+fallback to nflverse's `stats_player` release tag, which publishes the same table
+continuously (`stats_player_week_2026.parquet`: 3,274 rows, weeks 1–3). Design, with
+the measurement behind it, in that PR's body and in `data/player_stats.py`'s module
+docstring. The points that matter for this document:
+
+* `player_stats` stays primary. The two agree on 99.93% of 124,564 offensive
+  player-weeks (2001–2024), but `stats_player` is denser and moves rolling
+  features built on `history.tail(5)` (`targets_roll` on 26.3%), and the models
+  were trained on the old file. The fallback fires only for seasons the old
+  release stopped publishing, so 26 seasons of history stay byte-identical.
+* Adjudicated against weekly play-by-play where they disagree: the new file is
+  right 735/735 for 1999–2000 and equivalent after (12–11). Never the worse source.
+* The −5 receiving yards is nflverse's net-of-fumbles convention, present in both
+  files (the old one has *more* negatives). Deliberately unclamped; clamping
+  would have silently re-graded every historical season over a twelve-row
+  difference.
+* The denser file required a companion fix in the same PR: live props are now
+  filtered to `POSITION_MARKETS` positions, because `predict_props` emits
+  `anytime_td_prob` for every position and unfiltered that turns every defender
+  into a TD prop (972 of 1,422 vs 50 of 612).
+
+**Measured in production the same evening, week 3 2026:** `anytime_td` 323
+resolved at 86.2% when called, `passing_yards` 31, `rushing_yards` 85,
+`receiving_yards` 207; `receptions`/`carries` 0 (no snapshots yet — they need a
+full pre-kickoff gameweek from today, same rule as ever).
+
+Provenance, because it is the load-bearing question: the production database
+holds 1,760 prop rows across 15 week-3 games, all `snapshotted_at`
+2026-09-25T05:05:25Z — after Thursday's kickoff, before Sunday/Monday's, with
+Thursday's game correctly absent (the pre-kickoff guard doing its job). They
+carry real varied model outputs (e.g. 254.2 passing yards), not defaults. What
+built their features on Sept 25, when 2026 stats were still 404, is most likely
+the roster fallback on prior-season history — stated here as the likely
+mechanism, not an established one.
+
+**One latent gap this surfaced, not yet fixed:** `reconcile_player_prop_predictions`
+grades every unresolved row that joins to stats. It does not check
+`_snapshotted_after_kickoff`, and the prop table has no `backfilled` column, so
+neither guard the games path carries exists here. Every row graded so far is
+pre-kickoff by timestamp, so nothing live is corrupt — but the games path's
+protection is absent, and the next person to touch reconciliation should port it.
