@@ -9,53 +9,54 @@ guaranteed to hit it, which makes the violation worse on CI than locally and not
 better. `tests.yml` even documents the opposite ("would make CI depend on
 nflverse/CFBD being up"), so the file and the claim had drifted apart.
 
-**What this guard does and does not cover.** It blocks at `socket.socket.connect`
-and `socket.create_connection`, never at socket construction. That distinction is
-load bearing: a mocking transport -- respx is the common one -- constructs genuine
-`socket.socket` instances and hands them to the code under test, and a guard that
-raised in `socket.__init__` would break every such test while still appearing to
-work. Blocking at connect() is the narrowest point that actually prevents traffic,
-and it is what `requests`, `urllib3`, `http.client` and `pandas.read_csv` all go
-through.
+**What this guard does and does not cover.** It wraps `socket.socket.connect`,
+`socket.create_connection` and `socket.getaddrinfo`, never socket construction.
+That distinction is load bearing: a mocking transport -- respx is the common one
+-- constructs genuine `socket.socket` instances and hands them to the code under
+test, and a guard that raised in `socket.__init__` would break every such test
+while still appearing to work. Wrapping at these three points is the narrowest
+place that actually observes traffic, and it is what `requests`, `urllib3`,
+`http.client` and `pandas.read_csv` all go through.
 
 It is **not** total, and a reader must not assume it is. Known gaps, all
 deliberate:
 
-* `socket.getaddrinfo` is **counted, not blocked**. A test can still resolve a
-  hostname; it just cannot be seen doing it. Blocking resolution instead would
-  break anything that resolves `localhost` or `127.0.0.1` legitimately, which is
-  most ASGI test clients.
-* `socket.socket.connect_ex` is not patched -- it returns an errno instead of
+* `socket.socket.connect_ex` is not wrapped -- it returns an errno instead of
   raising, and nothing in this repo uses it, but a test that reached for it would
-  not be stopped.
+  not be observed.
 * `_socket.socket.connect` called on the C extension type directly bypasses the
-  patched attribute.
+  attribute this file patches.
+* `getaddrinfo` is **counted, not blocked**, because blocking resolution would
+  break anything that resolves loopback, which is most ASGI test clients.
 
-So the honest claim is "connections are blocked and every attempt is counted",
-not "the network is unreachable". `tests/test_offline_guard.py` checks the three
-properties that are checkable: it blocks a connection, it is installed, and it
-does not break libraries that build real socket objects for a mocked transport.
+So the honest claim is "every connect and resolution this process makes is
+counted, and connects are blocked while the guard is up" -- not "the network is
+unreachable". `tests/test_offline_guard.py` checks the properties that are
+checkable; `tests/network_reconciliation.py` is the independent half, and is the
+reason a reported zero is falsifiable rather than merely asserted.
 
-**The number this file reports.** The first version of it counted only *blocked*
-attempts and printed the result from a teardown fixture, which pytest captures.
-Both were wrong in the same direction: `@pytest.mark.network` tests run with the
-guard lifted, connect for real, `except Exception: pytest.skip`, and the run stays
-green -- so "0 blocked" was true and meant nothing. Two network-marked tests in
-`tests/test_team_stats.py` do exactly that, and an external probe found 4 non-
-loopback DNS resolutions in a run the guard called clean.
+**Round 2 made this metric look better while making it worse, and both of the
+defects are fixed here.**
 
-So ATTEMPTS records *every* attempt, tagged with whether the guard was active, and
-the session summary reports all three numbers separately. The summary goes out
-through `pytest_terminal_summary` rather than `print`, because the terminal
-reporter is not captured and this is the invocation in the task brief:
+1. `remove_guard()` used to restore the raw C functions, so while the guard was
+   lifted -- which is what `@pytest.mark.network` does -- *nothing was recorded
+   at all*. The counter was removed exactly when the traffic happened. An
+   independent probe measured 5 remote DNS resolutions and 12 outbound connects
+   in a run this file reported as `0/0/0/0`, and the tests passed rather than
+   skipping. The recorders are now pass-throughs: they record with
+   `_GUARD_ACTIVE = False` and then delegate, so an unguarded attempt is counted
+   and tagged.
+2. `_target_of` fell through to `str(args[:1])`, so a DNS host was stored as
+   `"('github.com',)"`. That string is not in the loopback set, so `dns_local`
+   was structurally 0 and every loopback resolution was misfiled as remote. Hosts
+   are now stored as hosts.
 
-    uv run pytest -q
-
-Escape hatch: a test marked `@pytest.mark.network` runs with the guard lifted. It
-runs on **every local `pytest` invocation**, not only in CI -- only the gating CI
-*job* deselects them (`tests.yml`, `pytest tests/ -q -m "not network"`), and the
-`workflow_dispatch` job is informational. The marker means "this test hits the
-internet", not "this test only runs in CI".
+**Escape hatch.** A test marked `@pytest.mark.network` runs with the guard lifted
+-- with counting still on. It runs on **every local `pytest` invocation**, not only
+in CI; only the gating CI *job* deselects them (`tests.yml`,
+`pytest tests/ -q -m "not network"`), and the `workflow_dispatch` job is
+informational. The marker means "this test hits the internet", not "this test only
+runs in CI".
 """
 from __future__ import annotations
 
@@ -76,10 +77,10 @@ class NetworkAccessInTests(AssertionError):
     """
 
 
-#: Is the guard currently active? Set by `_offline_policy`. A connect attempt is
-#: only *blocked* while this is True, so an attempt made under a `@pytest.mark.network`
-#: test is recorded but allowed -- and reported separately, because "0 blocked" on
-#: its own cannot tell a clean run from a run that went to the internet.
+#: Is the guard currently *blocking*? Set by `install_guard`/`remove_guard`. A
+#: connect is only blocked while this is True, so an attempt made under a
+#: `@pytest.mark.network` test is recorded and allowed -- and reported separately,
+#: because "0 blocked" on its own cannot tell a clean run from a networked one.
 _GUARD_ACTIVE = True
 
 #: Every attempt, as `(kind, target, guarded)`. Kinds: "connect", "dns".
@@ -88,26 +89,40 @@ _GUARD_ACTIVE = True
 #: wraps its whole body in `except Exception`, so a blocked connect there is
 #: caught, logged and turned into a 503 -- and a test asserting "503" passes
 #: exactly as well with a blocked connection as with the condition it claims to
-#: cover. Counting only blocked attempts had the mirror-image flaw: a connect
-#: under a lifted guard was invisible entirely.
+#: cover.
 ATTEMPTS: list = []
 
+#: Hosts that are not "remote" for reporting purposes.
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0", "0", "testserver", ""})
 
-def _target_of(args) -> str:
+
+def _dns_target(host) -> str:
+    """The host, as a host. Not `str(args)`, which produced `"('github.com',)"`."""
+    if isinstance(host, bytes):
+        return host.decode("utf-8", "replace")
+    return str(host)
+
+
+def _connect_target(args) -> str:
+    """The host an address refers to, from either calling convention.
+
+    `socket.socket.connect` is patched on the class, so it arrives as
+    `(socket, address)`; `socket.create_connection` takes `(address, ...)`. Both
+    address forms are a `(host, port)` tuple, so the first tuple-shaped argument
+    carrying a string is the address.
+    """
     for arg in args:
-        if isinstance(arg, (tuple, list)) and arg:
-            return str(arg[0])
-        if isinstance(arg, str) and "://" in arg:
-            return arg
-    return str(args[:1])
+        if isinstance(arg, (tuple, list)) and arg and isinstance(arg[0], (str, bytes)):
+            return _dns_target(arg[0])
+    return "<unparsed>"
 
 
-def _record(kind: str, args) -> None:
-    ATTEMPTS.append((kind, _target_of(args), _GUARD_ACTIVE))
+def _record(kind: str, target: str) -> None:
+    ATTEMPTS.append((kind, target, _GUARD_ACTIVE))
 
 
-def _blocked(*args, **kwargs):
-    _record("connect", args)
+def _blocked_connect(self, address):
+    _record("connect", _connect_target((self, address)))
     raise NetworkAccessInTests(
         "a test attempted a network connection. The offline suite is a hard rule: "
         "stub the data module at the seam the code under test calls "
@@ -117,33 +132,63 @@ def _blocked(*args, **kwargs):
     )
 
 
+def _blocked_create_connection(address, *args, **kwargs):
+    _record("connect", _connect_target((address,)))
+    raise NetworkAccessInTests(
+        "a test attempted a network connection while the offline guard was active. "
+        "Stub the data module, not the socket, or mark the test "
+        "`@pytest.mark.network`."
+    )
+
+
 def _counting_getaddrinfo(host, *args, **kwargs):
     """Counts, does not block. See the module docstring."""
-    _record("dns", (host,))
+    _record("dns", _dns_target(host))
     return _ORIGINAL_GETADDRINFO(host, *args, **kwargs)
+
+
+# --- the pass-through pair, so lifting the guard stops blocking, not counting --
+
+
+def _unguarded_connect(self, address, *args, **kwargs):
+    _record("connect", _connect_target((self, address)))
+    return _ORIGINAL_CONNECT(self, address, *args, **kwargs)
+
+
+def _unguarded_create_connection(address, *args, **kwargs):
+    _record("connect", _connect_target((address,)))
+    return _ORIGINAL_CREATE_CONNECTION(address, *args, **kwargs)
 
 
 def guard_installed() -> bool:
     return (
-        socket.socket.connect is _blocked
-        and socket.create_connection is _blocked
+        socket.socket.connect is _blocked_connect
+        and socket.create_connection is _blocked_create_connection
     )
 
 
 def install_guard() -> None:
+    """Block connections. Counting is never switched off by this."""
     global _GUARD_ACTIVE
     _GUARD_ACTIVE = True
-    socket.socket.connect = _blocked
-    socket.create_connection = _blocked
+    socket.socket.connect = _blocked_connect
+    socket.create_connection = _blocked_create_connection
     socket.getaddrinfo = _counting_getaddrinfo
 
 
 def remove_guard() -> None:
+    """Allow connections -- but keep counting them, tagged `guarded=False`.
+
+    Round 2's version restored the raw C functions, which switched the counter off
+    at exactly the moment it was needed. A connect or resolution under a
+    `@pytest.mark.network` test now lands in `unguarded` / `dns_remote` instead of
+    nowhere.
+    """
     global _GUARD_ACTIVE
     _GUARD_ACTIVE = False
-    socket.socket.connect = _ORIGINAL_CONNECT
-    socket.create_connection = _ORIGINAL_CREATE_CONNECTION
-    socket.getaddrinfo = _ORIGINAL_GETADDRINFO
+    socket.socket.connect = _unguarded_connect
+    socket.create_connection = _unguarded_create_connection
+    socket.getaddrinfo = _counting_getaddrinfo
 
 
 # Installed at import time, not by a fixture: a fixture would not cover module
@@ -152,63 +197,74 @@ def remove_guard() -> None:
 install_guard()
 
 
-def _summary() -> dict:
-    connects = [a for a in ATTEMPTS if a[0] == "connect"]
-    dns = [a for a in ATTEMPTS if a[0] == "dns"]
-    loopback = {"localhost", "127.0.0.1", "::1", "0.0.0.0", "testserver"}
+def _is_loopback(target: str) -> bool:
+    return target.strip("[]").lower() in LOOPBACK_HOSTS
+
+
+def _summary_from(rows) -> dict:
+    """Classify a list of records. Takes the rows rather than reading the global so
+    a test can exercise the classifier on records it produced itself."""
+    connects = [r for r in rows if r[0] == "connect"]
+    dns = [r for r in rows if r[0] == "dns"]
     return {
-        "blocked": [a for a in connects if a[2]],
-        "unguarded": [a for a in connects if not a[2]],
-        "dns_remote": [a for a in dns if str(a[1]).strip("[]") not in loopback],
-        "dns_local": [a for a in dns if str(a[1]).strip("[]") in loopback],
+        "blocked": [r for r in connects if r[2]],
+        "unguarded": [r for r in connects if not r[2]],
+        "dns_remote": [r for r in dns if not _is_loopback(r[1])],
+        "dns_local": [r for r in dns if _is_loopback(r[1])],
     }
 
 
-def _lines() -> list[str]:
-    s = _summary()
+def _summary() -> dict:
+    return _summary_from(ATTEMPTS)
+
+
+def _lines(summary: dict | None = None) -> list[str]:
+    s = summary if summary is not None else _summary()
     out = [
         "",
-        "[offline guard] connection attempts this session:",
-        f"    blocked while the guard was up : {len(s['blocked'])}",
-        f"    made with the guard lifted    : {len(s['unguarded'])}"
-        "   <- @pytest.mark.network tests; expected, and not 'clean'",
+        "[offline guard] network activity this session:",
+        f"    connects blocked (guard up)  : {len(s['blocked'])}",
+        f"    connects made, guard lifted  : {len(s['unguarded'])}"
+        "   <- @pytest.mark.network; expected, and not 'clean'",
         f"    DNS to a non-loopback host    : {len(s['dns_remote'])}"
-        "   <- counted, not blocked; see the module docstring",
+        "   <- counted, not blocked",
         f"    DNS to loopback               : {len(s['dns_local'])}",
     ]
     for label, rows in (("blocked", s["blocked"]), ("unguarded", s["unguarded"]),
                         ("remote DNS", s["dns_remote"])):
-        for kind, target, _ in sorted(set(rows))[:5]:
+        for kind, target, _ in sorted({(k, t, g) for k, t, g in rows})[:5]:
             out.append(f"      {label}: {kind} {target}")
     return out
 
 
 @pytest.hookimpl(trylast=True)
 def pytest_terminal_summary(terminalreporter):
-    """The number, where the documented invocation will actually show it.
+    """The numbers, where the documented invocation will actually show them.
 
-    `print` from a teardown fixture is captured by pytest and appears zero times
+    `print` from a teardown fixture is captured by pytest and appeared zero times
     under `pytest -q`, which is the command in the task brief. The terminal
-    reporter writes past the capture, so the count is visible without asking
-    anyone to remember `-s`.
+    reporter writes past the capture, so the count is visible without anyone
+    having to remember `-s`.
     """
     for line in _lines():
         terminalreporter.write_line(line)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _no_blocked_attempts_may_survive_the_session():
+def _no_blocked_connects_may_survive_the_session():
     """Fail the run if a connection was attempted with the guard up.
 
-    Only *blocked* attempts condemn a run. An unguarded connect is allowed, by
-    design, but it is reported above so "this run was clean" is a claim someone
-    can check rather than an absence they have to take on trust.
+    Unguarded connects and remote DNS are allowed -- one by design (`network`
+    marker), the other because blocking resolution breaks loopback -- but both are
+    reported, so "this run was clean" is a claim someone can check rather than an
+    absence they have to take on trust. `tests/network_reconciliation.py` is what
+    makes the report falsifiable.
     """
     yield
     s = _summary()
     if s["blocked"]:
         raise NetworkAccessInTests(
-            f"{len(s['blocked'])} blocked network connection attempt(s) during the run: "
+            f"{len(s['blocked'])} blocked network connection(s) during the run: "
             f"{sorted({a[1] for a in s['blocked']})}. "
             "Tests must stub the data module, not the socket."
         )
@@ -216,7 +272,7 @@ def _no_blocked_attempts_may_survive_the_session():
 
 @pytest.fixture(autouse=True)
 def _offline_policy(request):
-    """Lift the guard for `@pytest.mark.network`, and keep it on for everything else."""
+    """Stop blocking for `@pytest.mark.network`; keep counting for everything."""
     if request.node.get_closest_marker("network"):
         remove_guard()
         try:

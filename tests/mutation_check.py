@@ -527,11 +527,10 @@ def main(argv: list[str]) -> int:
         # Restore the pristine file first. The copy is shared between mutations,
         # and a stale edit from the previous one would make the next verdict a
         # lie -- which is the failure mode this harness is meant to be immune to.
-        # Re-checked per mutation, not just once before the loop. A mutation that
-        # altered import resolution -- an `__init__.py`, a `sys.path` edit, a
-        # `pyproject.toml` `[tool.pytest.ini_options]` change -- would otherwise
-        # silently point the suite back at the real tree and every verdict after it
-        # would be about code nobody edited.
+        # BEFORE the mutation. Its real job is here, and round 2's comment claimed a
+        # job it was not doing: if the previous iteration's `finally` restore failed,
+        # the tree is already dirty before this mutation is even applied, and this
+        # catches that. It is cheap and it is the common failure.
         assert_copy_is_under_test(tree)
 
         target = tree / mutation.relpath
@@ -547,6 +546,20 @@ def main(argv: list[str]) -> int:
             continue
         after = target.read_text()
         assert after != pristine, f"{mutation.ident}: the mutation did not change the file"
+
+        # AFTER the mutation, which is the only place the original claim can be
+        # true: a mutation that alters import resolution -- an `__init__.py`, a
+        # `sys.path` edit, a `pyproject.toml` `[tool.pytest.ini_options]` change --
+        # would otherwise point the suite back at the real tree, and every verdict
+        # for this mutation would be about code nobody edited. Round 2 ran the check
+        # only before `write_mutation`, where it could not see that.
+        try:
+            assert_copy_is_under_test(tree)
+        except RuntimeError as exc:
+            print(f"SKIPPED      {mutation.ident}: {exc}".splitlines()[0])
+            results.append((mutation, "SKIPPED", str(exc)))
+            target.write_text(pristine)
+            continue
         try:
             if mutation.arm == "python":
                 pv, out = run_python(tree)

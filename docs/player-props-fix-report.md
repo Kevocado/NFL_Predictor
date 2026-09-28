@@ -479,3 +479,108 @@ FAILED tests/test_props_stale_header_cors.py::test_the_marker_header_is_exposed_
 FAILED tests/test_props_stale_header_cors.py::test_a_fresh_week_declares_the_same_readable_set
 3 failed, 302 passed, 15 skipped
 ```
+
+## Fix round 3
+
+Round 2's counter could not move, and two of round 2's tests pinned that
+blindness. The review's independent probe measured 5 remote DNS resolutions and
+12 outbound connects in a run this file reported as `0/0/0/0`. Three fixes, all
+verified below against a counter this commit cannot influence.
+
+### Blocker 2, continued — the counter that could not move
+
+1. **`remove_guard()` switched the counter off exactly when the traffic
+   happened.** It restored the raw C functions, so under `@pytest.mark.network`
+   nothing was recorded. The recorders are now pass-throughs:
+   `_unguarded_connect` / `_unguarded_create_connection` record with
+   `guarded=False` and then delegate, and `getaddrinfo` is never un-wrapped.
+   Pinned by `test_an_unguarded_connect_is_recorded_and_tagged_unguarded` and
+   `test_an_unguarded_dns_resolution_is_recorded_as_remote`, which produce the
+   record through the real socket path rather than appending it by hand.
+2. **DNS targets were stored in a form the classifier could never match.**
+   `_target_of` fell through to `str(args[:1])`, so a host was stored as
+   `"('github.com',)"` — never in the loopback set, so `dns_local` was
+   structurally 0 and every loopback resolution was misfiled as remote. Hosts
+   are now stored as hosts (`_dns_target` / `_connect_target`), pinned directly
+   on the extraction helpers by `test_the_target_is_a_host_not_a_mangled_repr`
+   and through the classifier by `test_a_loopback_resolution_is_counted_as_local_not_remote`
+   and `test_a_remote_resolution_is_counted_as_remote`.
+3. **Two round-2 tests documented the blindness in-line.** One asserted
+   `not added` for an unguarded connect; another manufactured its
+   `guarded=False` record with a direct `ATTEMPTS.append`. Both now go through
+   the code under test.
+
+**The independent half: `tests/network_reconciliation.py`.** A generated
+`sitecustomize.py` on `PYTHONPATH` wraps the same three socket entry points
+before pytest, before `conftest.py`, before anything in this repository has had
+a chance to patch anything, and writes its records out at interpreter exit. The
+check is one-sided in the direction that matters: conftest may see fewer (its
+own tests undo their records), never more. A conftest record with no independent
+counterpart means conftest counted something that did not happen — which is the
+round-2 defect in its other form. Deliberately not a pytest test (it audits the
+session from outside it); wired into `tests.yml` and the mutation harness step.
+
+### The mutation-harness comment that claimed a job it was not doing
+
+Round 2 ran `assert_copy_is_under_test()` only *before* `write_mutation`, where
+it cannot see an import-resolution change the mutation itself introduces — an
+`__init__.py`, a `sys.path` edit, a `pyproject.toml` change would point the
+suite back at the real tree and every verdict for that mutation would be about
+code nobody edited. The pre-mutation check stays (it catches a dirty tree from
+a failed `finally` restore, the common failure); the check now also runs
+*after* the mutation, and a failure there is a counted `SKIPPED`, not a verdict.
+
+### The CORS test that passed while the marker went inert
+
+Round 2 filtered routes on the substring `"static"` in the path, so the
+idiomatic `app.mount("/", StaticFiles(directory=dist, html=True))` — path
+`"/"`, no "static" anywhere in it — passed while serving the bundle
+same-origin. The predicate now matches any `Mount`. And the uncomfortable part
+is recorded as a test instead of assumed in either direction:
+`test_the_frontend_default_base_url_is_same_origin` pins that `client.ts`
+defaults to a relative `/api` and that `VITE_API_BASE_URL` is set nowhere in
+this repository — so the shipped default is same-origin, the marker is
+groundwork whose value depends on a deploy question this repo cannot answer,
+and setting the variable is a deliberate act someone has to notice.
+
+### Round 3 verification
+
+```
+309 passed, 15 skipped          (was 302 / 15)
+[offline guard] network activity this session:
+    connects blocked (guard up)  : 0
+    connects made, guard lifted  : 8   <- @pytest.mark.network; expected, and not 'clean'
+    DNS to a non-loopback host    : 4   <- counted, not blocked
+    DNS to loopback               : 0
+      unguarded: connect 140.82.113.4
+      unguarded: connect 185.199.111.133
+      unguarded: connect github.com
+      unguarded: connect release-assets.githubusercontent.com
+      remote DNS: dns github.com
+      remote DNS: dns release-assets.githubusercontent.com
+```
+
+The counter moves: the same `network`-marked tests that round 2 reported as
+`0/0/0/0` now read as 8 unguarded connects and 4 remote DNS. `0 blocked` is the
+only zero that means clean, and it is the one the session fixture enforces.
+
+```
+========================================================================
+network reconciliation: conftest's counter vs an independent sitecustomize shim
+========================================================================
+conftest reported        : {'connects blocked (guard up)': 0, 'connects made, guard lifted': 8, 'DNS to a non-loopback host': 4, 'DNS to loopback': 0}
+independent connects seen : 12 (5 distinct)  [('connect', '127.0.0.1'), ('connect', '140.82.113.4'), ('connect', '185.199.111.133'), ('connect', 'github.com'), ('connect', 'release-assets.githubusercontent.com')]
+independent DNS seen      : 11  ['127.0.0.1', 'github.com', 'localhost', 'nfl-predictor-remote-probe.invalid', 'release-assets.githubusercontent.com']
+independent remote DNS    : 7
+
+  note: conftest saw 0 connects blocked (guard up) against the shim's 12 -- expected, because conftest's own tests undo their records
+  note: conftest saw 8 connects made, guard lifted against the shim's 12 -- expected, because conftest's own tests undo their records
+  note: conftest saw 4 DNS to a non-loopback host against the shim's 7 -- expected, because conftest's own tests undo their records
+  note: conftest saw 0 DNS to loopback against the shim's 4 -- expected, because conftest's own tests undo their records
+reconciled: conftest reported nothing the independent counter could not see
+```
+
+Reconciler exit 0. Every conftest number is at or below the independent count,
+in the direction the docstring predicts; nothing reported that did not happen.
+
+Mutations: **30 caught, 0 survived, 0 inconclusive, 5 canary (all correct)**.

@@ -150,14 +150,71 @@ def test_the_frontend_base_url_is_cross_origin_in_a_deployed_build():
     """
     from nfl_predictor.api import main as main_mod
 
-    mounted = [
+    # Any Mount, not one whose path happens to contain the substring "static".
+    # Round 2 filtered on that substring, so the idiomatic
+    # `app.mount("/", StaticFiles(directory=dist, html=True))` -- path `"/"`, no
+    # "static" anywhere in it -- passed this test while the marker went inert.
+    # The predicate has to ask "does the API serve a filesystem", not "is this
+    # route spelled a particular way".
+    mounts = [
         route for route in main_mod.app.routes
-        if route.__class__.__name__ == "Mount" and "static" in str(getattr(route, "path", "")).lower()
+        if route.__class__.__name__ == "Mount" or "static" in type(route).__name__.lower()
     ]
-    assert not mounted, (
-        "the API now serves frontend/dist itself, so the frontend is same-origin and the "
-        "X-Player-Props-Stale marker path is inert. Re-evaluate: if it is same-origin the "
-        "expose_headers fix is harmless but unnecessary, and the marker still works."
+    assert not mounts, (
+        f"the API now mounts {mounts}, so it may be serving frontend/dist itself and the "
+        "frontend would be same-origin, making the X-Player-Props-Stale marker inert. "
+        "Re-evaluate rather than delete: same-origin means expose_headers is harmless but "
+        "unnecessary, and the marker still works."
+    )
+
+
+def test_the_frontend_default_base_url_is_same_origin():
+    """**The honest uncomfortable part, recorded as a test.**
+
+    `client.ts` resolves its base as `import.meta.env.VITE_API_BASE_URL ?? "/api"`,
+    and `VITE_API_BASE_URL` is set nowhere in this repository -- no `.env`, no
+    `.env.example` entry, no build step, no CI variable. So the *shipped default* is
+    a relative `/api`, which resolves against the page's own origin.
+
+    Which means: with no configuration at all, the frontend is same-origin, the
+    `X-Player-Props-Stale` header is readable without `expose_headers`, and every
+    word written about cross-origin in this file and in the fix report describes an
+    arrangement this repository does not itself establish. The evidence that a real
+    deployment *is* cross-origin is circumstantial -- the API never serves
+    `frontend/dist`, so the bundle has to be hosted by something else -- and an
+    inference about a deployment is not a fact about this code.
+
+    So the marker is groundwork whose value depends on a deploy question this
+    repository cannot answer, and this test exists so the default stays visible in
+    the diff instead of being quietly assumed in either direction. If someone sets
+    `VITE_API_BASE_URL`, the arrangement is settled and the cross-origin reasoning
+    becomes load-bearing rather than inferred.
+    """
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[1]
+    client_src = (repo / "frontend" / "src" / "api" / "client.ts").read_text()
+    assert '?? "/api"' in client_src, (
+        "the frontend's default base URL changed; re-evaluate the same-origin note in "
+        "this file and the CORS reasoning in the fix report"
+    )
+
+    # Checked rather than asserted in prose, so setting it is a deliberate act
+    # someone has to notice.
+    offenders = sorted(
+        str(p.relative_to(repo))
+        for p in repo.rglob("*")
+        if p.is_file()
+        and p.suffix in {".ts", ".tsx", ".js", ".json", ".yml", ".yaml"}
+        and "node_modules" not in p.parts
+        and ".git" not in p.parts
+        and "VITE_API_BASE_URL" in p.read_text(errors="ignore")
+        and p.name != "client.ts"
+    )
+    assert not offenders, (
+        f"VITE_API_BASE_URL is now set in {offenders}; the frontend is no longer "
+        "same-origin by default and the CORS reasoning in the fix report is now "
+        "load-bearing -- update it in the same change"
     )
 
 
