@@ -120,6 +120,114 @@ def test_record_game_predictions_persists_spread_and_total_lines():
     assert row["total_line"] == 51.5
 
 
+def _insert_legacy_row(conn, *, game_id, ats_hit, home_cover_prob, away_cover_prob,
+                       total_hit=None, over_prob=None, under_prob=None):
+    """Write a row in the shape the pre-`_present` build produced.
+
+    The current write path cannot produce this -- `_compute_hits` leaves `ats_hit`
+    and `total_hit` NULL when the probabilities are missing -- so the only way to
+    test the read path is to insert the row directly. The deployed database holds
+    these.
+    """
+    conn.execute(
+        """
+        INSERT INTO game_predictions (
+            game_id, home_team, away_team, commence_time, snapshotted_at,
+            home_win_prob, away_win_prob, home_cover_prob, away_cover_prob,
+            over_prob, under_prob, home_spread_line, total_line,
+            resolved, actual_home_score, actual_away_score, moneyline_hit,
+            ats_hit, total_hit
+        ) VALUES (?, 'SF', 'DAL', '2025-09-14T20:20:00', '2025-09-14T17:00:00',
+                  0.55, 0.45, ?, ?, ?, ?, -3.5, 51.5,
+                  1, 20, 24, 1, ?, ?)
+        """,
+        (game_id, home_cover_prob, away_cover_prob, over_prob, under_prob,
+         ats_hit, total_hit),
+    )
+    conn.commit()
+
+
+def _record_one_genuine_hit():
+    """One real graded game, a HIT on *both* markets.
+
+    30-30 with a -3.5 spread and a 51.5 total: home covers (-3.5) and the game
+    goes over, and the model predicted both. Deliberately chosen so the genuine row
+    is a HIT on every market -- a fabricated MISS is then the only thing that can
+    move an aggregate off 1.0, so a filter that fails to exclude it is visible on
+    each market independently.
+    """
+    store.record_game_predictions([_future_game()])
+    results = pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 30}])
+    store.reconcile_game_predictions(results)
+
+
+def test_track_record_aggregate_excludes_a_legacy_ats_row_with_no_cover_probabilities():
+    """`get_game_verdict` already refuses to show an ATS market for a row whose cover
+    probabilities are missing. The aggregate must agree: `pct_ats_correct` counted
+    those same rows, so one game produced two opposite answers -- a per-game view
+    with no ATS market beside an ATS percentage that included it.
+
+    The fabricated row is a MISS and the genuine row is a HIT, so including the
+    fabricated one moves the aggregate to 0.5 and the two cases cannot be confused.
+    """
+    import contextlib
+
+    _record_one_genuine_hit()
+    with contextlib.closing(store._connect()) as conn:
+        _insert_legacy_row(
+            conn, game_id="2025_02_SF_DAL", ats_hit=0,
+            home_cover_prob=None, away_cover_prob=None,
+        )
+
+    track = store.get_track_record()
+
+    # the per-game view already declines to report an ATS market for it
+    # (`ats` is present but None -- the guard at store.py:593 leaves it unset)
+    assert store.get_game_verdict("2025_02_SF_DAL")["ats"] is None
+    # and the aggregate must not count it either
+    assert track["games"]["pct_ats_correct"] == 1.0
+
+
+def test_track_record_aggregate_excludes_a_legacy_ats_row_with_half_a_market():
+    """One probability present and one missing is not a call either.
+
+    `0.6` against `None` is not obviously the home side, but it is not a two-sided
+    market, so the comparison never had two things to compare. A filter that checks
+    only the first column of the pair would let this row through, which is why this
+    case is separate from the both-missing one above.
+    """
+    import contextlib
+
+    _record_one_genuine_hit()
+    with contextlib.closing(store._connect()) as conn:
+        _insert_legacy_row(
+            conn, game_id="2025_03_SF_DAL", ats_hit=0,
+            home_cover_prob=0.6, away_cover_prob=None,
+        )
+
+    assert store.get_game_verdict("2025_03_SF_DAL")["ats"] is None
+    assert store.get_track_record()["games"]["pct_ats_correct"] == 1.0
+
+
+def test_track_record_aggregate_excludes_a_legacy_totals_row_with_no_probabilities():
+    """Same defect on the totals market, which is why the filter is applied twice.
+
+    A total line recorded with no over/under probabilities produced the same
+    fabricated `total_hit` the ATS fix removed.
+    """
+    import contextlib
+
+    _record_one_genuine_hit()
+    with contextlib.closing(store._connect()) as conn:
+        _insert_legacy_row(
+            conn, game_id="2025_04_SF_DAL", ats_hit=None,
+            home_cover_prob=None, away_cover_prob=None,
+            total_hit=0, over_prob=None, under_prob=None,
+        )
+
+    assert store.get_track_record()["games"]["pct_totals_correct"] == 1.0
+
+
 def test_reconcile_grades_moneyline_ats_and_totals():
     import contextlib
 
