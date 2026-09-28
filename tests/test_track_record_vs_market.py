@@ -140,6 +140,37 @@ def test_sigma_league_is_the_documented_nfl_value():
     assert 10.0 < store.SIGMA_LEAGUE_NFL < 20.0
 
 
+def test_sigma_league_is_a_width_not_the_coin_flip_line():
+    """σ is one standard deviation of the margin, so a line EQUAL to it is a
+    one-sigma bar and the cover probability there is ~16%, not 50%.
+
+    This is the arithmetic under a prose defect. The `implied_probability` string
+    once said "a line of 13.5 points either way is a 50/50 cover" -- the number was
+    the σ being quoted above it, the sentence was false, and it contradicted the
+    next clause in the same breath. The tests could not catch that directly without
+    regexing English, which is worse than useless: a regex either hard-codes the
+    corrected wording or is loose enough to pass the false text. What CAN be pinned
+    honestly is the property the prose got wrong, so the next writer who reaches for
+    σ when they want a coin flip trips an assertion instead of shipping a lie.
+    """
+    sigma = store.SIGMA_LEAGUE_NFL
+
+    # A one-sigma line is a 15.9% cover, and its mirror an 84.1% cover.
+    assert store.implied_home_cover_prob(sigma) == pytest.approx(0.15866, abs=1e-4)
+    assert store.implied_home_cover_prob(-sigma) == pytest.approx(0.84134, abs=1e-4)
+
+    # 50/50 belongs to 0.0 and to nothing else, which is the claim the prose got
+    # backwards. A line a tenth of a point off pick'em is already not a coin flip.
+    assert store.implied_home_cover_prob(0.0) == pytest.approx(0.5, abs=1e-12)
+    assert store.implied_home_cover_prob(0.1) < 0.5
+    # And distance from 0.0 is what moves the probability away from 50%, symmetrically.
+    for line in (3.5, 7.0, 13.5, 20.0):
+        assert abs(store.implied_home_cover_prob(line) - 0.5) == pytest.approx(
+            abs(store.implied_home_cover_prob(-line) - 0.5), abs=1e-12
+        )
+        assert store.implied_home_cover_prob(line) < 0.5 < store.implied_home_cover_prob(-line)
+
+
 def test_sigma_league_is_stated_in_the_payload_in_words():
     """The page has to explain the number, not just print it. A number nobody can
     interpret is not a decision aid, and a tooltip nobody opens is not an

@@ -808,15 +808,18 @@ _VS_MARKET_METHOD = {
     ),
     "implied_probability": (
         f"The closing line is a margin -- the home team's expected margin -- so the "
-        f"probability the market is asserting for the home side to cover it is "
-        f"Φ(-spread / {SIGMA_LEAGUE_NFL}), the Normal cumulative at the NEGATED line "
-        f"divided by {SIGMA_LEAGUE_NFL}. The minus sign is not a preference: lines are "
-        f"quoted here in the expected-margin convention, where a POSITIVE line means "
-        f"the home team is favoured, and the home side covers by beating that line. A "
-        f"line of {SIGMA_LEAGUE_NFL} points either way is a 50/50 cover, and a line "
-        "favouring the home team is a probability below 50% for the home side to "
-        "cover it -- exactly as it is below 50% that a team favoured by seven wins "
-        "by more than seven."
+        f"probability that the home side covers it is Φ(-spread / {SIGMA_LEAGUE_NFL}), "
+        f"the Normal cumulative at the NEGATED line divided by {SIGMA_LEAGUE_NFL}. "
+        f"That is the market's margin read through the league width stated below, not "
+        f"a figure the market published: the line is the market's, the width is this "
+        f"model's. The minus sign is not a preference: lines are quoted here in the "
+        f"expected-margin convention, where a POSITIVE line means the home team is "
+        f"favoured, and the home side covers by beating that line. Only a line of 0.0 "
+        f"is a 50/50 cover. The line is a bar to clear, so the further it sits from "
+        f"0.0 the further the probability sits from 50%: a line favouring the home "
+        f"team is below 50% for the home side to cover it, which is the same "
+        f"statement as it being under 50% likely that a team favoured by seven wins "
+        f"by more than seven."
     ),
     "edge": (
         "Edge is the model's cover probability minus the probability the closing line "
@@ -839,12 +842,15 @@ _VS_MARKET_METHOD = {
         "comparison does not become one by being labelled 'edge'."
     ),
     "population": (
-        "The headline figure covers every game the tracker holds a line for, in every "
-        "season, because that is the question the page is answering. The weekly chart "
-        "below it covers one season's elapsed weeks only, so the two are over different "
-        "populations on purpose. The block's scope states how many of the games the "
-        "chart accounts for and how many fall outside it; the two add up to the "
-        "headline's count, so no game is in one and silently missing from the other."
+        "The headline figure covers every game the tracker holds a line, both cover "
+        "probabilities and a final score for, in every season, because that is the "
+        "question the page is answering. A game missing any one of those is left out "
+        "of both this figure and the chart below rather than counted as a neutral "
+        "observation, which is why a game with a line can still be missing from both. "
+        "The chart covers one season's elapsed weeks only, so the two are over "
+        "different populations on purpose. The block's scope states how many of the "
+        "games the chart accounts for and how many fall outside it; the two add up to "
+        "the headline's count, so no game is in one and silently missing from the other."
     ),
 }
 
