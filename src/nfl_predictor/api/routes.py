@@ -771,17 +771,19 @@ def background_tracking_tick(season: int, week: int) -> None:
         if not completed.empty:
             actual_stats = player_stats.fetch_weekly_player_stats([season])
             if actual_stats.empty:
-                # `hub_cache.cached_frame` catches the upstream 404 and returns an
-                # empty frame on purpose, so the site shows dashes instead of
-                # erroring, and it logs at INFO -- below the default threshold, and
-                # per season per tick, so raising it there would flood. The
-                # consequence lands here, so it is reported here: once per tick, at a
-                # level that is actually visible.
+                # The empty frame comes from `player_stats.fetch_weekly_player_stats`
+                # -- its own `except Exception` around `_import_weekly_data`, which
+                # logs at INFO and continues. (An earlier version of this comment
+                # credited `hub_cache.cached_frame`; that module is not on this code
+                # path and `player_stats` does not import it.)
                 #
-                # `n_resolved: 0` on the track record with snapshots still being
-                # written looks exactly like a tracking bug. It is this. Verified
-                # URLs, and why a prop backfill would be the wrong fix:
-                # docs/player-prop-accuracy-blocker.md
+                # The message deliberately does NOT name a cause. This branch is
+                # reached by at least three: a 404 because the season is unpublished
+                # (the case today, verified), a 200 carrying no rows for the season,
+                # and a rate limit or schema change swallowed by the same bare
+                # `except`. Asserting "404" in a permanent log line would be a guess
+                # presented as a diagnosis. Verified evidence, and why a prop backfill
+                # would be the wrong fix: docs/player-prop-accuracy-blocker.md
                 #
                 # Note the `else`, not a `return`. The game backfill below is a
                 # separate `try` block in the same tick, and returning would let a
@@ -789,9 +791,11 @@ def background_tracking_tick(season: int, week: int) -> None:
                 # which is the part that works, and would have regressed from 30 of
                 # 33 resolved to 0 with no error anywhere.
                 logger.warning(
-                    "player prop reconciliation skipped: no nflverse player stats for season %s "
-                    "(player_stats_%s.parquet is 404 upstream); n_resolved will stay 0 until "
-                    "the file is published -- see docs/player-prop-accuracy-blocker.md",
+                    "player prop reconciliation skipped: no player stats for season %s, so no "
+                    "snapshot can be resolved and n_resolved stays 0. Most likely nflverse has "
+                    "not published the season's weekly file (player_stats_%s.parquet currently "
+                    "404s); it may also be a rate limit or a schema change. See "
+                    "docs/player-prop-accuracy-blocker.md",
                     season, season,
                 )
             else:

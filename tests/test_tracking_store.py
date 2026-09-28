@@ -601,3 +601,99 @@ def test_get_game_verdict_keeps_reconciling_markets_when_probabilities_are_prese
     assert verdict["ats"]["predicted"] == "home_cover"
     assert verdict["ats"]["hit"] is True
     assert verdict["totals"] is not None
+
+
+def test_track_record_does_not_count_fabricated_ats_hits_from_the_old_build():
+    """The aggregate reader, which the first fix left unguarded.
+
+    `_compute_hits` stopped writing a hit flag for a market whose probabilities are
+    missing, and `get_game_verdict` stopped reporting one — but `_summarize_games`
+    filtered on `notna()` alone, so every row the old build fabricated still counted
+    towards `pct_ats_correct`, the number the track record leads with. The same game
+    got two opposite answers: per-game verdict "no ATS market", track record
+    "100% ATS accuracy".
+    """
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=-3.5, home_cover_prob=None, away_cover_prob=None,
+        total_line=51.5, over_prob=None, under_prob=None,
+    )])
+    with contextlib.closing(store._connect()) as conn, conn:
+        conn.execute(
+            "UPDATE game_predictions SET resolved = 1, ats_hit = 1, total_hit = 1, "
+            "moneyline_hit = 1, actual_home_score = 30, actual_away_score = 20 "
+            "WHERE game_id = '2025_01_BAL_KC'"
+        )
+
+    with contextlib.closing(store._connect()) as conn:
+        rows = pd.read_sql("SELECT * FROM game_predictions", conn)
+
+    summary = store._summarize_games(rows)
+
+    assert summary["n_resolved"] == 1
+    assert summary["pct_moneyline_correct"] == 1.0
+    assert summary["pct_ats_correct"] is None, (
+        f"a fabricated ATS hit is still in the headline: {summary['pct_ats_correct']}"
+    )
+    assert summary["pct_totals_correct"] is None, (
+        f"a fabricated totals hit is still in the headline: {summary['pct_totals_correct']}"
+    )
+
+
+def test_a_genuinely_graded_market_is_still_counted_in_the_aggregate():
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game()])
+    store.reconcile_game_predictions(
+        pd.DataFrame([{"game_id": "2025_01_BAL_KC", "home_score": 30, "away_score": 20}])
+    )
+    with contextlib.closing(store._connect()) as conn:
+        rows = pd.read_sql("SELECT * FROM game_predictions", conn)
+
+    summary = store._summarize_games(rows)
+
+    assert summary["pct_ats_correct"] == 1.0
+    # over_prob == under_prob == 0.5 so `>=` calls over; the game totalled 50 against a
+    # 51.5 line, so the call was wrong. 0.0 is the point -- the row is *counted*.
+    assert summary["pct_totals_correct"] == 0.0
+
+
+def test_get_game_verdict_refuses_a_market_whose_line_is_missing():
+    """The read path must require what the write path requires.
+
+    `_compute_hits` grades a market only when the line *and* both probabilities are
+    present. The read path re-derives `predicted` from the stored probabilities, and
+    originally required only those two — so it would report `"home_cover"` for a market
+    with no spread line, which is precisely the "silent contradiction inside one verdict
+    object" its own comment said could not happen.
+    """
+    import contextlib
+
+    import pandas as pd
+
+    from nfl_predictor.tracking import store
+
+    store.record_game_predictions([_future_game(
+        home_spread_line=None, home_cover_prob=0.55, away_cover_prob=0.45,
+        total_line=None, over_prob=0.52, under_prob=0.48,
+    )])
+    with contextlib.closing(store._connect()) as conn, conn:
+        conn.execute(
+            "UPDATE game_predictions SET resolved = 1, ats_hit = 1, total_hit = 1, "
+            "moneyline_hit = 1, actual_home_score = 30, actual_away_score = 20 "
+            "WHERE game_id = '2025_01_BAL_KC'"
+        )
+
+    verdict = store.get_game_verdict("2025_01_BAL_KC")
+
+    assert verdict["ats"] is None, f"reported a call with no line: {verdict['ats']}"
+    assert verdict["totals"] is None, f"reported a call with no line: {verdict['totals']}"

@@ -449,8 +449,30 @@ def _summarize_games(resolved: pd.DataFrame) -> dict:
             "n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None,
             "pct_totals_correct": None, "weekly_trend": [],
         }
-    ats = resolved[resolved["ats_hit"].notna()]
-    totals = resolved[resolved["total_hit"].notna()]
+    # A stored hit flag is not on its own evidence of a graded market. Rows written by
+    # the pre-`_present` build carry an `ats_hit` for games where the cover
+    # probabilities were never computed, and filtering on `notna()` alone counted those
+    # fabrications in `pct_ats_correct` -- the headline the track-record page leads
+    # with. `get_game_verdict` already refuses to report a `predicted` side for exactly
+    # these rows, so without this the per-game view and the aggregate gave opposite
+    # answers about the same game:
+    #     get_track_record()['games'] -> {'pct_ats_correct': 1.0, ...}
+    #     get_game_verdict('g1')['ats'] -> None
+    # The data migration that would repair the stored flags is separate; until it runs,
+    # excluding the rows here is what keeps the aggregate honest.
+    def _pair_present(*columns: str) -> pd.Series:
+        """Row-wise `all(_present(...))`, for filtering a frame.
+
+        `_present` is scalar; passing it Series would make `pd.isna` return a Series
+        and blow up on truthiness. Same rule, expressed over columns.
+        """
+        mask = pd.Series(True, index=resolved.index)
+        for column in columns:
+            mask &= resolved[column].notna()
+        return mask
+
+    ats = resolved[resolved["ats_hit"].notna() & _pair_present("home_cover_prob", "away_cover_prob")]
+    totals = resolved[resolved["total_hit"].notna() & _pair_present("over_prob", "under_prob")]
 
     weekly_trend = []
     with_week = resolved[resolved["week"].notna()]
@@ -569,10 +591,18 @@ def get_game_verdict(game_id: str) -> dict | None:
     # written by an older build cannot report a `predicted` side fabricated here: the
     # two must agree, and a disagreement would be a silent contradiction inside one
     # verdict object.
-    if pd.notna(row["ats_hit"]) and _present(row["home_cover_prob"], row["away_cover_prob"]):
+    if (
+        pd.notna(row["ats_hit"])
+        and _present(row["home_spread_line"])
+        and _present(row["home_cover_prob"], row["away_cover_prob"])
+    ):
         predicted_home_cover = row["home_cover_prob"] >= row["away_cover_prob"]
         verdict["ats"] = {"hit": bool(row["ats_hit"]), "predicted": "home_cover" if predicted_home_cover else "away_cover"}
-    if pd.notna(row["total_hit"]) and _present(row["over_prob"], row["under_prob"]):
+    if (
+        pd.notna(row["total_hit"])
+        and _present(row["total_line"])
+        and _present(row["over_prob"], row["under_prob"])
+    ):
         predicted_over = row["over_prob"] >= row["under_prob"]
         verdict["totals"] = {"hit": bool(row["total_hit"]), "predicted": "over" if predicted_over else "under"}
     return verdict
