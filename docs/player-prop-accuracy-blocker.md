@@ -19,8 +19,10 @@ correction** — the props are still unmeasurable and still waiting on nflverse.
    (`api/routes.py`, inside the tick's `try` block).
 2. That reads nflverse's weekly player stats for the season being played.
 3. nflverse returns **HTTP 404** for the current and previous seasons.
-4. `hub_cache.cached_frame` catches it and returns an empty frame — deliberately,
-   so the site shows dashes rather than erroring.
+4. `player_stats.fetch_weekly_player_stats` catches it in its own bare
+   `except Exception` (`data/player_stats.py:64`) and returns an empty frame
+   (`:72`) — deliberately, so the site shows dashes rather than erroring. It logs
+   the failure at `logger.info` on the way through (`:65`).
 5. `reconcile_player_prop_predictions` returns 0 at its first line
    (`if player_stats_df.empty: return 0`).
 
@@ -224,13 +226,56 @@ So when nflverse publishes, the correct sequence is:
 
 ## Why this was hard to see
 
-`hub_cache.cached_frame` does log the failure — at `logger.info`, which is below the
-default WARNING threshold, so it does not appear in normal operation. That is the
-right level for the fetch itself, which runs per season per tick and would otherwise
-flood. The consequence is now logged at WARNING from the reconcile call site, once
-per tick, where it is actionable:
+`player_stats.fetch_weekly_player_stats` does log the failure — at `logger.info`
+(`data/player_stats.py:65`), which is below the default WARNING threshold, so it does
+not appear in normal operation. That is the right level for the fetch itself, which
+runs per season per tick and would otherwise flood. The consequence is now logged at
+WARNING from the reconcile call site, once per tick, where it is actionable:
 
 ```
 player prop reconciliation skipped: nflverse has no player stats for season 2026
 (player_stats_2026.parquet is 404 upstream); n_resolved will stay 0
 ```
+
+### Also corrected here: the module that swallows the 404
+
+This section previously read "`hub_cache.cached_frame` does log the failure — at
+`logger.info`", and step 4 of the chain above credited the same function with
+returning the empty frame. **Both were wrong, and so was the name in the sentence
+just rewritten.** `player_stats` does not import `hub_cache`:
+
+```
+$ grep -rn hub_cache src/
+src/nfl_predictor/api/routes.py:795:      # `hub_cache.cached_frame` catches the upstream 404 and returns an
+src/nfl_predictor/data/team_efficiency.py:9:from .hub_cache import cached_frame
+src/nfl_predictor/data/player_season.py:8:from .hub_cache import cached_frame
+```
+
+Three hits, and **not one of them is `player_stats.py`**. The two imports are the
+Data Hub's own pulls. The third is the stale comment quoted in the next paragraph.
+`player_stats.py`'s entire import block is `logging`, `pandas` and
+`..config.PLAYER_STATS_CACHE_DIR`. The 404 never reaches `hub_cache.cached_frame`;
+it is caught by `player_stats`' own bare `except Exception` at
+`data/player_stats.py:64`, logged at `:65`, skipped with `continue` at `:66`, and the
+empty frame is returned at `:72` by the `if not frames` fallthrough. `hub_cache` does
+have its own `logger.info` on the same level (`data/hub_cache.py:27`), which is what
+made the misattribution easy to repeat — two unrelated INFO logs, one of them on the
+path that actually fails.
+
+**One instance of the same error survives in this repository, in source.** The comment
+at `api/routes.py:795`, inside the very `try` block that calls
+`player_stats.fetch_weekly_player_stats`, still says `hub_cache.cached_frame` catches
+the 404. It is a comment, so it changes no behaviour and no test; it is left here
+rather than fixed because this correction is docs-only. Whoever next touches
+`background_tracking_tick` should fix that line in the same commit.
+
+**This does not change the diagnosis.** The 404 is real and is the blocker either way;
+only the account of *which function* produces the empty frame was wrong. A reader who
+follows the corrected path reaches the same conclusion a reader of the old text did,
+and now knows where to look.
+
+Commit `6762edb` recorded this same correction in the predictor-hub ledger's
+review-round table and did not carry it into this document, so both instances here
+survived it. This is the same failure mode as the retracted section above — a
+plausible mechanism written down as a finding — and it is corrected in place rather
+than quietly deleted.
