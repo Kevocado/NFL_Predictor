@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+from scipy.stats import norm
 
 from ..config import CACHE_DIR, TRACKING_DB_PATH
 
@@ -737,6 +738,177 @@ _POINT_FORECASTS = (
 )
 
 
+# --- B5: the model against the market ---------------------------------------
+#
+# The closing spread is already stored (`home_spread_line`, nflverse convention:
+# the home team's expected margin; home covers when the real margin exceeds it).
+# Turning a line into a probability needs one assumption: how wide a game's final
+# margin typically is, in points. That is σ_league, and it is the only invented
+# number in this block, which is why it is a named constant with a test asserting
+# its value rather than an inline 13.5 in three places.
+#
+# PROVENANCE: NFL 13.5, from the design spec
+# `docs/superpowers/specs/2026-09-27-predicted-box-score-and-track-record-design.md`
+# ("σ_league a single named, documented constant per sport (NFL 13.5, CFB 14.0,
+# to be pinned in the plan and asserted in a test so it cannot drift silently").
+# The spec chose the value; this repo pins it. CFB's 14.0 belongs to CFB_Predictor
+# and is NOT set here -- a per-sport constant has to live in the repo serving that
+# sport, or the two will drift apart.
+#
+# Changing it silently would reinterpret every implied probability, every edge and
+# every disagreement in the record, and nothing else in the codebase would notice.
+SIGMA_LEAGUE_NFL = 13.5
+
+# The same disclaimers, in words, in the payload. The page has to be able to
+# explain what it is showing; a number nobody can interpret is not a decision aid,
+# and a tooltip nobody opens is not an explanation.
+_VS_MARKET_METHOD = {
+    "sigma_league_points": SIGMA_LEAGUE_NFL,
+    "sigma_league_meaning": (
+        "NFL final margin is treated as roughly Normal with a standard deviation of "
+        f"{SIGMA_LEAGUE_NFL} points. That single number is what turns a closing spread "
+        "into a probability."
+    ),
+    "implied_probability": (
+        f"The closing line is a margin, so the probability the market is asserting is "
+        f"Φ(spread / {SIGMA_LEAGUE_NFL}), the Normal cumulative at the spread divided by "
+        f"{SIGMA_LEAGUE_NFL}. A line of {SIGMA_LEAGUE_NFL} points is a 50/50 cover; a line "
+        "favouring the home team is a probability below 50% for the home side to cover."
+    ),
+    "edge": (
+        "Edge is the model's cover probability minus the probability the closing line "
+        "implies, in percentage points, positive when the model likes a side more than "
+        "the price does. It measures disagreement with a price, not superiority: a "
+        "closing line is the market's best estimate, so a well-calibrated model's average "
+        "edge is near zero by design. A large average edge would mean one of the two is "
+        "miscalibrated, not that the model is right."
+    ),
+    "disagreement": (
+        "The disagreement cohort is the games where the model backed the side the line "
+        "did not favour -- a pick against the price. Its hit rate is how often that side "
+        "covered, over exactly those games. Pick'em lines and evenly split model "
+        "probabilities are excluded, because neither has a side to disagree with. This is "
+        "the number to read for a decision; the mean edge is a calibration check."
+    ),
+    "not_a_profit_claim": (
+        "This is agreement with a price, not a profit claim. No figure here is a return, "
+        "a yield, a stake or a cent. We do not publish profit or ROI figures, and this "
+        "comparison does not become one by being labelled 'edge'."
+    ),
+}
+
+
+def implied_home_cover_prob(spread: float, sigma_league: float = SIGMA_LEAGUE_NFL) -> float:
+    """P(home covers) implied by a closing spread, under the league margin sigma.
+
+    The sign convention is the whole function, and getting it backwards is invisible:
+    every implied probability would be exactly mirrored around 0.5, so the numbers
+    would still look reasonable. A negative `home_spread_line` means the home team is
+    expected to win by that many points, and therefore is expected to cover LESS than
+    half the time, so the line goes into the Normal cumulative un-negated.
+    """
+    return float(norm.cdf(spread / sigma_league))
+
+
+def _market_row(frame: pd.DataFrame) -> dict:
+    """One game (or one week) of the model-vs-market comparison.
+
+    Eligible means: a real closing spread, both cover probabilities, and a real
+    margin to grade against. Each missing piece removes the game from the whole
+    block rather than contributing a neutral observation -- a game with no line has
+    no price to disagree with, and 0.0 edge would be a fabricated agreement.
+    """
+    summary = {
+        "n": 0, "mean_implied_home_cover_prob": None, "mean_model_home_cover_prob": None,
+        "mean_edge_points": None, "disagreement_n": 0, "disagreement_hit_rate": None,
+        "games": [],
+    }
+    if frame is None or frame.empty:
+        return summary
+    eligible = frame[
+        frame["home_spread_line"].notna()
+        & frame["home_cover_prob"].notna()
+        & frame["away_cover_prob"].notna()
+        & _actual_home(frame).notna()
+        & _actual_away(frame).notna()
+    ]
+    if eligible.empty:
+        return summary
+
+    implied = eligible["home_spread_line"].map(implied_home_cover_prob).astype(float)
+    model = eligible["home_cover_prob"].astype(float)
+    edge_points = (model - implied) * 100.0
+
+    disagreeing = _disagreeing_games(eligible)
+    summary.update({
+        "n": int(len(eligible)),
+        "mean_implied_home_cover_prob": float(implied.mean()),
+        "mean_model_home_cover_prob": float(model.mean()),
+        "mean_edge_points": float(edge_points.mean()),
+        "disagreement_n": int(len(disagreeing)),
+        "disagreement_hit_rate": (
+            float(disagreeing["ats_hit"].mean()) if not disagreeing.empty else None
+        ),
+        "games": sorted(str(g) for g in disagreeing["game_id"]),
+    })
+    return summary
+
+
+def _actual_home(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"]
+
+
+def _actual_away(frame: pd.DataFrame) -> pd.Series:
+    if "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_away_score"]
+
+
+def _disagreeing_games(eligible: pd.DataFrame) -> pd.DataFrame:
+    """Games where the model backed the side the closing line did not favour.
+
+    Three exclusions, each for a stated reason:
+
+    - **Pick'em** (`home_spread_line == 0`): the line favours nobody, so there is no
+      side to disagree with. Not agreement either -- absence of a position, not a
+      position.
+    - **Evenly split model** (`home_cover_prob == away_cover_prob`): the model is not
+      leaning anywhere. `>=` would hand these to home on a coin-flip tie.
+    - **Pushes** (final margin exactly equal to the line): nobody won and nobody lost.
+      `get_calibration` already declines to grade these (`margin != float(line)`),
+      and this follows it rather than re-deriving a verdict from the scores, which
+      would call the away side a winner of a game nobody won.
+    """
+    if eligible.empty:
+        return eligible.iloc[0:0]
+    margin = _actual_home(eligible) - _actual_away(eligible)
+    line = eligible["home_spread_line"].astype(float)
+    home = eligible["home_cover_prob"].astype(float)
+    away = eligible["away_cover_prob"].astype(float)
+    line_favours_home = line < 0
+    model_favours_home = home > away
+    return eligible[
+        (line != 0)
+        & (home != away)
+        & (margin != line)
+        & (line_favours_home != model_favours_home)
+    ]
+
+
+def _vs_market_weekly(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict:
+    groups = _week_groups(resolved, current_week, season)
+    return {
+        "weekly": [
+            {**_market_row(groups.get(week)), "week": int(week), "tracked": week in groups}
+            for week in range(1, _window_end(current_week, groups) + 1)
+        ]
+    }
+
+
 def _point_forecast_weekly(
     resolved: pd.DataFrame, current_week: int | None, season: int | None
 ) -> dict[str, dict]:
@@ -781,6 +953,7 @@ def _summarize_games(
     }
     for key, block in _point_forecast_weekly(resolved, current_week, season).items():
         forecasts[key]["weekly"] = block["weekly"]
+    market = _market_row(resolved)
     return {
         "n_resolved": int(len(resolved)),
         # The headline counts too. A rate without its denominator is exactly the
@@ -789,6 +962,18 @@ def _summarize_games(
         **{pct: graded[column]["pct"] for column, _, pct in _GRADED_MARKETS},
         "weekly": _weekly_window(resolved, current_week, season),
         **forecasts,
+        "vs_market": {
+            **{k: v for k, v in market.items() if k != "games"},
+            # The cohort's game list lives under its own key: `games` at the top
+            # level of this block would read as every game compared, which is `n`.
+            "disagreement": {
+                "n": market["disagreement_n"],
+                "hit_rate": market["disagreement_hit_rate"],
+                "games": market["games"],
+            },
+            **_vs_market_weekly(resolved, current_week, season),
+            "method": dict(_VS_MARKET_METHOD),
+        },
     }
 
 
