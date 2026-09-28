@@ -332,8 +332,8 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
         for label, lo, hi in _TD_CONFIDENCE_BUCKETS:
             in_bucket = anytime_td[(anytime_td["predicted_value"] >= lo) & (anytime_td["predicted_value"] < hi)]
             buckets.append({
-                "bucket": label,
-                "n_resolved": int(len(in_bucket)),
+                "label": label,
+                "n": int(len(in_bucket)),
                 # actual_value is 1.0/0.0 for anytime_td, so the mean is the hit rate,
                 # same convention as hit_rate_when_called above.
                 "hit_rate": float(in_bucket["actual_value"].mean()) if not in_bucket.empty else None,

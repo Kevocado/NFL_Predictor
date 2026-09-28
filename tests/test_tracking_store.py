@@ -298,15 +298,36 @@ def test_anytime_td_confidence_buckets_group_by_predicted_probability():
     )) == 3
 
     buckets = {
-        b["bucket"]: b
+        b["label"]: b
         for b in store.get_track_record()["player_props"]["anytime_td"]["confidence_buckets"]
     }
-    assert buckets["50-60%"]["n_resolved"] == 1
+    assert buckets["50-60%"]["n"] == 1
     assert buckets["50-60%"]["hit_rate"] == 1.0
-    assert buckets["60-70%"]["n_resolved"] == 1
+    assert buckets["60-70%"]["n"] == 1
     assert buckets["60-70%"]["hit_rate"] == 0.0
-    assert buckets["70%+"]["n_resolved"] == 1
+    assert buckets["70%+"]["n"] == 1
     assert buckets["70%+"]["hit_rate"] == 1.0
+
+
+def test_confidence_buckets_have_agreed_keys():
+    """Contract test: confidence bucket objects must carry exactly
+    {label, n, hit_rate}. Renaming any key breaks the frontend
+    guard b.n > 0 and the section silently never renders."""
+    store.record_player_prop_predictions([
+        _prop("p1", "anytime_td", 0.55),
+        _prop("p2", "anytime_td", 0.65),
+        _prop("p3", "anytime_td", 0.75),
+    ])
+    assert store.reconcile_player_prop_predictions(_td_stats(
+        ("p1", 1, 0, 0), ("p2", 0, 0, 0), ("p3", 0, 1, 0),
+    )) == 3
+    buckets = store.get_track_record()["player_props"]["anytime_td"]["confidence_buckets"]
+    agreed_keys = {"label", "n", "hit_rate"}
+    for bucket in buckets:
+        assert set(bucket.keys()) == agreed_keys, (
+            f"bucket {bucket} has keys {set(bucket.keys())}, "
+            f"expected exactly {agreed_keys}"
+        )
 
 
 def test_yardage_markets_report_signed_bias_as_predicted_minus_actual():
