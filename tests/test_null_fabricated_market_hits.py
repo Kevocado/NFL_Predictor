@@ -105,10 +105,12 @@ def _insert(conn, game_id, *, ats_hit, home_cover_prob, away_cover_prob,
 
 
 def _mixed_db(path: Path) -> sqlite3.Connection:
-    """Two genuinely graded rows and four in the shape the old build fabricated.
+    """Two genuinely graded rows and five in the shape the old build fabricated.
 
-    The four cover the shapes the predicate has to get right: no probabilities at all, a
-    *half* market, a fabricated HIT, and a fabricated MISS.
+    The five cover the shapes the predicate has to get right: no probabilities at all, a
+    *half* market, a fabricated HIT, a fabricated MISS, and a row where one market was
+    fabricated while the other was graded for real -- which is the only shape that can
+    tell the two per-market guards apart.
     """
     conn = _connect_to(path)
     _insert(conn, "2025_01_genuine_hit", ats_hit=1, total_hit=1,
@@ -124,10 +126,15 @@ def _mixed_db(path: Path) -> sqlite3.Connection:
     # The other direction: home did not cover, so the same bug wrote a fabricated MISS.
     _insert(conn, "2025_05_fabricated_ats_miss", ats_hit=0,
             home_cover_prob=None, away_cover_prob=None, home_score=20)
-    # Totals only, on a row whose ATS grade is genuine.
+    # Totals fabricated, ATS genuinely graded on the same row.
     _insert(conn, "2025_06_fabricated_total", ats_hit=1,
             home_cover_prob=0.55, away_cover_prob=0.45, total_hit=1,
             over_prob=None, under_prob=None)
+    # ...and the mirror image, which is the only shape that can catch one market's guard
+    # being applied to the other market's column.
+    _insert(conn, "2025_07_ats_fabricated_total_genuine", ats_hit=1,
+            home_cover_prob=None, away_cover_prob=None, total_hit=1,
+            over_prob=0.7, under_prob=0.3)
     return conn
 
 
@@ -222,10 +229,10 @@ def test_a_dry_run_reports_the_counts_it_would_change(tmp_path, capsys):
     assert migration.main(["--db", str(db)]) == 0
 
     out = capsys.readouterr().out
-    assert _field(out, "rows in game_predictions") == 6
-    assert _field(out, "fabricated ats_hit") == 3
+    assert _field(out, "rows in game_predictions") == 7
+    assert _field(out, "fabricated ats_hit") == 4
     assert _field(out, "fabricated total_hit") == 1
-    assert _field(out, "fabricated in either market") == 4
+    assert _field(out, "fabricated in either market") == 5
     assert _field(out, "...with no spread line") == 0
     assert "--execute" in out, "the dry run must say how to actually run it"
 
@@ -295,6 +302,7 @@ def test_execute_nulls_only_the_fabricated_flags(tmp_path):
         "2025_04_fabricated_half_market",
         "2025_05_fabricated_ats_miss",
         "2025_06_fabricated_total",
+        "2025_07_ats_fabricated_total_genuine",
     }, f"wrong set of rows touched: {changed}"
 
 
@@ -332,9 +340,9 @@ def test_execute_reports_before_and_after_counts_and_the_backup(tmp_path, capsys
 
     out = capsys.readouterr().out
     assert "survey (before)" in out
-    assert "fabricated in either market  4" in out
-    assert "rows changed    4" in out
-    assert "4 matched before, 0 after" in out
+    assert "fabricated in either market  5" in out
+    assert "rows changed    5" in out
+    assert "5 matched before, 0 after" in out
     assert len(list(db.parent.glob("*.bak-*"))) == 1
 
 
@@ -350,6 +358,7 @@ def test_the_backup_is_a_pre_migration_snapshot_that_still_holds_the_fabricated_
     assert _matches(backup_path) == {
         "2025_03_fabricated_ats_hit", "2025_04_fabricated_half_market",
         "2025_05_fabricated_ats_miss", "2025_06_fabricated_total",
+        "2025_07_ats_fabricated_total_genuine",
     }
 
 
@@ -703,3 +712,156 @@ def test_the_survey_reports_a_fabricated_row_with_no_line_so_a_wrong_provenance_
     out = capsys.readouterr().out
     assert _field(out, "...with no spread line") == 1
     assert _field(out, "fabricated in either market") == 1
+
+
+def test_the_survey_separates_fabricated_hits_from_fabricated_misses(tmp_path, capsys):
+    """A count is not a direction. The whole point of the defect was that it fabricated
+    a HIT and a MISS, and the difference between "your ATS record is 40%" and "we never
+    made an ATS call" is the difference between the two numbers, so both are reported."""
+    db = tmp_path / "tracking.db"
+    conn = _connect_to(db)
+    _insert(conn, "2025_10_hit", ats_hit=1, home_cover_prob=None, away_cover_prob=None)
+    _insert(conn, "2025_11_miss", ats_hit=0, home_cover_prob=None, away_cover_prob=None)
+    _insert(conn, "2025_12_total_hit", ats_hit=1, home_cover_prob=0.5, away_cover_prob=0.5,
+            total_hit=1, over_prob=None, under_prob=None)
+    conn.close()
+
+    assert migration.main(["--db", str(db)]) == 0
+
+    out = capsys.readouterr().out
+    assert "(1 hits, 1 misses)" in out
+    assert "(1 hits, 0 misses)" in out
+
+
+# --------------------------------------------------------------------------------------
+# 8. the script must not be able to claim success it did not achieve
+# --------------------------------------------------------------------------------------
+
+def test_execute_fails_loudly_when_the_repair_does_not_match_the_survey(tmp_path, monkeypatch, capsys):
+    """A migration that reports "DONE" without having done the thing is worse than no
+    migration, because it is trusted. The statement is narrowed here to simulate a
+    partial repair, and the exit code has to be nonzero."""
+    db = tmp_path / "tracking.db"
+    _mixed_db(db).close()
+    monkeypatch.setattr(migration, "REPAIR_SQL", migration.REPAIR_SQL.replace(
+        "(ats_hit IS NOT NULL AND (home_cover_prob IS NULL OR away_cover_prob IS NULL))",
+        "(ats_hit = 1 AND (home_cover_prob IS NULL OR away_cover_prob IS NULL))",
+    ))
+
+    assert migration.main(["--db", str(db), "--execute"]) == 1
+
+    assert "FAILED" in capsys.readouterr().err
+
+
+def test_a_genuine_flag_survives_on_a_row_whose_other_market_was_fabricated(tmp_path):
+    """One market's guard must not be applied to the other market's column.
+
+    A row whose ATS grade was fabricated and whose totals grade is real is the only
+    shape that can tell the two apart: a `total_hit = NULL` or a totals-flavoured CASE
+    guard leaks onto it while every count still comes out right.
+    """
+    db = tmp_path / "tracking.db"
+    _mixed_db(db).close()
+
+    assert migration.main(["--db", str(db), "--execute"]) == 0
+
+    rows = _rows(db)
+    mirror = rows["2025_07_ats_fabricated_total_genuine"]
+    assert mirror["ats_hit"] is None, "the fabricated ATS grade should have been nulled"
+    assert mirror["total_hit"] == 1, "the real totals grade was destroyed"
+    other = rows["2025_06_fabricated_total"]
+    assert other["total_hit"] is None
+    assert other["ats_hit"] == 1, "the real ATS grade was destroyed"
+
+
+def test_a_failed_repair_leaves_the_rows_alone(tmp_path, monkeypatch):
+    """One statement in one transaction: a repair that raises must not have half-applied.
+
+    Checked by pointing the statement at a column that does not exist, which is the
+    closest a test can get to a failure partway through a real multi-row update.
+    """
+    db = tmp_path / "tracking.db"
+    _mixed_db(db).close()
+    before = _rows(db)
+    monkeypatch.setattr(migration, "REPAIR_SQL", "UPDATE game_predictions SET nope = 1")
+
+    conn = sqlite3.connect(str(db))
+    try:
+        with pytest.raises(sqlite3.Error):
+            migration.repair(conn)
+        assert not conn.in_transaction, (
+            "a failed repair left a transaction open, so a later write on this connection "
+            "would be committed inside a transaction nobody is watching"
+        )
+    finally:
+        conn.close()
+
+    assert _rows(db) == before
+    assert _matches(db), "the fabricated rows must still be there to be retried"
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores the file mode")
+def test_a_dry_run_explains_a_database_it_cannot_open(tmp_path, capsys):
+    """An unreadable database must produce an explanation, not a traceback.
+
+    A SQLite database in WAL mode needs to create its `-wal` and `-shm` sidecars even to
+    be read, so a read-only *directory* makes `mode=ro` fail -- which is the situation an
+    operator lands in when they try to audit the database off the Azure Files mount. The
+    message has to say what is wrong and where, because the underlying
+    "attempt to write a readonly database" points at the wrong thing entirely.
+    """
+    db = tmp_path / "tracking.db"
+    _mixed_db(db).close()
+    db.parent.chmod(0o500)
+    try:
+        assert migration.main(["--db", str(db)]) == 2
+    finally:
+        db.parent.chmod(0o700)
+
+    err = capsys.readouterr().err
+    assert "-wal" in err and "read-only" in err, f"unhelpful refusal: {err!r}"
+    assert "Traceback" not in err
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root ignores the file mode")
+def test_a_dry_run_can_read_a_database_the_process_cannot_write(tmp_path):
+    """A dry run must not need write access, whatever mode the file is in.
+
+    NOTE: this test is *not* able to distinguish `mode=ro` from a plain read-write open,
+    and the mutation log says so. SQLite's unix VFS retries a failed `O_RDWR` with
+    `O_RDONLY` and silently downgrades, on macOS and Linux alike, so both URIs read a
+    0o444 database. `mode=ro` is still what the script should ask for -- it states the
+    intent instead of relying on a fallback inside a C library -- but the test pins the
+    behaviour, not the spelling. What the two create-guards together pin is the thing
+    that matters, and the combined mutant is caught.
+    """
+    db = tmp_path / "tracking.db"
+    _mixed_db(db).close()
+    db.chmod(0o444)
+    try:
+        assert migration.main(["--db", str(db)]) == 0
+    finally:
+        db.chmod(0o644)
+
+
+def test_the_backup_includes_rows_that_are_still_in_the_write_ahead_log(tmp_path):
+    """A byte copy of a WAL database can be missing committed rows.
+
+    The live database runs in WAL mode and this test holds a writer open, so committed
+    transactions are still sitting in the `-wal` sidecar that a `shutil.copy` of the main
+    file would not carry. This is why `backup()` uses SQLite's online backup API.
+    """
+    db = tmp_path / "tracking.db"
+    writer = _connect_to(db)
+    _insert(writer, "2025_01_in_the_wal", ats_hit=1, home_cover_prob=None, away_cover_prob=None)
+    assert list(db.parent.glob("*.db-wal")), "the precondition: rows are still only in the WAL"
+
+    try:
+        assert migration.main(["--db", str(db), "--execute", "--backup-path",
+                               str(tmp_path / "copy.db")]) == 0
+    finally:
+        writer.close()
+
+    assert _matches(tmp_path / "copy.db") == {"2025_01_in_the_wal"}, (
+        "the backup lost a committed row that was only in the write-ahead log"
+    )
