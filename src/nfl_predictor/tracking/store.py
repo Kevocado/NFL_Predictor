@@ -660,6 +660,27 @@ def _weekly_window(resolved: pd.DataFrame, current_week: int | None, season: int
     ]
 
 
+def _window_season(resolved: pd.DataFrame, season: int | None) -> int | None:
+    """The season a week-numbered window is actually scoped to, resolved once.
+
+    Week numbering restarts every season, so a window has to name one. Callers
+    that know the calendar pass `season`; callers that do not (facts.py, tests)
+    get the newest season present, which is still a complete, gap-free list.
+    Returns None when nothing identifies a season -- no rows, or a caller
+    assembling a frame by hand -- and every reader of this deals with that by
+    emitting the window unfiltered rather than emitting nothing.
+
+    Split out of `_week_groups` so a payload can LABEL the window it grouped by.
+    A label recomputed from the caller's arguments could disagree with the
+    grouping that actually happened, which is the one thing a label must not do.
+    """
+    if "season" in resolved.columns:
+        seasons = resolved["season"].dropna()
+        if season is None and not seasons.empty:
+            season = int(seasons.max())
+    return season
+
+
 def _week_groups(
     resolved: pd.DataFrame, current_week: int | None, season: int | None
 ) -> dict[int, pd.DataFrame]:
@@ -667,13 +688,9 @@ def _week_groups(
 
     Week numbering restarts every season, so an unfiltered group-by collapses 2025
     week 12 into 2026 week 12 and reports a 2025 accuracy on this season's chart.
-    Callers that know the calendar pass `season`; callers that do not (facts.py,
-    tests) get the newest season present, which is still a complete, gap-free list.
+    Which season it resolved to is `_window_season`, so a caller can say so.
     """
-    if "season" in resolved.columns:
-        seasons = resolved["season"].dropna()
-        if season is None and not seasons.empty:
-            season = int(seasons.max())
+    season = _window_season(resolved, season)
     if season is not None and "week" in resolved.columns:
         scoped = resolved[resolved["season"] == season]
     else:
@@ -821,6 +838,14 @@ _VS_MARKET_METHOD = {
         "a yield, a stake or a cent. We do not publish profit or ROI figures, and this "
         "comparison does not become one by being labelled 'edge'."
     ),
+    "population": (
+        "The headline figure covers every game the tracker holds a line for, in every "
+        "season, because that is the question the page is answering. The weekly chart "
+        "below it covers one season's elapsed weeks only, so the two are over different "
+        "populations on purpose. The block's scope states how many of the games the "
+        "chart accounts for and how many fall outside it; the two add up to the "
+        "headline's count, so no game is in one and silently missing from the other."
+    ),
 }
 
 
@@ -845,13 +870,32 @@ def implied_home_cover_prob(spread: float, sigma_league: float = SIGMA_LEAGUE_NF
     return float(norm.cdf(-spread / sigma_league))
 
 
+def _market_eligible(frame: pd.DataFrame) -> pd.DataFrame:
+    """The rows of `frame` that can be compared with a price at all.
+
+    A real closing spread, both cover probabilities, and a real margin to grade
+    against. Each missing piece removes the game from the whole block rather than
+    contributing a neutral observation -- a game with no line has no price to
+    disagree with, and 0.0 edge would be a fabricated agreement. One predicate,
+    read by the summary and by the scope reconciliation, so the two cannot
+    disagree about which games were compared.
+    """
+    if frame is None or frame.empty:
+        return pd.DataFrame()
+    return frame[
+        frame["home_spread_line"].notna()
+        & frame["home_cover_prob"].notna()
+        & frame["away_cover_prob"].notna()
+        & _actual_home(frame).notna()
+        & _actual_away(frame).notna()
+    ]
+
+
 def _market_row(frame: pd.DataFrame) -> dict:
     """One game (or one week) of the model-vs-market comparison.
 
-    Eligible means: a real closing spread, both cover probabilities, and a real
-    margin to grade against. Each missing piece removes the game from the whole
-    block rather than contributing a neutral observation -- a game with no line has
-    no price to disagree with, and 0.0 edge would be a fabricated agreement.
+    Eligible means: see `_market_eligible`, which is the same rule this applies
+    and the scope reconciliation counts with.
     """
     summary = {
         "n": 0, "mean_implied_home_cover_prob": None, "mean_model_home_cover_prob": None,
@@ -860,13 +904,7 @@ def _market_row(frame: pd.DataFrame) -> dict:
     }
     if frame is None or frame.empty:
         return summary
-    eligible = frame[
-        frame["home_spread_line"].notna()
-        & frame["home_cover_prob"].notna()
-        & frame["away_cover_prob"].notna()
-        & _actual_home(frame).notna()
-        & _actual_away(frame).notna()
-    ]
+    eligible = _market_eligible(frame)
     if eligible.empty:
         return summary
 
@@ -967,6 +1005,48 @@ def _vs_market_week(week: int, frame: pd.DataFrame | None) -> dict:
     return {"week": int(week), "tracked": summary["n"] > 0, **summary}
 
 
+def _vs_market_scope(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None, weekly: list[dict]
+) -> dict:
+    """Say, in the payload, which games the headline covers and which the chart does.
+
+    The headline and the `weekly` rows are computed over DIFFERENT populations and
+    always have been -- the headline is the whole resolved record, the chart is one
+    season bounded by the calendar, which is what the spec mandates for the chart.
+    What is new in B5 is that a second block started doing it, and did it silently:
+    a reader could see a headline drawn from two seasons sitting directly above a
+    chart drawn from one, with a row at `week > current_week` counted in the
+    headline and appearing in no weekly list, and nothing in the payload saying so.
+
+    Two ways to repair that were defensible: scope the headline to the same season
+    and window as the chart, or keep it on the whole record and say so. **The
+    headline stays on the whole record**, because it sits directly beside
+    `n_resolved`, `n_ats` and `pct_ats_correct`, which are all whole-record numbers:
+    narrowing only `vs_market` would trade one incoherence for a worse one, with
+    `vs_market.n` disagreeing with the ATS count two keys above it. A record page
+    should answer "how has this model done against the market", and that is not one
+    season's question.
+
+    So the payload carries the reconciliation instead. `n_games_in_weekly` is the sum
+    of the `n` on the weekly rows themselves rather than a second count of the same
+    games, so it cannot drift from the chart it is describing, and
+    `n_games_outside_weekly` is the difference -- the games a reader who adds up the
+    chart cannot account for, stated as a number rather than left to be discovered.
+    The identity `n_games_total == n_games_in_weekly + n_games_outside_weekly` is
+    what makes the block auditable, and it is asserted in a test.
+    """
+    total = int(len(_market_eligible(resolved)))
+    in_weekly = int(sum(row["n"] for row in weekly))
+    return {
+        "population": "all_seasons",
+        "weekly_season": _window_season(resolved, season),
+        "weekly_last_week": None if current_week is None else int(current_week),
+        "n_games_total": total,
+        "n_games_in_weekly": in_weekly,
+        "n_games_outside_weekly": total - in_weekly,
+    }
+
+
 def _point_forecast_weekly(
     resolved: pd.DataFrame, current_week: int | None, season: int | None
 ) -> dict[str, dict]:
@@ -1012,6 +1092,7 @@ def _summarize_games(
     for key, block in _point_forecast_weekly(resolved, current_week, season).items():
         forecasts[key]["weekly"] = block["weekly"]
     market = _market_row(resolved)
+    vs_market_weekly = _vs_market_weekly(resolved, current_week, season)
     return {
         "n_resolved": int(len(resolved)),
         # The headline counts too. A rate without its denominator is exactly the
@@ -1029,7 +1110,13 @@ def _summarize_games(
                 "hit_rate": market["disagreement_hit_rate"],
                 "games": market["games"],
             },
-            **_vs_market_weekly(resolved, current_week, season),
+            # The headline is the whole record and the chart below it is one
+            # season's elapsed weeks. The scope block reconciles the two, so the
+            # difference is stated rather than discovered. See `_vs_market_scope`.
+            "scope": _vs_market_scope(
+                resolved, current_week, season, vs_market_weekly["weekly"]
+            ),
+            **vs_market_weekly,
             "method": dict(_VS_MARKET_METHOD),
         },
     }

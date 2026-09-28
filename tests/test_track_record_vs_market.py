@@ -147,10 +147,11 @@ def test_sigma_league_is_stated_in_the_payload_in_words():
     method = store.get_track_record(current_week=1, season=2026)["games"]["vs_market"]["method"]
 
     assert method["sigma_league_points"] == store.SIGMA_LEAGUE_NFL
-    for key in ("implied_probability", "edge", "disagreement", "not_a_profit_claim"):
+    for key in ("implied_probability", "edge", "disagreement", "not_a_profit_claim", "population"):
         assert isinstance(method[key], str) and len(method[key]) > 20, key
     # The strings have to be readable English, not an identifier echoed back.
     assert "13.5" in method["implied_probability"]
+    assert "-spread" in method["implied_probability"], "the quoted formula must carry the negation"
     assert "profit" in method["not_a_profit_claim"].lower()
 
 
@@ -201,7 +202,8 @@ def test_a_line_more_favouring_home_implies_a_lower_home_cover_probability():
 
 # --- the payload -----------------------------------------------------------
 
-def _resolve(game_id, week, *, home_cover_prob, away_cover_prob, spread, home_score, away_score):
+def _resolve(game_id, week, *, home_cover_prob, away_cover_prob, spread, home_score, away_score,
+             season=2026):
     """A finished, genuinely pre-kickoff pick graded against a real closing line.
 
     `home_spread_line` is the nflverse convention: the home team's expected margin,
@@ -215,7 +217,7 @@ def _resolve(game_id, week, *, home_cover_prob, away_cover_prob, spread, home_sc
         "home_win_prob": 0.6, "away_win_prob": 0.4,
         "home_cover_prob": home_cover_prob, "away_cover_prob": away_cover_prob,
         "over_prob": 0.5, "under_prob": 0.5,
-        "home_spread_line": spread, "season": 2026, "week": week,
+        "home_spread_line": spread, "season": season, "week": week,
     }
     store.record_game_predictions([game])
     store.reconcile_game_predictions(
@@ -574,3 +576,64 @@ def test_a_push_is_neither_a_hit_nor_a_miss_in_the_cohort():
     assert cohort["n"] == 1
     assert cohort["games"] == ["real"]
     assert cohort["hit_rate"] == pytest.approx(0.0)
+
+
+# --- the scope: which population the headline and the chart each cover -------
+
+def test_the_headline_and_the_chart_are_over_different_populations_and_say_so():
+    """The payload must let a reader reconcile the headline against the chart.
+
+    The headline is the whole resolved record; `weekly` is one season's elapsed
+    weeks, which is what the spec mandates for the chart. So with three
+    comparable games:
+
+        "in"      -- 2026 week 2, inside the window
+        "old"     -- 2025 week 9, a different season entirely
+        "future"  -- 2026 week 9, past `current_week`
+
+    the headline counts 3, the chart can only account for 1, and the block has to
+    state both numbers and the 2 that fall outside. Without that, a reader adds up
+    the chart, gets 1, sees a headline saying 3, and has no way to tell whether
+    the headline is wrong or the chart is incomplete.
+    """
+    _resolve("in", 2, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10)
+    _resolve("old", 9, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10, season=2025)
+    _resolve("future", 9, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10)
+
+    vs_market = _vs_market(current_week=4, season=2026)
+
+    # The headline is the whole record, as it is for every other headline on the
+    # payload: `n_ats` beside it is not scoped to a season either.
+    assert vs_market["n"] == 3
+    assert vs_market["scope"]["population"] == "all_seasons"
+    assert vs_market["scope"]["weekly_season"] == 2026
+    assert vs_market["scope"]["weekly_last_week"] == 4
+    # The chart can only reach one of the three, and says which.
+    assert sum(row["n"] for row in vs_market["weekly"]) == 1
+    assert vs_market["scope"]["n_games_in_weekly"] == 1
+    assert vs_market["scope"]["n_games_outside_weekly"] == 2
+    # The identity that makes the block auditable rather than decorative.
+    assert vs_market["scope"]["n_games_total"] == vs_market["n"]
+    assert (
+        vs_market["scope"]["n_games_total"]
+        == vs_market["scope"]["n_games_in_weekly"] + vs_market["scope"]["n_games_outside_weekly"]
+    )
+
+
+def test_the_scope_closes_when_every_game_is_inside_the_window():
+    """The reconciliation is not a constant offset. When nothing falls outside,
+    it has to say zero rather than the number of games the payload happens to
+    have."""
+    _resolve("w1", 1, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10)
+    _resolve("w2", 2, home_cover_prob=0.45, away_cover_prob=0.55, spread=7.0,
+             home_score=20, away_score=10)
+
+    scope = _vs_market(current_week=2, season=2026)["scope"]
+
+    assert scope["n_games_total"] == 2
+    assert scope["n_games_in_weekly"] == 2
+    assert scope["n_games_outside_weekly"] == 0
