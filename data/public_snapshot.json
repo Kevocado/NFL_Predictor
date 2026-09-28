@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-28T05:28:36.342641+00:00",
+  "generated_at": "2026-09-28T06:52:10.284703+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -8818,8 +8818,8 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_03_TEN_NYG": {
-          "home_win_prob": 0.8732259192777378,
-          "away_win_prob": 0.12677408072226215,
+          "home_win_prob": 0.8732259192777381,
+          "away_win_prob": 0.12677408072226193,
           "home_cover_prob": 0.8296317997616025,
           "away_cover_prob": 0.1703682002383975,
           "over_prob": 0.8162763506678199,
@@ -9088,8 +9088,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 1.5,
-          "total_line": 43.5
+          "spread_line": -1.5,
+          "total_line": 44.5
         },
         {
           "game_id": "2026_04_LA_PHI",
@@ -9146,7 +9146,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 10.0,
-          "total_line": 40.5
+          "total_line": 39.5
         },
         {
           "game_id": "2026_04_KC_LV",
@@ -9221,7 +9221,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -3.5,
+          "spread_line": -3.0,
           "total_line": 50.5
         },
         {
@@ -9300,8 +9300,8 @@
         "2026_04_NYJ_CHI": {
           "home_win_prob": 0.7969835201427906,
           "away_win_prob": 0.2030164798572094,
-          "home_cover_prob": 0.7270848955878694,
-          "away_cover_prob": 0.2729151044121306,
+          "home_cover_prob": 0.7270848955878695,
+          "away_cover_prob": 0.2729151044121305,
           "over_prob": 0.6551000079746985,
           "under_prob": 0.3448999920253015,
           "predicted_margin": 10.987051963806152,
@@ -9339,10 +9339,10 @@
         "2026_04_ARI_NYG": {
           "home_win_prob": 0.6159290234533068,
           "away_win_prob": 0.3840709765466932,
-          "home_cover_prob": 0.5719609396693497,
-          "away_cover_prob": 0.4280390603306503,
-          "over_prob": 0.5581500821237458,
-          "under_prob": 0.44184991787625416,
+          "home_cover_prob": 0.658452563478582,
+          "away_cover_prob": 0.34154743652141795,
+          "over_prob": 0.5263888590150878,
+          "under_prob": 0.4736111409849122,
           "predicted_margin": 3.8982672691345215,
           "predicted_total": 45.326560974121094,
           "sigma": 13.223153618916728,
@@ -9380,8 +9380,8 @@
           "away_win_prob": 0.19940837061694117,
           "home_cover_prob": 0.5348578372072126,
           "away_cover_prob": 0.4651421627927874,
-          "over_prob": 0.656694866455223,
-          "under_prob": 0.343305133544777,
+          "over_prob": 0.6856454943337502,
+          "under_prob": 0.3143545056662498,
           "predicted_margin": 11.156855583190918,
           "predicted_total": 45.537872314453125,
           "sigma": 13.223153618916728,
@@ -9430,8 +9430,8 @@
         "2026_04_DET_CAR": {
           "home_win_prob": 0.39104106223887025,
           "away_win_prob": 0.6089589377611297,
-          "home_cover_prob": 0.495244937550987,
-          "away_cover_prob": 0.504755062449013,
+          "home_cover_prob": 0.4801680102427799,
+          "away_cover_prob": 0.5198319897572201,
           "over_prob": 0.5758082534032104,
           "under_prob": 0.4241917465967896,
           "predicted_margin": -3.6576128005981445,
@@ -11040,114 +11040,114 @@
         "2026_08_CAR_GB": {
           "home_win_prob": 0.6641251825834782,
           "away_win_prob": 0.3358748174165218,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_BAL_BUF": {
           "home_win_prob": 0.5809889271708442,
           "away_win_prob": 0.41901107282915584,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_TEN_CIN": {
           "home_win_prob": 0.6852788179008502,
           "away_win_prob": 0.3147211820991498,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_ARI_DAL": {
           "home_win_prob": 0.6884345131964821,
           "away_win_prob": 0.3115654868035179,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_MIN_DET": {
           "home_win_prob": 0.4847696348613344,
           "away_win_prob": 0.5152303651386656,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_IND_JAX": {
           "home_win_prob": 0.8824700819074189,
           "away_win_prob": 0.11752991809258106,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_LV_NYJ": {
           "home_win_prob": 0.3125841685990153,
           "away_win_prob": 0.6874158314009847,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_CLE_PIT": {
           "home_win_prob": 0.6501996028416595,
           "away_win_prob": 0.34980039715834055,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_ATL_TB": {
           "home_win_prob": 0.5067617306292196,
           "away_win_prob": 0.4932382693707804,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_LAC_LA": {
           "home_win_prob": 0.6970705798034654,
           "away_win_prob": 0.30292942019653457,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_KC_DEN": {
           "home_win_prob": 0.6835046558458411,
           "away_win_prob": 0.3164953441541589,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_NE_MIA": {
           "home_win_prob": 0.31998208959939745,
           "away_win_prob": 0.6800179104006026,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_PHI_WAS": {
           "home_win_prob": 0.3603525455999901,
           "away_win_prob": 0.6396474544000099,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_08_CHI_SEA": {
           "home_win_prob": 0.6202449601696433,
           "away_win_prob": 0.37975503983035674,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -17877,122 +17877,122 @@
         "2026_09_JAX_BAL": {
           "home_win_prob": 0.48078894957704377,
           "away_win_prob": 0.5192110504229562,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_CIN_ATL": {
           "home_win_prob": 0.5130368694753873,
           "away_win_prob": 0.4869631305246127,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_DEN_CAR": {
           "home_win_prob": 0.33336275418153904,
           "away_win_prob": 0.666637245818461,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_DAL_IND": {
           "home_win_prob": 0.4116241223533662,
           "away_win_prob": 0.5883758776466338,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_NYJ_KC": {
           "home_win_prob": 0.6429926409179488,
           "away_win_prob": 0.35700735908205117,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_DET_MIA": {
           "home_win_prob": 0.30207925940426095,
           "away_win_prob": 0.697920740595739,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_CLE_NO": {
           "home_win_prob": 0.6111901014768375,
           "away_win_prob": 0.3888098985231625,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_NYG_PHI": {
           "home_win_prob": 0.6332318871807534,
           "away_win_prob": 0.3667681128192466,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_LA_WAS": {
           "home_win_prob": 0.2776832987547835,
           "away_win_prob": 0.7223167012452165,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_HOU_LAC": {
           "home_win_prob": 0.34727571884507547,
           "away_win_prob": 0.6527242811549245,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_LV_SF": {
           "home_win_prob": 0.8361427675778752,
           "away_win_prob": 0.1638572324221248,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_GB_NE": {
           "home_win_prob": 0.6351028545667237,
           "away_win_prob": 0.36489714543327634,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_ARI_SEA": {
           "home_win_prob": 0.7476969133265157,
           "away_win_prob": 0.25230308667348433,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_TB_CHI": {
           "home_win_prob": 0.5601598244334138,
           "away_win_prob": 0.43984017556658617,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_09_BUF_MIN": {
           "home_win_prob": 0.38875509548897524,
           "away_win_prob": 0.6112449045110248,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -25167,114 +25167,114 @@
         "2026_10_WAS_NYG": {
           "home_win_prob": 0.49010679353083586,
           "away_win_prob": 0.5098932064691641,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_NE_DET": {
           "home_win_prob": 0.47068348927779247,
           "away_win_prob": 0.5293165107222075,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_KC_ATL": {
           "home_win_prob": 0.46841050336896417,
           "away_win_prob": 0.5315894966310358,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_HOU_CLE": {
           "home_win_prob": 0.3173537183539211,
           "away_win_prob": 0.6826462816460789,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_MIN_GB": {
           "home_win_prob": 0.4363151699421225,
           "away_win_prob": 0.5636848300578775,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_MIA_IND": {
           "home_win_prob": 0.41994693109664283,
           "away_win_prob": 0.5800530689033572,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_CAR_NO": {
           "home_win_prob": 0.6054308864002975,
           "away_win_prob": 0.3945691135997025,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_BUF_NYJ": {
           "home_win_prob": 0.1154532422947685,
           "away_win_prob": 0.8845467577052315,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_JAX_TEN": {
           "home_win_prob": 0.24634148544787537,
           "away_win_prob": 0.7536585145521246,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_LA_ARI": {
           "home_win_prob": 0.04951190284017237,
           "away_win_prob": 0.9504880971598276,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_SEA_LV": {
           "home_win_prob": 0.4397193458435482,
           "away_win_prob": 0.5602806541564518,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_SF_DAL": {
           "home_win_prob": 0.33152671360784525,
           "away_win_prob": 0.6684732863921548,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_PIT_CIN": {
           "home_win_prob": 0.48490381834191076,
           "away_win_prob": 0.5150961816580892,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_10_LAC_BAL": {
           "home_win_prob": 0.5240228865718988,
           "away_win_prob": 0.47597711342810123,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -31982,106 +31982,106 @@
         "2026_11_IND_HOU": {
           "home_win_prob": 0.7057422315923754,
           "away_win_prob": 0.29425776840762463,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_MIA_BUF": {
           "home_win_prob": 0.7983350291555322,
           "away_win_prob": 0.20166497084446777,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_BAL_CAR": {
           "home_win_prob": 0.3414438183303832,
           "away_win_prob": 0.6585561816696168,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_NO_CHI": {
           "home_win_prob": 0.6616638347614385,
           "away_win_prob": 0.33833616523856147,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_TEN_DAL": {
           "home_win_prob": 0.7025235360268397,
           "away_win_prob": 0.2974764639731603,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_TB_DET": {
           "home_win_prob": 0.6496779436451839,
           "away_win_prob": 0.35032205635481606,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_ARI_KC": {
           "home_win_prob": 0.6393810728681397,
           "away_win_prob": 0.3606189271318603,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_JAX_NYG": {
           "home_win_prob": 0.38090991731096935,
           "away_win_prob": 0.6190900826890307,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_NYJ_LAC": {
           "home_win_prob": 0.7347746169265751,
           "away_win_prob": 0.2652253830734249,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_LV_DEN": {
           "home_win_prob": 0.8709690451759868,
           "away_win_prob": 0.12903095482401317,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_PIT_PHI": {
           "home_win_prob": 0.6161285164988434,
           "away_win_prob": 0.38387148350115663,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_MIN_SF": {
           "home_win_prob": 0.45959132006200554,
           "away_win_prob": 0.5404086799379945,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_11_CIN_WAS": {
           "home_win_prob": 0.4874503101767904,
           "away_win_prob": 0.5125496898232096,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -38438,130 +38438,130 @@
         "2026_12_GB_LA": {
           "home_win_prob": 0.6861718405902368,
           "away_win_prob": 0.31382815940976316,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_CHI_DET": {
           "home_win_prob": 0.5198187528687184,
           "away_win_prob": 0.48018124713128163,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_PHI_DAL": {
           "home_win_prob": 0.33376528801708005,
           "away_win_prob": 0.66623471198292,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_KC_BUF": {
           "home_win_prob": 0.7717343288411891,
           "away_win_prob": 0.2282656711588109,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_DEN_PIT": {
           "home_win_prob": 0.3330613597770439,
           "away_win_prob": 0.6669386402229561,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_NO_CIN": {
           "home_win_prob": 0.5897045295389609,
           "away_win_prob": 0.4102954704610391,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_LV_CLE": {
           "home_win_prob": 0.6623994510918452,
           "away_win_prob": 0.33760054890815483,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_BAL_HOU": {
           "home_win_prob": 0.5061893427236919,
           "away_win_prob": 0.49381065727630813,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_NYG_IND": {
           "home_win_prob": 0.4519568921555529,
           "away_win_prob": 0.5480431078444471,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_NYJ_MIA": {
           "home_win_prob": 0.7270282167608555,
           "away_win_prob": 0.2729717832391445,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_ATL_MIN": {
           "home_win_prob": 0.7555119451918433,
           "away_win_prob": 0.24448805480815672,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_TEN_JAX": {
           "home_win_prob": 0.9404100742383548,
           "away_win_prob": 0.059589925761645235,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_WAS_ARI": {
           "home_win_prob": 0.2993019008012656,
           "away_win_prob": 0.7006980991987344,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_SEA_SF": {
           "home_win_prob": 0.3559897655048043,
           "away_win_prob": 0.6440102344951957,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_NE_LAC": {
           "home_win_prob": 0.45973005170453607,
           "away_win_prob": 0.5402699482954639,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_12_CAR_TB": {
           "home_win_prob": 0.6834058249361987,
           "away_win_prob": 0.3165941750638013,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -46200,114 +46200,114 @@
         "2026_13_KC_LA": {
           "home_win_prob": 0.7014532020119314,
           "away_win_prob": 0.2985467979880686,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_DET_ATL": {
           "home_win_prob": 0.35902331467543924,
           "away_win_prob": 0.6409766853245608,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_JAX_CHI": {
           "home_win_prob": 0.528544612300184,
           "away_win_prob": 0.471455387699816,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_CIN_CLE": {
           "home_win_prob": 0.3869654996543457,
           "away_win_prob": 0.6130345003456543,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_GB_NO": {
           "home_win_prob": 0.42998371056451434,
           "away_win_prob": 0.5700162894354857,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_SF_NYG": {
           "home_win_prob": 0.36050604144568044,
           "away_win_prob": 0.6394939585543196,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_LAC_TB": {
           "home_win_prob": 0.4828302268418585,
           "away_win_prob": 0.5171697731581415,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_WAS_TEN": {
           "home_win_prob": 0.3374642296227006,
           "away_win_prob": 0.6625357703772994,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_PHI_ARI": {
           "home_win_prob": 0.1261298307476899,
           "away_win_prob": 0.8738701692523101,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_MIA_DEN": {
           "home_win_prob": 0.6749994998901956,
           "away_win_prob": 0.3250005001098044,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_CAR_MIN": {
           "home_win_prob": 0.8061281332302012,
           "away_win_prob": 0.19387186676979884,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_BUF_NE": {
           "home_win_prob": 0.45385619316198145,
           "away_win_prob": 0.5461438068380186,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_HOU_PIT": {
           "home_win_prob": 0.31712282606031716,
           "away_win_prob": 0.6828771739396828,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_13_DAL_SEA": {
           "home_win_prob": 0.6349522689768303,
           "away_win_prob": 0.3650477310231697,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -52989,122 +52989,122 @@
         "2026_14_MIN_NE": {
           "home_win_prob": 0.5869731547963664,
           "away_win_prob": 0.41302684520363364,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_TB_BAL": {
           "home_win_prob": 0.670714588187146,
           "away_win_prob": 0.329285411812854,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_NO_CAR": {
           "home_win_prob": 0.4378574918307315,
           "away_win_prob": 0.5621425081692685,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_ATL_CLE": {
           "home_win_prob": 0.4407973430195904,
           "away_win_prob": 0.5592026569804096,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_TEN_DET": {
           "home_win_prob": 0.732473289795347,
           "away_win_prob": 0.267526710204653,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_CHI_MIA": {
           "home_win_prob": 0.41899173619580177,
           "away_win_prob": 0.5810082638041982,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_DEN_NYJ": {
           "home_win_prob": 0.1694467760537206,
           "away_win_prob": 0.8305532239462794,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_IND_PHI": {
           "home_win_prob": 0.6659612150300227,
           "away_win_prob": 0.3340387849699773,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_HOU_WAS": {
           "home_win_prob": 0.33084025904721415,
           "away_win_prob": 0.6691597409527859,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_LAC_LV": {
           "home_win_prob": 0.35928068786917167,
           "away_win_prob": 0.6407193121308283,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_KC_CIN": {
           "home_win_prob": 0.5036699757864896,
           "away_win_prob": 0.49633002421351036,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_NYG_SEA": {
           "home_win_prob": 0.5682524652225289,
           "away_win_prob": 0.4317475347774711,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_LA_SF": {
           "home_win_prob": 0.3300808250497511,
           "away_win_prob": 0.6699191749502489,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_BUF_GB": {
           "home_win_prob": 0.2822005455619643,
           "away_win_prob": 0.7177994544380357,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_14_PIT_JAX": {
           "home_win_prob": 0.7018451506205504,
           "away_win_prob": 0.2981548493794496,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -60325,130 +60325,130 @@
         "2026_15_SF_LAC": {
           "home_win_prob": 0.5379274544065652,
           "away_win_prob": 0.4620725455934348,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_SEA_PHI": {
           "home_win_prob": 0.41030119101133455,
           "away_win_prob": 0.5896988089886654,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_CHI_BUF": {
           "home_win_prob": 0.7632685981961553,
           "away_win_prob": 0.23673140180384467,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_CIN_CAR": {
           "home_win_prob": 0.3869654996543457,
           "away_win_prob": 0.6130345003456543,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_MIA_GB": {
           "home_win_prob": 0.6534215603013559,
           "away_win_prob": 0.3465784396986441,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_JAX_HOU": {
           "home_win_prob": 0.5307722242090365,
           "away_win_prob": 0.46922777579096353,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_CLE_NYG": {
           "home_win_prob": 0.530341855635146,
           "away_win_prob": 0.469658144364854,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_BAL_PIT": {
           "home_win_prob": 0.46501385722199307,
           "away_win_prob": 0.5349861427780069,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_NO_TB": {
           "home_win_prob": 0.5613730421445866,
           "away_win_prob": 0.4386269578554134,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_IND_TEN": {
           "home_win_prob": 0.310160082034169,
           "away_win_prob": 0.689839917965831,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_ATL_WAS": {
           "home_win_prob": 0.49603963854620536,
           "away_win_prob": 0.5039603614537946,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_NYJ_ARI": {
           "home_win_prob": 0.40125842910887066,
           "away_win_prob": 0.5987415708911293,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_DAL_LA": {
           "home_win_prob": 0.7075137569952425,
           "away_win_prob": 0.29248624300475745,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_DEN_LV": {
           "home_win_prob": 0.34245019570890944,
           "away_win_prob": 0.6575498042910906,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_DET_MIN": {
           "home_win_prob": 0.6614909605645379,
           "away_win_prob": 0.33850903943546207,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_15_NE_KC": {
           "home_win_prob": 0.4196042281610747,
           "away_win_prob": 0.5803957718389253,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -68125,130 +68125,130 @@
         "2026_16_HOU_PHI": {
           "home_win_prob": 0.5022201635158752,
           "away_win_prob": 0.4977798364841248,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_GB_CHI": {
           "home_win_prob": 0.5113511744866825,
           "away_win_prob": 0.48864882551331745,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_BUF_DEN": {
           "home_win_prob": 0.5153797220174126,
           "away_win_prob": 0.48462027798258744,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_LA_SEA": {
           "home_win_prob": 0.44553965690105835,
           "away_win_prob": 0.5544603430989417,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_TB_ATL": {
           "home_win_prob": 0.4725688512941425,
           "away_win_prob": 0.5274311487058575,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_CLE_BAL": {
           "home_win_prob": 0.6832220819820702,
           "away_win_prob": 0.31677791801792976,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_CIN_IND": {
           "home_win_prob": 0.4528088104969634,
           "away_win_prob": 0.5471911895030366,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_LAC_MIA": {
           "home_win_prob": 0.46642160964400403,
           "away_win_prob": 0.533578390355996,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_WAS_MIN": {
           "home_win_prob": 0.8147909555854154,
           "away_win_prob": 0.18520904441458463,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_ARI_NO": {
           "home_win_prob": 0.646179084180938,
           "away_win_prob": 0.35382091581906205,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_NE_NYJ": {
           "home_win_prob": 0.12227555097729836,
           "away_win_prob": 0.8777244490227016,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_CAR_PIT": {
           "home_win_prob": 0.6605438299222587,
           "away_win_prob": 0.3394561700777413,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_TEN_LV": {
           "home_win_prob": 0.3962552887201912,
           "away_win_prob": 0.6037447112798088,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_SF_KC": {
           "home_win_prob": 0.5049209052304671,
           "away_win_prob": 0.49507909476953293,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_JAX_DAL": {
           "home_win_prob": 0.2316740078309334,
           "away_win_prob": 0.7683259921690666,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_16_NYG_DET": {
           "home_win_prob": 0.584647174190136,
           "away_win_prob": 0.415352825809864,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -75925,130 +75925,130 @@
         "2026_17_BAL_CIN": {
           "home_win_prob": 0.3065791591128987,
           "away_win_prob": 0.6934208408871013,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_NO_ATL": {
           "home_win_prob": 0.5044171092084021,
           "away_win_prob": 0.4955828907915979,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_SEA_CAR": {
           "home_win_prob": 0.3537354086775607,
           "away_win_prob": 0.6462645913224393,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_IND_CLE": {
           "home_win_prob": 0.4314421736785319,
           "away_win_prob": 0.5685578263214681,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_NYG_DAL": {
           "home_win_prob": 0.5614883422244341,
           "away_win_prob": 0.4385116577755659,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_WAS_JAX": {
           "home_win_prob": 0.8956938825065329,
           "away_win_prob": 0.10430611749346708,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_KC_LAC": {
           "home_win_prob": 0.5379872016290462,
           "away_win_prob": 0.46201279837095377,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_BUF_MIA": {
           "home_win_prob": 0.25462927066381535,
           "away_win_prob": 0.7453707293361846,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_DEN_NE": {
           "home_win_prob": 0.5319798051527289,
           "away_win_prob": 0.4680201948472711,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_MIN_NYJ": {
           "home_win_prob": 0.12410608135837642,
           "away_win_prob": 0.8758939186416236,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_LA_TB": {
           "home_win_prob": 0.27474496967731055,
           "away_win_prob": 0.7252550303226895,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_PIT_TEN": {
           "home_win_prob": 0.3257266195932007,
           "away_win_prob": 0.6742733804067993,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_LV_ARI": {
           "home_win_prob": 0.37187635404117025,
           "away_win_prob": 0.6281236459588297,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_DET_CHI": {
           "home_win_prob": 0.4366403428644312,
           "away_win_prob": 0.5633596571355688,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_PHI_SF": {
           "home_win_prob": 0.45228849121949466,
           "away_win_prob": 0.5477115087805053,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_17_HOU_GB": {
           "home_win_prob": 0.3945716329701485,
           "away_win_prob": 0.6054283670298515,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [
@@ -83725,130 +83725,130 @@
         "2026_18_SF_ARI": {
           "home_win_prob": 0.1391692567180649,
           "away_win_prob": 0.8608307432819351,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_PIT_BAL": {
           "home_win_prob": 0.5141245098247292,
           "away_win_prob": 0.48587549017527076,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_NYJ_BUF": {
           "home_win_prob": 0.9077154038646434,
           "away_win_prob": 0.09228459613535656,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_ATL_CAR": {
           "home_win_prob": 0.43835772871971845,
           "away_win_prob": 0.5616422712802815,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_CLE_CIN": {
           "home_win_prob": 0.6993790975691763,
           "away_win_prob": 0.30062090243082373,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_LAC_DEN": {
           "home_win_prob": 0.6738034088659623,
           "away_win_prob": 0.32619659113403765,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_DET_GB": {
           "home_win_prob": 0.45277167580849054,
           "away_win_prob": 0.5472283241915095,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_TEN_HOU": {
           "home_win_prob": 0.7996207599465293,
           "away_win_prob": 0.20037924005347074,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_JAX_IND": {
           "home_win_prob": 0.16183990449742902,
           "away_win_prob": 0.838160095502571,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_LV_KC": {
           "home_win_prob": 0.6924037339919695,
           "away_win_prob": 0.3075962660080305,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_SEA_LA": {
           "home_win_prob": 0.5477946285958674,
           "away_win_prob": 0.45220537140413264,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_CHI_MIN": {
           "home_win_prob": 0.6685504098541931,
           "away_win_prob": 0.3314495901458069,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_MIA_NE": {
           "home_win_prob": 0.7339050221814183,
           "away_win_prob": 0.2660949778185817,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_TB_NO": {
           "home_win_prob": 0.5000480682738674,
           "away_win_prob": 0.4999519317261326,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_PHI_NYG": {
           "home_win_prob": 0.3328139534777743,
           "away_win_prob": 0.6671860465222257,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         },
         "2026_18_DAL_WAS": {
           "home_win_prob": 0.4897690832123365,
           "away_win_prob": 0.5102309167876635,
-          "home_cover_prob": NaN,
-          "away_cover_prob": NaN,
-          "over_prob": NaN,
-          "under_prob": NaN
+          "home_cover_prob": null,
+          "away_cover_prob": null,
+          "over_prob": null,
+          "under_prob": null
         }
       },
       "player_props": [

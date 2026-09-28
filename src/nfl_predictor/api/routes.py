@@ -127,6 +127,27 @@ def get_current_week():
     return {"season": season, "week": week}
 
 
+@router.get("/snapshot-meta")
+def get_snapshot_meta() -> dict:
+    """When the data this site serves was actually produced.
+
+    The snapshot carries generated_at at its top level, but every route that
+    reads it returns a nested block (a week, a standings table) and drops it,
+    so no other endpoint can answer "how old are these numbers?". The hub
+    needs to say that on the card, and this is also the honest answer for
+    anyone tracking how fresh a deployment is.
+
+    Empty dict when no snapshot has been generated yet -- a public deploy
+    before its first snapshot -- so this reports source "live" rather than
+    raising. That is the real state, not a failure.
+    """
+    snap = _public_snapshot()
+    return {
+        "generated_at": snap.get("generated_at"),
+        "source": "public_snapshot" if snap else "live",
+    }
+
+
 @lru_cache(maxsize=1)
 def _load_models_cached() -> dict:
     return manifest.load_models()
