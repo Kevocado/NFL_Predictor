@@ -11,20 +11,40 @@ from __future__ import annotations
 import contextlib
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
+from scipy.stats import norm
 
-from ..config import TRACKING_DB_PATH
+from ..config import CACHE_DIR, TRACKING_DB_PATH
 
 
 def _connect() -> sqlite3.Connection:
     """Open the tracking database and ensure its schema exists."""
+    conn = _open()
+    _ensure_schema(conn)
+    return conn
+
+
+def _open() -> sqlite3.Connection:
+    """A connection to the live local tracking file, with SQLite's own timeout
+    pragmas set. Schema work is `_ensure_schema`'s job, not this function's, so the
+    two can be told apart: `_connect` ensures and discards the result,
+    `migrate_tracking_db` ensures and reports it."""
     conn = sqlite3.connect(str(TRACKING_DB_PATH), timeout=15)
     conn.execute("PRAGMA busy_timeout = 15000")
     try:
         conn.execute("PRAGMA journal_mode = WAL")
     except sqlite3.OperationalError:
         pass
+    return conn
+
+
+def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
+    """Bring the schema up to date and return the columns that were added (empty if
+    it was already current). Split out from `_connect` so `migrate_tracking_db` can
+    report what a boot actually changed, rather than discovering it had already been
+    applied by the `_connect` it called."""
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS game_predictions (
@@ -50,21 +70,7 @@ def _connect() -> sqlite3.Connection:
         )
         """
     )
-    existing_cols = {row[1] for row in conn.execute("PRAGMA table_info(game_predictions)")}
-    for column in ("home_spread_line", "total_line", "ats_hit", "total_hit", "season", "week"):
-        if column not in existing_cols:
-            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} REAL" if column in ("home_spread_line", "total_line")
-                         else f"ALTER TABLE game_predictions ADD COLUMN {column} INTEGER")
-    # Kalshi feed: the predicted distribution behind each frozen snapshot, so the trade hub can
-    # price a strike from the model's own margin/total distribution instead of a point estimate.
-    #
-    # Deliberately NOT a `backfilled` column. Pre-game-ness is already derived, live, by
-    # `_snapshotted_after_kickoff` (snapshotted_at >= commence_time, failing closed): it cannot
-    # drift out of step with the timestamps, and a database written before this change needs no
-    # migration pass over its rows.
-    for column, sql_type in _FEED_COLUMNS.items():
-        if column not in existing_cols:
-            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} {sql_type}")
+    added = _apply_schema_migrations(conn)
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS player_prop_predictions (
@@ -86,16 +92,113 @@ def _connect() -> sqlite3.Connection:
     prop_cols = {row[1] for row in conn.execute("PRAGMA table_info(player_prop_predictions)")}
     if "position" not in prop_cols:
         conn.execute("ALTER TABLE player_prop_predictions ADD COLUMN position TEXT")
-    return conn
+        added.append("player_prop_predictions.position")
+    return added
 
 
-_FEED_COLUMNS = {
-    "predicted_margin": "REAL",
-    "sigma": "REAL",
-    "predicted_total": "REAL",
-    "total_sigma": "REAL",
-    "model_version": "TEXT",
-}
+# Every column added to `game_predictions` after the original CREATE TABLE, as
+# (name, SQL type), in the order it was added. One declaration, so the migration
+# cannot grow a column in one place and forget it in the other.
+#
+# The last five are the Kalshi feed's predicted distribution, and the first six
+# are the lines and grades the track record grades. `predicted_total` and
+# `predicted_margin` are in BOTH features' territory: the model has computed them
+# for as long as it has computed `over_prob` (`_predict_game_from_models` returns
+# them to every caller, and `margin_to_probabilities` turns the total into
+# `over_prob`), so the feed could record them and nothing ever summarised them.
+_MIGRATION_COLUMNS = (
+    ("home_spread_line", "REAL"),
+    ("total_line", "REAL"),
+    ("ats_hit", "INTEGER"),
+    ("total_hit", "INTEGER"),
+    ("season", "INTEGER"),
+    ("week", "INTEGER"),
+    ("predicted_margin", "REAL"),
+    ("sigma", "REAL"),
+    ("predicted_total", "REAL"),
+    ("total_sigma", "REAL"),
+    ("model_version", "TEXT"),
+)
+
+
+def _apply_schema_migrations(conn: sqlite3.Connection) -> list[str]:
+    """Add whichever declared columns are missing, and return their names.
+
+    Idempotent: it runs on every connection the app opens, and on every cold
+    start, so a second pass must add nothing and must not raise.
+
+    One `ALTER TABLE` per column, each its own statement, because that is the
+    only form SQLite can run against an existing table.
+    """
+    # Refreshed after each add rather than cached up front. Caching is what let the
+    # original two-loop version below drift: the second loop tested against a
+    # `existing_cols` set the first loop had already invalidated, so a column
+    # named in both would be attempted twice. One list, one loop, no cache.
+    added = []
+    for column, sql_type in _MIGRATION_COLUMNS:
+        present = {row[1] for row in conn.execute("PRAGMA table_info(game_predictions)")}
+        if column not in present:
+            conn.execute(f"ALTER TABLE game_predictions ADD COLUMN {column} {sql_type}")
+            added.append(column)
+    return added
+
+
+class TrackingDbOnPersistentMount(RuntimeError):
+    """Raised instead of migrating. SQLite's locking does not survive the Azure
+    Files mount, and the fix for that is not a longer timeout."""
+
+
+def _is_on_persistent_mount(path) -> bool:
+    """Whether `path` is inside the Azure Files cache mount.
+
+    Fails SAFE in the only direction that matters: a path it cannot place is
+    reported as not-on-the-mount, because guessing "yes" would refuse a perfectly
+    good local database and guessing the other way here is the thing the guard
+    exists to prevent.
+    """
+    try:
+        return Path(path).resolve().is_relative_to(Path(CACHE_DIR).resolve())
+    except (OSError, ValueError):
+        return False
+
+
+def migrate_tracking_db() -> list[str]:
+    """Apply the schema, idempotently, on the LIVE local database. Returns the
+    columns added, empty when there was nothing to do.
+
+    **This must never run against the Azure Files mount.** SQLite does not work
+    reliably over SMB/Azure Files -- confirmed live: "database is locked" the
+    moment `TRACKING_DB_PATH` itself pointed at the mounted cache volume. The fix
+    this repo already carries (commit 458bed2) is not a longer `busy_timeout` and
+    not a retry loop: the live database stays on local, ephemeral container disk
+    and is COPIED to and from the persistent mount at a quiescent point, with no
+    connection open at either end (`api/main.py::_restore_tracking_db` /
+    `_backup_tracking_db`). Copy files; never open the database across the share.
+
+    So the migration runs on the local file, and this refuses to start at all if
+    the path has been pointed at the mount by mistake. Failing loudly here is the
+    point: the alternative is a live tracker that dies inside a DDL statement on
+    first boot, which is strictly worse than never migrating. Nothing is created
+    on the mount when this raises.
+
+    Called from `api/main.py`'s lifespan, immediately after the backup is restored
+    and before any task exists -- the same quiescent-point discipline the restore
+    and backup already follow, and before the first tick can copy a
+    half-migrated file onto the mount.
+    """
+    if _is_on_persistent_mount(TRACKING_DB_PATH):
+        raise TrackingDbOnPersistentMount(
+            f"Refusing to migrate {TRACKING_DB_PATH}: it is inside the persistent cache mount "
+            f"({CACHE_DIR}), and SQLite's locking does not survive Azure Files/SMB. The live "
+            f"database belongs on local disk and is copied to the mount at a quiescent point -- "
+            f"see api/main.py::_restore_tracking_db and config.py::TRACKING_DB_BACKUP_PATH."
+        )
+    # `_open` + `_ensure_schema`, not `_connect`: `_connect` would apply the same DDL
+    # and throw away the list of what it added, so a boot could never report a
+    # migration. `with conn` commits, then contextlib.closing closes: committed AND
+    # closed before this returns, which is the precondition for copying the file.
+    with contextlib.closing(_open()) as conn, conn:
+        return _ensure_schema(conn)
 
 
 def _parse_utc(value: str) -> datetime:
@@ -327,11 +430,18 @@ def backfill_unresolved_games(schedules_module) -> int:
     return reconcile_game_predictions(finished[["game_id", "home_score", "away_score"]])
 
 
-def get_track_record() -> dict:
+def get_track_record(current_week: int | None = None, season: int | None = None) -> dict:
     """Aggregate accuracy summary across every reconciled game and player
     prop -- not a per-game list (the frontend already has that in the game
     detail modal's own verdict section; this is the "how good is the model
-    overall" view, same shape as PL_Predictor's Data Hub track record)."""
+    overall" view, same shape as PL_Predictor's Data Hub track record).
+
+    `current_week`/`season` bound the `weekly` rows. The route passes both from
+    `routes.current_season_and_week()`, which is the only place that knows the
+    calendar; a caller that does not (facts.py, which reads two numbers off the
+    headline) gets the newest week actually recorded. Either way the list runs
+    from week 1 to that bound with no gaps -- see `_weekly_window`.
+    """
     with contextlib.closing(_connect()) as conn, conn:
         resolved_games = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
         resolved_props = pd.read_sql("SELECT * FROM player_prop_predictions WHERE resolved = 1", conn)
@@ -342,7 +452,8 @@ def get_track_record() -> dict:
         rebuilt = pd.Series(dtype=bool)
     n_rebuilt = int(rebuilt.sum())
     resolved_games = resolved_games[~rebuilt] if not resolved_games.empty else resolved_games
-    return {"games": {**_summarize_games(resolved_games), "n_rebuilt": n_rebuilt}, "player_props": _summarize_player_props(resolved_props)}
+    summary = _summarize_games(resolved_games, current_week=current_week, season=season)
+    return {"games": {**summary, "n_rebuilt": n_rebuilt}, "player_props": _summarize_player_props(resolved_props)}
 
 
 def get_feed_predictions(now: datetime | None = None) -> list[dict]:
@@ -464,30 +575,596 @@ def get_calibration(n_buckets: int = CALIBRATION_N_BUCKETS) -> dict:
     }
 
 
-def _summarize_games(resolved: pd.DataFrame) -> dict:
-    if resolved.empty:
-        return {
-            "n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None,
-            "pct_totals_correct": None, "weekly_trend": [],
-        }
-    ats = resolved[resolved["ats_hit"].notna()]
-    totals = resolved[resolved["total_hit"].notna()]
+# The three graded markets, as (grade column, hit count key, accuracy key, probability
+# pair the market is only a call if it has). One list so a week row cannot grow an
+# accuracy without also growing the count behind it -- a rate with no denominator is not
+# a fact, and a *weekly* rate is where that mistake hides best: 5 games, 3 ATS grades and
+# 2 totals grades are three different denominators, and a chart that shows all three
+# accuracies as bare percentages is asserting they share one.
+#
+# The fourth field is the other half of the same rule, kept here rather than written out
+# a second time beside the count keys. `get_game_verdict` below already declines to
+# report an ATS or totals market for a row whose probabilities are missing, because
+# `_present` says that is not a call the model made; `_grade` excludes exactly those rows
+# so the per-game view and the aggregate cannot give opposite answers about the same game.
+# The moneyline carries an EMPTY pair, which is a different statement from "its pair is
+# missing": the moneyline has no spread, `_compute_hits` grades it unconditionally, and
+# `get_game_verdict` always reports it. Requiring a probability pair there would drop
+# real grades to satisfy a rule that market has no part in.
+#
+# The data migration that would repair the stored flags is separate; until it runs,
+# excluding the rows in `_grade` is what keeps the aggregate honest.
+_GRADED_MARKETS = (
+    ("moneyline_hit", "n_moneyline", "pct_moneyline_correct", ()),
+    ("ats_hit", "n_ats", "pct_ats_correct", ("home_cover_prob", "away_cover_prob")),
+    ("total_hit", "n_totals", "pct_totals_correct", ("over_prob", "under_prob")),
+)
 
-    weekly_trend = []
-    with_week = resolved[resolved["week"].notna()]
-    if not with_week.empty:
-        grouped = with_week.groupby("week")["moneyline_hit"].agg(["mean", "size"]).reset_index()
-        weekly_trend = [
-            {"week": int(r["week"]), "pct_moneyline_correct": float(r["mean"]), "n_games": int(r["size"])}
-            for _, r in grouped.sort_values("week").iterrows()
+
+def _pair_present(frame: pd.DataFrame, *columns: str) -> pd.Series:
+    """Row-wise `all(_present(...))`, for filtering a frame.
+
+    `_present` is scalar; iterating it with Series arguments would make
+    `pd.isna` return a Series and blow up on truthiness. This is the same rule
+    expressed over columns.
+    """
+    mask = pd.Series(True, index=frame.index)
+    for column in columns:
+        mask &= frame[column].notna()
+    return mask
+
+
+def _grade(frame: pd.DataFrame, column: str, required: tuple[str, ...] = ()) -> dict:
+    """Hit rate and its count for one graded market over `frame`.
+
+    A market is graded per game, and not always: ATS needs a real spread line plus both
+    cover probabilities, totals needs a real total line plus both over/under
+    probabilities (see `_present`). So the denominator is the graded subset, never the
+    row count, and an ungraded market is `None` rather than 0.0 -- 0% is a legible claim
+    that every game was missed, which is not what "never measured" means.
+
+    `required` is the probability pair `_GRADED_MARKETS` records for this market. A
+    stored grade flag is not on its own enough: an older build wrote `ats_hit` for rows
+    that had a spread line and no cover probabilities, and `get_game_verdict` refuses
+    to report those rows, so counting them would put the per-game view and this
+    aggregate in disagreement about the same game. Empty for the moneyline, which
+    `_compute_hits` grades with no pair to check.
+
+    This is the ONLY place the two halves meet, deliberately: the headline aggregate
+    and every weekly row both go through it, so a week cannot apply a looser rule than
+    the season total above it.
+    """
+    if column not in frame.columns:
+        return {"n": 0, "pct": None}
+    graded = frame[frame[column].notna()]
+    if required and all(probability in frame.columns for probability in required):
+        graded = graded[_pair_present(graded, *required)]
+    return {"n": int(len(graded)), "pct": float(graded[column].mean()) if not graded.empty else None}
+
+
+def _weekly_row(week: int, frame: pd.DataFrame) -> dict:
+    """One week of the record.
+
+    `n_games` is volume and each `n_*` is the denominator behind the accuracy beside it.
+    They are deliberately separate keys. `TrackRecordPage.tsx` builds its bar width as
+    `(n_games / max_games) * pct_moneyline_correct`, which multiplies accuracy by a
+    volume share: a 1-game perfect week then draws at 0.25 of a 4-game 50% week. The
+    backend cannot fix that formula, but it can refuse to offer a single fused number
+    for it to consume -- and `n_games` next to an unfused accuracy is what lets the
+    page draw the two separately.
+
+    `tracked` is `n_games > 0`, and a week with nothing in it still gets a row. See
+    `_weekly_window`.
+    """
+    row = {"week": int(week), "n_games": int(len(frame)), "tracked": bool(len(frame))}
+    for column, count_key, pct_key, required in _GRADED_MARKETS:
+        graded = _grade(frame, column, required)
+        row[count_key], row[pct_key] = graded["n"], graded["pct"]
+    return row
+
+
+def _untracked_week(week: int) -> dict:
+    """A week the tracker holds nothing for. Present, marked, and empty of rates.
+
+    `n_games` and the three `n_*` are 0 because 0 is the *true count* of nothing
+    tracked. The rates are None because no rate was measured -- 0.0 would claim the
+    model was wrong on every game in a week it never picked in.
+    """
+    return {
+        "week": int(week), "n_games": 0, "tracked": False,
+        "n_moneyline": 0, "pct_moneyline_correct": None,
+        "n_ats": 0, "pct_ats_correct": None,
+        "n_totals": 0, "pct_totals_correct": None,
+    }
+
+
+def _weekly_window(resolved: pd.DataFrame, current_week: int | None, season: int | None) -> list[dict]:
+    """One row for every elapsed week of `season`, 1..`current_week`.
+
+    Grouping the rows by week and emitting one row per group only ever draws the weeks
+    the tracker happened to cover. A week with no picks then does not read as "not
+    tracked" -- it reads as *not part of the season*, which is a much stronger claim and
+    a false one, since a reader cannot tell a gap from an absence. So the weeks are
+    enumerated from the calendar and the empty ones are filled in.
+
+    `season` scopes the window, because week numbers restart every season: an
+    unfiltered group-by collapses 2025 week 12 into 2026 week 12 and reports a 2025
+    accuracy on this season's chart. Callers that know the calendar pass it; callers
+    that do not (facts.py, tests) get the newest season and week actually present in the
+    data, which is still a complete, gap-free list.
+    """
+    by_week = _week_groups(resolved, current_week, season)
+    return [
+        _weekly_row(week, by_week[week]) if week in by_week else _untracked_week(week)
+        for week in range(1, _window_end(current_week, by_week) + 1)
+    ]
+
+
+def _window_season(resolved: pd.DataFrame, season: int | None) -> int | None:
+    """The season a week-numbered window is actually scoped to, resolved once.
+
+    Week numbering restarts every season, so a window has to name one. Callers
+    that know the calendar pass `season`; callers that do not (facts.py, tests)
+    get the newest season present, which is still a complete, gap-free list.
+    Returns None when nothing identifies a season -- no rows, or a caller
+    assembling a frame by hand -- and every reader of this deals with that by
+    emitting the window unfiltered rather than emitting nothing.
+
+    Split out of `_week_groups` so a payload can LABEL the window it grouped by.
+    A label recomputed from the caller's arguments could disagree with the
+    grouping that actually happened, which is the one thing a label must not do.
+    """
+    if "season" in resolved.columns:
+        seasons = resolved["season"].dropna()
+        if season is None and not seasons.empty:
+            season = int(seasons.max())
+    return season
+
+
+def _week_groups(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict[int, pd.DataFrame]:
+    """Week number -> that week's rows, scoped to one season.
+
+    Week numbering restarts every season, so an unfiltered group-by collapses 2025
+    week 12 into 2026 week 12 and reports a 2025 accuracy on this season's chart.
+    Which season it resolved to is `_window_season`, so a caller can say so.
+    """
+    season = _window_season(resolved, season)
+    if season is not None and "week" in resolved.columns:
+        scoped = resolved[resolved["season"] == season]
+    else:
+        # Nothing identifies a season here (no rows at all, or a caller assembling a
+        # frame by hand). Emit the window unfiltered rather than emitting nothing.
+        scoped = resolved
+    if "week" not in scoped.columns:
+        return {}
+    return {int(w): group for w, group in scoped.groupby("week") if pd.notna(w)}
+
+
+def _point_forecast(frame: pd.DataFrame, column: str, actual: pd.Series) -> dict:
+    """Mean absolute error and mean signed error of a points forecast, in points.
+
+    `column` holds the predicted value and `actual` the realised one for the same
+    rows, so the error is `predicted - actual` in both cases; only what `actual`
+    *is* differs (a margin for `predicted_margin`, a total for `predicted_total`).
+
+    **A NULL forecast is EXCLUDED, never read as 0.0.** Rows written before
+    `predicted_total`/`predicted_margin` existed have no points forecast at all --
+    every one of the 48 rows in the real tracking database -- and 0.0 is a perfectly
+    legible points forecast. Coercing them to zero would put a fabricated
+    `predicted_total = 0` error of "however many points the game scored" on every
+    legacy row, permanently, and would make the live season's MAE look like a model
+    that predicts near-zero football. A row with no forecast has no error, only a
+    prediction.
+
+    `signed_error` is the mean of `predicted - actual`: positive means the model
+    systematically over-forecast, negative under. It is the repo's existing
+    `mean_signed_error` on player props under a shorter name, same definition.
+    """
+    if column not in frame.columns:
+        return {"n": 0, "mae": None, "signed_error": None}
+    eligible = frame[frame[column].notna() & actual.notna()]
+    if eligible.empty:
+        return {"n": 0, "mae": None, "signed_error": None}
+    error = eligible[column] - actual[eligible.index]
+    return {
+        "n": int(len(eligible)),
+        "mae": float(error.abs().mean()),
+        "signed_error": float(error.mean()),
+    }
+
+
+def _total_points(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns or "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"] + frame["actual_away_score"]
+
+
+def _point_spread(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns or "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"] - frame["actual_away_score"]
+
+
+# (payload key, forecast column, what the realised value is). Kept as a list so the
+# overall block and every weekly row are computed by the same call and cannot drift.
+_POINT_FORECASTS = (
+    ("totals", "predicted_total", _total_points),
+    ("margin", "predicted_margin", _point_spread),
+)
+
+
+# --- B5: the model against the market ---------------------------------------
+#
+# The closing spread is already stored (`home_spread_line`, nflverse convention:
+# the home team's expected margin, so a POSITIVE value means home is favoured;
+# home covers when the real margin exceeds it). Turning a line into a probability
+# needs one assumption: how wide a game's final margin typically is, in points.
+# That is σ_league, and it is the only invented number in this block, which is why
+# it is a named constant with a test asserting its value rather than an inline
+# 13.5 in three places.
+#
+# THE SIGN, and it is the fact that makes the whole block correct: this column is
+# ALREADY NEGATED relative to how a book words a line. A book prints "BAL -3.5" for
+# a game where Baltimore is favoured by 3.5, and nflverse (and therefore this
+# column) records the same game as +3.5, the home team's expected margin. So the
+# spec's `Φ(spread / σ_league)` -- written in book convention, where a positive
+# number is points the favourite gives -- becomes `Φ(-spread / σ_league)` here, and
+# the negation happens ONCE, at the conversion in `implied_home_cover_prob`. Every
+# other line in this block reads the column as the home team's expected margin and
+# must not negate it again. `api/facts.py::_spread_line` negates it a second time,
+# but for the opposite reason: the site words a favourite as giving points.
+#
+# Negating twice is invisible, which is the whole danger: every implied probability
+# comes out exactly mirrored around 0.5, so the numbers still look reasonable, and
+# the disagreement cohort silently becomes the set of games where the model AGREED
+# with the line. `tests/test_track_record_vs_market.py` pins the convention against
+# `margin_to_probabilities` and `_compute_hits` -- the two functions that already
+# encode it -- rather than restating it, because a test written from the same
+# misreading is not a test.
+#
+# PROVENANCE: NFL 13.5, from the design spec
+# `docs/superpowers/specs/2026-09-27-predicted-box-score-and-track-record-design.md`
+# ("σ_league a single named, documented constant per sport (NFL 13.5, CFB 14.0,
+# to be pinned in the plan and asserted in a test so it cannot drift silently").
+# The spec chose the value; this repo pins it. CFB's 14.0 belongs to CFB_Predictor
+# and is NOT set here -- a per-sport constant has to live in the repo serving that
+# sport, or the two will drift apart.
+#
+# Changing it silently would reinterpret every implied probability, every edge and
+# every disagreement in the record, and nothing else in the codebase would notice.
+SIGMA_LEAGUE_NFL = 13.5
+
+# The same disclaimers, in words, in the payload. The page has to be able to
+# explain what it is showing; a number nobody can interpret is not a decision aid,
+# and a tooltip nobody opens is not an explanation.
+_VS_MARKET_METHOD = {
+    "sigma_league_points": SIGMA_LEAGUE_NFL,
+    "sigma_league_meaning": (
+        "NFL final margin is treated as roughly Normal with a standard deviation of "
+        f"{SIGMA_LEAGUE_NFL} points. That single number is what turns a closing spread "
+        "into a probability."
+    ),
+    "implied_probability": (
+        f"The closing line is a margin -- the home team's expected margin -- so the "
+        f"probability that the home side covers it is Φ(-spread / {SIGMA_LEAGUE_NFL}), "
+        f"the Normal cumulative at the NEGATED line divided by {SIGMA_LEAGUE_NFL}. "
+        f"That is the market's margin read through the league width stated below, not "
+        f"a figure the market published: the line is the market's, the width is this "
+        f"model's. The minus sign is not a preference: lines are quoted here in the "
+        f"expected-margin convention, where a POSITIVE line means the home team is "
+        f"favoured, and the home side covers by beating that line. Only a line of 0.0 "
+        f"is a 50/50 cover. The line is a bar to clear, so the further it sits from "
+        f"0.0 the further the probability sits from 50%: a line favouring the home "
+        f"team is below 50% for the home side to cover it, which is the same "
+        f"statement as it being under 50% likely that a team favoured by seven wins "
+        f"by more than seven."
+    ),
+    "edge": (
+        "Edge is the model's cover probability minus the probability the closing line "
+        "implies, in percentage points, positive when the model likes a side more than "
+        "the price does. It measures disagreement with a price, not superiority: a "
+        "closing line is the market's best estimate, so a well-calibrated model's average "
+        "edge is near zero by design. A large average edge would mean one of the two is "
+        "miscalibrated, not that the model is right."
+    ),
+    "disagreement": (
+        "The disagreement cohort is the games where the model backed the side the line "
+        "did not favour -- a pick against the price. Its hit rate is how often that side "
+        "covered, over exactly those games. Pick'em lines and evenly split model "
+        "probabilities are excluded, because neither has a side to disagree with. This is "
+        "the number to read for a decision; the mean edge is a calibration check."
+    ),
+    "not_a_profit_claim": (
+        "This is agreement with a price, not a profit claim. No figure here is a return, "
+        "a yield, a stake or a cent. We do not publish profit or ROI figures, and this "
+        "comparison does not become one by being labelled 'edge'."
+    ),
+    "population": (
+        "The headline figure covers every game the tracker holds a line, both cover "
+        "probabilities and a final score for, in every season, because that is the "
+        "question the page is answering. A game missing any one of those is left out "
+        "of both this figure and the chart below rather than counted as a neutral "
+        "observation, which is why a game with a line can still be missing from both. "
+        "The chart covers one season's elapsed weeks only, so the two are over "
+        "different populations on purpose. The block's scope states how many of the "
+        "games the chart accounts for and how many fall outside it; the two add up to "
+        "the headline's count, so no game is in one and silently missing from the other."
+    ),
+}
+
+
+def implied_home_cover_prob(spread: float, sigma_league: float = SIGMA_LEAGUE_NFL) -> float:
+    """P(home covers) implied by a closing spread, under the league margin sigma.
+
+    `spread` is `home_spread_line`: the home team's EXPECTED margin, positive when
+    home is favoured, and the home side covers when the real margin exceeds it. So
+    the threshold is the line itself and the quantity wanted is P(margin > spread),
+    which under a zero-centred margin of width `sigma_league` is Φ(-spread / σ).
+    The negation is applied here, once; every other reader of the column in this
+    module reads it un-negated.
+
+    The sign is the whole function, and getting it backwards is invisible: every
+    implied probability comes out exactly mirrored around 0.5, so the numbers still
+    look reasonable while the mean edge flips sign and the disagreement cohort
+    becomes the set of games where the model AGREED with the line. The spec writes
+    the same probability as `Φ(spread / σ)` in book convention, where a book prints
+    "BAL -3.5" for the game this column stores as +3.5; the spec is right and this
+    is where the two conventions meet.
+    """
+    return float(norm.cdf(-spread / sigma_league))
+
+
+def _market_eligible(frame: pd.DataFrame) -> pd.DataFrame:
+    """The rows of `frame` that can be compared with a price at all.
+
+    A real closing spread, both cover probabilities, and a real margin to grade
+    against. Each missing piece removes the game from the whole block rather than
+    contributing a neutral observation -- a game with no line has no price to
+    disagree with, and 0.0 edge would be a fabricated agreement. One predicate,
+    read by the summary and by the scope reconciliation, so the two cannot
+    disagree about which games were compared.
+    """
+    if frame is None or frame.empty:
+        return pd.DataFrame()
+    return frame[
+        frame["home_spread_line"].notna()
+        & frame["home_cover_prob"].notna()
+        & frame["away_cover_prob"].notna()
+        & _actual_home(frame).notna()
+        & _actual_away(frame).notna()
+    ]
+
+
+def _market_row(frame: pd.DataFrame) -> dict:
+    """One game (or one week) of the model-vs-market comparison.
+
+    Eligible means: see `_market_eligible`, which is the same rule this applies
+    and the scope reconciliation counts with.
+    """
+    summary = {
+        "n": 0, "mean_implied_home_cover_prob": None, "mean_model_home_cover_prob": None,
+        "mean_edge_points": None, "disagreement_n": 0, "disagreement_hit_rate": None,
+        "games": [],
+    }
+    if frame is None or frame.empty:
+        return summary
+    eligible = _market_eligible(frame)
+    if eligible.empty:
+        return summary
+
+    implied = eligible["home_spread_line"].map(implied_home_cover_prob).astype(float)
+    model = eligible["home_cover_prob"].astype(float)
+    edge_points = (model - implied) * 100.0
+
+    disagreeing = _disagreeing_games(eligible)
+    summary.update({
+        "n": int(len(eligible)),
+        "mean_implied_home_cover_prob": float(implied.mean()),
+        "mean_model_home_cover_prob": float(model.mean()),
+        "mean_edge_points": float(edge_points.mean()),
+        "disagreement_n": int(len(disagreeing)),
+        "disagreement_hit_rate": (
+            float(disagreeing["ats_hit"].mean()) if not disagreeing.empty else None
+        ),
+        "games": sorted(str(g) for g in disagreeing["game_id"]),
+    })
+    return summary
+
+
+def _actual_home(frame: pd.DataFrame) -> pd.Series:
+    if "actual_home_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_home_score"]
+
+
+def _actual_away(frame: pd.DataFrame) -> pd.Series:
+    if "actual_away_score" not in frame.columns:
+        return pd.Series(dtype="float64", index=frame.index)
+    return frame["actual_away_score"]
+
+
+def _disagreeing_games(eligible: pd.DataFrame) -> pd.DataFrame:
+    """Games where the model backed the side the closing line did not favour.
+
+    `home_spread_line` is the home team's expected margin, so `line > 0` is the
+    line favouring home -- the same reading as `margin_to_probabilities` and
+    `_compute_hits`, and the same reading `implied_home_cover_prob` negates once at
+    the boundary. Reading it the other way inverts the entire cohort: the games
+    where the model took the seven-point dog disappear from it and the games where
+    the model agreed with the line take their place.
+
+    Three exclusions, each for a stated reason:
+
+    - **Pick'em** (`home_spread_line == 0`): the line favours nobody, so there is no
+      side to disagree with. Not agreement either -- absence of a position, not a
+      position.
+    - **Evenly split model** (`home_cover_prob == away_cover_prob`): the model is not
+      leaning anywhere. `>=` would hand these to home on a coin-flip tie.
+    - **Pushes** (final margin exactly equal to the line): nobody won and nobody lost.
+      `get_calibration` already declines to grade these (`margin != float(line)`),
+      and this follows it rather than re-deriving a verdict from the scores, which
+      would call the away side a winner of a game nobody won.
+    """
+    if eligible.empty:
+        return eligible.iloc[0:0]
+    margin = _actual_home(eligible) - _actual_away(eligible)
+    line = eligible["home_spread_line"].astype(float)
+    home = eligible["home_cover_prob"].astype(float)
+    away = eligible["away_cover_prob"].astype(float)
+    line_favours_home = line > 0
+    model_favours_home = home > away
+    return eligible[
+        (line != 0)
+        & (home != away)
+        & (margin != line)
+        & (line_favours_home != model_favours_home)
+    ]
+
+
+def _vs_market_weekly(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict:
+    groups = _week_groups(resolved, current_week, season)
+    return {
+        "weekly": [
+            _vs_market_week(week, groups.get(week))
+            for week in range(1, _window_end(current_week, groups) + 1)
         ]
+    }
 
+
+def _vs_market_week(week: int, frame: pd.DataFrame | None) -> dict:
+    """One week of the model-vs-market comparison.
+
+    `tracked` is `n > 0` -- games actually COMPARED with a price -- and not
+    "the tracker holds rows for this week". A week whose only rows have no
+    spread, no cover probabilities or no scores was never compared with the
+    market, and B3 makes this key the page's visible "Not tracked" marker, so
+    `week in groups` would tell a visitor a week was tracked when zero games
+    were compared. Same rule as `_weekly_row` (`n_games > 0`) and `_point_forecast_week`
+    (`n > 0`); the tracker holding a row and the tracker having something to
+    compare are two different facts, and only one of them is this key.
+    """
+    summary = _market_row(frame if frame is not None else pd.DataFrame())
+    return {"week": int(week), "tracked": summary["n"] > 0, **summary}
+
+
+def _vs_market_scope(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None, weekly: list[dict]
+) -> dict:
+    """Say, in the payload, which games the headline covers and which the chart does.
+
+    The headline and the `weekly` rows are computed over DIFFERENT populations and
+    always have been -- the headline is the whole resolved record, the chart is one
+    season bounded by the calendar, which is what the spec mandates for the chart.
+    What is new in B5 is that a second block started doing it, and did it silently:
+    a reader could see a headline drawn from two seasons sitting directly above a
+    chart drawn from one, with a row at `week > current_week` counted in the
+    headline and appearing in no weekly list, and nothing in the payload saying so.
+
+    Two ways to repair that were defensible: scope the headline to the same season
+    and window as the chart, or keep it on the whole record and say so. **The
+    headline stays on the whole record**, because it sits directly beside
+    `n_resolved`, `n_ats` and `pct_ats_correct`, which are all whole-record numbers:
+    narrowing only `vs_market` would trade one incoherence for a worse one, with
+    `vs_market.n` disagreeing with the ATS count two keys above it. A record page
+    should answer "how has this model done against the market", and that is not one
+    season's question.
+
+    So the payload carries the reconciliation instead. `n_games_in_weekly` is the sum
+    of the `n` on the weekly rows themselves rather than a second count of the same
+    games, so it cannot drift from the chart it is describing, and
+    `n_games_outside_weekly` is the difference -- the games a reader who adds up the
+    chart cannot account for, stated as a number rather than left to be discovered.
+    The identity `n_games_total == n_games_in_weekly + n_games_outside_weekly` is
+    what makes the block auditable, and it is asserted in a test.
+    """
+    total = int(len(_market_eligible(resolved)))
+    in_weekly = int(sum(row["n"] for row in weekly))
+    return {
+        "population": "all_seasons",
+        "weekly_season": _window_season(resolved, season),
+        "weekly_last_week": None if current_week is None else int(current_week),
+        "n_games_total": total,
+        "n_games_in_weekly": in_weekly,
+        "n_games_outside_weekly": total - in_weekly,
+    }
+
+
+def _point_forecast_weekly(
+    resolved: pd.DataFrame, current_week: int | None, season: int | None
+) -> dict[str, dict]:
+    """The same forecast block, but split by week, on the same window as `weekly`.
+
+    Enumerated from the calendar rather than from the groups, for the same reason
+    `weekly` is (B3): a week with no forecast must read as "not forecast", not
+    vanish. And it is the per-week numbers that carry the season's shape -- a
+    model 10 points high in week 1 and 10 low in week 3 averages to nothing and is
+    wrong every single week.
+    """
+    groups = _week_groups(resolved, current_week, season)
+    return {
+        key: {
+            "weekly": [
+                _point_forecast_week(week, groups.get(week), column, realised)
+                for week in range(1, _window_end(current_week, groups) + 1)
+            ]
+        }
+        for key, column, realised in _POINT_FORECASTS
+    }
+
+
+def _window_end(current_week: int | None, groups: dict) -> int:
+    if current_week is not None:
+        return int(current_week)
+    return max(groups, default=0)
+
+
+def _point_forecast_week(week: int, frame: pd.DataFrame | None, column: str, realised) -> dict:
+    summary = _point_forecast(frame if frame is not None else pd.DataFrame(), column, realised(frame) if frame is not None else pd.Series(dtype="float64"))
+    return {"week": int(week), "tracked": summary["n"] > 0, **summary}
+
+
+def _summarize_games(
+    resolved: pd.DataFrame, current_week: int | None = None, season: int | None = None
+) -> dict:
+    graded = {column: _grade(resolved, column, required) for column, _, _, required in _GRADED_MARKETS}
+    forecasts = {
+        key: {**_point_forecast(resolved, column, realised(resolved)), "weekly": []}
+        for key, column, realised in _POINT_FORECASTS
+    }
+    for key, block in _point_forecast_weekly(resolved, current_week, season).items():
+        forecasts[key]["weekly"] = block["weekly"]
+    market = _market_row(resolved)
+    vs_market_weekly = _vs_market_weekly(resolved, current_week, season)
     return {
         "n_resolved": int(len(resolved)),
-        "pct_moneyline_correct": float(resolved["moneyline_hit"].mean()),
-        "pct_ats_correct": float(ats["ats_hit"].mean()) if not ats.empty else None,
-        "pct_totals_correct": float(totals["total_hit"].mean()) if not totals.empty else None,
-        "weekly_trend": weekly_trend,
+        # The headline counts too. A rate without its denominator is exactly the
+        # ambiguity B1 shipped on this page, one level up.
+        **{count: graded[column]["n"] for column, count, _, _ in _GRADED_MARKETS},
+        **{pct: graded[column]["pct"] for column, _, pct, _ in _GRADED_MARKETS},
+        "weekly": _weekly_window(resolved, current_week, season),
+        **forecasts,
+        "vs_market": {
+            **{k: v for k, v in market.items() if k != "games"},
+            # The cohort's game list lives under its own key: `games` at the top
+            # level of this block would read as every game compared, which is `n`.
+            "disagreement": {
+                "n": market["disagreement_n"],
+                "hit_rate": market["disagreement_hit_rate"],
+                "games": market["games"],
+            },
+            # The headline is the whole record and the chart below it is one
+            # season's elapsed weeks. The scope block reconciles the two, so the
+            # difference is stated rather than discovered. See `_vs_market_scope`.
+            "scope": _vs_market_scope(
+                resolved, current_week, season, vs_market_weekly["weekly"]
+            ),
+            **vs_market_weekly,
+            "method": dict(_VS_MARKET_METHOD),
+        },
     }
 
 

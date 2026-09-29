@@ -17,11 +17,12 @@ from fastapi import APIRouter, HTTPException, Response
 
 from ..config import (
     CURRENT_SEASON,
+    DEPTH_CHARTS_CACHE_DIR,
     PUBLIC_MODE,
     PUBLIC_SNAPSHOT_PATH,
     PUBLIC_SNAPSHOT_REFRESH_URL,
 )
-from ..data import player_stats, schedules, teams as teams_data
+from ..data import depth_charts, player_stats, schedules, teams as teams_data
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
 from ..features import build as feature_build
@@ -557,11 +558,26 @@ def _get_player_props_live(season: int, week: int):
 
         active_teams = set(upcoming_games["home_team"]).union(set(upcoming_games["away_team"]))
 
-        # 2. Filter players only belonging to the active teams playing this week
+        # 2. Filter players only belonging to the active teams playing this week,
+        #    and only at a position that has a market. `predict_props` emits
+        #    `anytime_td_prob` for *every* position and yardage markets only for
+        #    QB/RB/WR/TE, so an unfiltered player list turns every defender and
+        #    lineman into an anytime-TD prop. That was nearly free while the
+        #    weekly stats came from nflverse's `player_stats` release, which
+        #    publishes a row only for players with an offensive stat: 50 of 612
+        #    players in 2024. The `stats_player` release publishes a row for
+        #    every player who appeared in a game, which takes it to 972 of 1,422
+        #    so far in 2026 -- and `build_features_for_player` returns a row for
+        #    each of them, so they would all be snapshotted and graded.
+        #
+        #    The roster fallback below has always applied this filter; this
+        #    branch not applying it was an inconsistency that only showed up
+        #    once the stats source stopped being offensive-only.
         latest_players = (
             player_history[
                 (player_history["season"] == season) &
-                (player_history["recent_team"].isin(active_teams))
+                (player_history["recent_team"].isin(active_teams)) &
+                (player_history["position"].isin(player_props.POSITION_MARKETS))
             ]
             [["player_id", "player_name", "position", "recent_team"]]
             .drop_duplicates("player_id")
@@ -583,7 +599,15 @@ def _get_player_props_live(season: int, week: int):
         # 3. Fallback: a team with no current-season stats yet (week 1, or a
         # bye-to-opener gap) has no rows above even though its roster exists —
         # pull the season roster for just those teams so props aren't empty.
-        found_teams = set(latest_players["recent_team"].unique())
+        # `found_teams` is computed from the unfiltered history below, so a team
+        # whose only current-season rows belong to non-market positions still
+        # counts as found and does not trigger this.
+        found_teams = set(
+            player_history[
+                (player_history["season"] == season) &
+                (player_history["recent_team"].isin(active_teams))
+            ]["recent_team"].unique()
+        )
         missing_teams = active_teams - found_teams
         if missing_teams:
             try:
@@ -594,6 +618,21 @@ def _get_player_props_live(season: int, week: int):
                 latest_players = pd.concat([latest_players, fallback], ignore_index=True).drop_duplicates("player_id")
             except Exception as roster_err:
                 logger.warning("Failed to fetch season roster fallback for teams=%s: %s", missing_teams, roster_err)
+
+        # Starter flags from the depth chart, when it is available. The chart is
+        # keyed on full_name + club_code, and `recent_team` is the same club
+        # abbreviation, so the join needs no id mapping.
+        #
+        # An unavailable chart is NOT an error and must not raise: it leaves
+        # `is_starter` as None, which the UI renders as the visible "Projected
+        # order" state. `False` would be a different and much worse claim --
+        # it would say this player is known to be on the bench, which is an
+        # assertion about depth-chart data we do not have.
+        try:
+            chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+        except Exception as chart_err:  # noqa: BLE001 - never fatal to props
+            logger.warning("depth charts unavailable for %s wk%s: %s", season, week, chart_err)
+            chart_flags = {}
 
         results = []
         # `skipped` and `failed` are different facts and the error message has to
@@ -621,11 +660,16 @@ def _get_player_props_live(season: int, week: int):
                     skipped.append(player.get("player_id"))
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
+                flag = chart_flags.get(player["player_name"])
                 results.append({
                     "player_id": player["player_id"],
                     "player_name": player["player_name"],
                     "recent_team": player["recent_team"],
                     "position": player["position"],
+                    # None when there is no depth-chart data. See above: this is
+                    # "unknown", not "not a starter".
+                    "is_starter": flag["is_starter"] if flag else None,
+                    "depth_slot": flag["depth_slot"] if flag else None,
                     **props,
                 })
             except Exception as player_err:
@@ -671,7 +715,12 @@ def _get_player_props_live(season: int, week: int):
 
 @router.get("/track-record")
 def get_track_record():
-    return store.get_track_record()
+    # The season and week come from the schedule, not from the data: `weekly` has to
+    # list every elapsed week, and only the calendar knows which of them are elapsed.
+    # Without them the store falls back to the newest week it happens to hold, so a
+    # week with no tracked picks at the tail of the record would silently drop off.
+    season, week = current_season_and_week()
+    return store.get_track_record(current_week=week, season=season)
 
 
 @router.get("/kalshi-feed")

@@ -20,6 +20,7 @@ PLAYER_STATS_CACHE_DIR = CACHE_DIR / "player_stats"
 TEAM_STATS_CACHE_DIR = CACHE_DIR / "team_stats"
 INJURIES_CACHE_DIR = CACHE_DIR / "injuries"
 ODDS_CACHE_DIR = CACHE_DIR / "odds"
+DEPTH_CHARTS_CACHE_DIR = CACHE_DIR / "depth_charts"
 
 CURRENT_SEASON = 2026  # bump each new NFL league year (typically March)
 

@@ -91,6 +91,7 @@ def test_the_snapshot_window_really_does_span_two_weeks(monkeypatch):
         _game("W4_1", 4, "BUF", "KC"),  # same team, next week
     ])
     monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: frame)
+    monkeypatch.setattr(schedules, "fetch_upcoming_games", lambda season, week: frame)
     monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
 
     # The window filters on the upper bound only (`kickoff <= now + lead`), so
@@ -137,6 +138,16 @@ def test_a_team_playing_both_weeks_is_not_stored_against_next_week(monkeypatch, 
     ])
     monkeypatch.setattr(schedules, "fetch_upcoming_games", lambda season, week: both[both["week"] == week])
     monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: both)
+    # The tick also reconciles finished games at the end, from this fetch, and a
+    # non-empty answer sends it down the backfill path (routes.py:819 fetches
+    # weekly player stats there). Neither is what this test is about, both are
+    # network reads, and the suite-wide guard (tests/live_upstream.py) fails a
+    # run that reaches one -- so "nothing finished yet", which is the honest
+    # stand-in for a slate of unplayed games.
+    monkeypatch.setattr(
+        schedules, "fetch_current_season_partial",
+        lambda: pd.DataFrame(columns=["game_id", "home_score", "away_score"]),
+    )
     monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
     monkeypatch.setattr(routes, "_load_models_cached", lambda: {})
     monkeypatch.setattr(routes, "_load_game_history", lambda season: pd.DataFrame())
