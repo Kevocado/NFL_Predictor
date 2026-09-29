@@ -441,6 +441,14 @@ def get_track_record(current_week: int | None = None, season: int | None = None)
     calendar; a caller that does not (facts.py, which reads two numbers off the
     headline) gets the newest week actually recorded. Either way the list runs
     from week 1 to that bound with no gaps -- see `_weekly_window`.
+
+    **Nothing is hidden and everything is counted, in two figures.** The headline above is the
+    pre-kickoff record and rebuilt picks never count toward it -- that rule is what makes a hit
+    rate mean anything, and it survives. What B8 adds is the other figure, `all_picks`, which
+    summarises every resolved row with rebuilt INCLUDED, and `per_pick`, one row per resolved
+    (game, market) pick with `rebuilt` on the row so the two kinds are distinguishable per pick
+    and not only in aggregate. See `_all_picks_record` and `_per_pick_rows` for why they are
+    computed over the unfiltered frame.
     """
     with contextlib.closing(_connect()) as conn, conn:
         resolved_games = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
@@ -451,9 +459,21 @@ def get_track_record(current_week: int | None = None, season: int | None = None)
     else:
         rebuilt = pd.Series(dtype=bool)
     n_rebuilt = int(rebuilt.sum())
+    # `all_picks` and `per_pick` are computed over the UNFILTERED frame -- rebuilt included, which
+    # is the entire point. `all_picks_games` is the pre-kickoff subset the headline uses.
+    all_picks = _all_picks_record(resolved_games)
+    per_pick = _per_pick_rows(resolved_games)
     resolved_games = resolved_games[~rebuilt] if not resolved_games.empty else resolved_games
     summary = _summarize_games(resolved_games, current_week=current_week, season=season)
-    return {"games": {**summary, "n_rebuilt": n_rebuilt}, "player_props": _summarize_player_props(resolved_props)}
+    return {
+        "games": {
+            **summary,
+            "n_rebuilt": n_rebuilt,
+            "all_picks": all_picks,
+            "per_pick": per_pick,
+        },
+        "player_props": _summarize_player_props(resolved_props),
+    }
 
 
 def get_feed_predictions(now: datetime | None = None) -> list[dict]:
@@ -1125,6 +1145,80 @@ def _window_end(current_week: int | None, groups: dict) -> int:
 def _point_forecast_week(week: int, frame: pd.DataFrame | None, column: str, realised) -> dict:
     summary = _point_forecast(frame if frame is not None else pd.DataFrame(), column, realised(frame) if frame is not None else pd.Series(dtype="float64"))
     return {"week": int(week), "tracked": summary["n"] > 0, **summary}
+
+
+def _all_picks_record(resolved: pd.DataFrame) -> dict:
+    """The same three accuracies as the headline, over EVERY resolved row.
+
+    Rebuilt picks are INCLUDED here. That is the whole of B8: the headline above is the
+    pre-kickoff record and rebuilt picks never count toward it, because a hit rate is only
+    meaningful if the pick existed before the result -- counting post-kickoff picks toward one
+    number means the number can be inflated by construction, pick the winner after the fact and
+    score 100%. What changes is that nothing is hidden and everything is counted, in two figures
+    instead of one.
+
+    Computed over the unfiltered frame, so `n_resolved` here is larger than the headline's
+    whenever any row was rebuilt. The two `n_resolved` values are the reason the two figures
+    differ, and the page says so rather than leaving a reader to reconcile them.
+    """
+    if resolved.empty:
+        return {"n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None, "pct_totals_correct": None}
+    graded = {column: _grade(resolved, column, required) for column, _, _, required in _GRADED_MARKETS}
+    return {
+        "n_resolved": int(len(resolved)),
+        **{pct: graded[column]["pct"] for column, _, pct, _ in _GRADED_MARKETS},
+    }
+
+
+def _per_pick_rows(resolved: pd.DataFrame) -> list[dict]:
+    """One row per resolved (game, market) pick, hit and miss alike, never filtered.
+
+    `rebuilt` is on the row, not only in the aggregate, so the two kinds of pick are
+    distinguishable per pick. `snapshotted_at` is on every row because the plan's standing
+    constraint is that every pick is displayed with the time it was made -- and until B8 that
+    column was stored and exposed nowhere, so the constraint was unmet on every surface.
+
+    A market with no grade is omitted rather than emitted as a miss: an ungraded market is not a
+    pick the model made, and listing it as a miss would be a fabricated failure.
+    """
+    rows: list[dict] = []
+    for _, game in resolved.iterrows():
+        rebuilt = _snapshotted_after_kickoff(game["snapshotted_at"], game["commence_time"])
+        for market, column in (("moneyline", "moneyline_hit"), ("ats", "ats_hit"), ("totals", "total_hit")):
+            hit = game[column]
+            if hit is None or pd.isna(hit):
+                continue
+            rows.append({
+                "game_id": game["game_id"],
+                "gameday": game["commence_time"],
+                "market": market,
+                "pick": _pick_words(game, market),
+                "actual": _actual_words(game, market),
+                "hit": bool(hit),
+                "rebuilt": bool(rebuilt),
+                "snapshotted_at": game["snapshotted_at"],
+            })
+    return rows
+
+
+def _pick_words(game: pd.Series, market: str) -> str:
+    """What the model backed, in words a reader can check against the result."""
+    if market == "moneyline":
+        return game["home_team"] if game["home_win_prob"] >= game["away_win_prob"] else game["away_team"]
+    if market == "ats":
+        return f"{game['home_team']} {game['home_spread_line']:+.1f}" if game["home_cover_prob"] >= game["away_cover_prob"] else f"{game['away_team']} {-game['home_spread_line']:+.1f}"
+    return "Over" if game["over_prob"] >= game["under_prob"] else "Under"
+
+
+def _actual_words(game: pd.Series, market: str) -> str:
+    """What actually happened, in the same words."""
+    if market == "moneyline":
+        return game["home_team"] if game["actual_home_score"] > game["actual_away_score"] else game["away_team"]
+    if market == "ats":
+        margin = game["actual_home_score"] - game["actual_away_score"]
+        return f"{game['home_team']} {game['home_spread_line']:+.1f}" if margin > game["home_spread_line"] else f"{game['away_team']} {-game['home_spread_line']:+.1f}"
+    total = game["actual_home_score"] + game["actual_away_score"]
+    return "Over" if total > game["total_line"] else "Under"
 
 
 def _summarize_games(

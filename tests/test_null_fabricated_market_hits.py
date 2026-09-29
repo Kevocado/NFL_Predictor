@@ -699,7 +699,21 @@ def test_the_migration_does_not_change_any_reported_number(tmp_path, capsys):
     assert migration.main(["--db", str(db), "--execute"]) == 0
     capsys.readouterr()
 
-    assert store.get_track_record()["games"] == before_track_record
+    after = store.get_track_record()["games"]
+    # B8 added `all_picks` and `per_pick` to this dict, so a whole-dict equality can no longer
+    # express what this test protects. The property under test is narrower and still exact: the
+    # migration moves no number the page ALREADY reported. The two B8 keys are excluded from that
+    # comparison on purpose -- the migration nulls fabricated flags, so a fabricated row drops out
+    # of `per_pick` and the all-picks counts move. That is the migration working, not a number the
+    # page reported before B8 being moved. They are asserted well-formed instead.
+    for key, value in before_track_record.items():
+        if key in ("all_picks", "per_pick"):
+            continue
+        assert after[key] == value, f"migration moved {key}"
+    assert set(after) >= {"all_picks", "per_pick"}
+    assert after["all_picks"]["n_resolved"] >= before_track_record["all_picks"]["n_resolved"]
+    assert len(after["per_pick"]) > 0
+    assert all("snapshotted_at" in row and "rebuilt" in row for row in after["per_pick"])
     assert {gid: store.get_game_verdict(gid) for gid in game_ids} == before_verdicts
 
 
