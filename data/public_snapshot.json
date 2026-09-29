@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-29T01:13:49.951468+00:00",
+  "generated_at": "2026-09-29T09:58:30.425044+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -871,14 +871,14 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_MIN_CHI": {
-          "home_win_prob": 0.5552313713592933,
-          "away_win_prob": 0.44476862864070665,
-          "home_cover_prob": 0.4201841526115664,
-          "away_cover_prob": 0.5798158473884336,
-          "over_prob": 0.49562591089483454,
-          "under_prob": 0.5043740891051655,
-          "predicted_margin": 1.8365607261657715,
-          "predicted_total": 46.36309051513672,
+          "home_win_prob": 0.5749790702963901,
+          "away_win_prob": 0.42502092970360994,
+          "home_cover_prob": 0.4398903807134811,
+          "away_cover_prob": 0.5601096192865189,
+          "over_prob": 0.47951813919743624,
+          "under_prob": 0.5204818608025638,
+          "predicted_margin": 2.5000357627868652,
+          "predicted_total": 45.858646392822266,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -936,14 +936,14 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_02_PHI_TEN": {
-          "home_win_prob": 0.39187212438386965,
-          "away_win_prob": 0.6081278756161304,
-          "home_cover_prob": 0.6006120106083964,
-          "away_cover_prob": 0.3993879893916036,
-          "over_prob": 0.7246851838996451,
-          "under_prob": 0.2753148161003549,
-          "predicted_margin": -3.6290011405944824,
-          "predicted_total": 46.952266693115234,
+          "home_win_prob": 0.4060017960060759,
+          "away_win_prob": 0.5939982039939241,
+          "home_cover_prob": 0.6146779200061266,
+          "away_cover_prob": 0.38532207999387336,
+          "over_prob": 0.6448765412362398,
+          "under_prob": 0.35512345876376017,
+          "predicted_margin": -3.14502215385437,
+          "predicted_total": 44.13911056518555,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -4908,13 +4908,13 @@
           "gameday": "2026-09-29T00:15:00",
           "home_team": "CHI",
           "away_team": "PHI",
-          "home_score": null,
-          "away_score": null,
+          "home_score": 27.0,
+          "away_score": 7.0,
           "home_rest": 8,
           "away_rest": 8,
           "div_game": 0,
           "roof": "outdoors",
-          "surface": "grass",
+          "surface": null,
           "temp": null,
           "wind": null,
           "spread_line": -3.5,
@@ -5133,6 +5133,126 @@
       },
       "player_props": [
         {
+          "player_id": "00-0023459",
+          "player_name": "A.Rodgers",
+          "recent_team": "PIT",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7666411995887756,
+          "passing_yards": 224.6832733154297
+        },
+        {
+          "player_id": "00-0026498",
+          "player_name": "M.Stafford",
+          "recent_team": "LA",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8492838144302368,
+          "passing_yards": 274.2591857910156
+        },
+        {
+          "player_id": "00-0029604",
+          "player_name": "K.Cousins",
+          "recent_team": "LV",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.694186806678772,
+          "passing_yards": 209.4111785888672
+        },
+        {
+          "player_id": "00-0030279",
+          "player_name": "K.Allen",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19237162172794342,
+          "receiving_yards": 36.50060272216797
+        },
+        {
+          "player_id": "00-0030506",
+          "player_name": "T.Kelce",
+          "recent_team": "KC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.34544265270233154,
+          "receiving_yards": 66.9665756225586
+        },
+        {
+          "player_id": "00-0030565",
+          "player_name": "G.Smith",
+          "recent_team": "NYJ",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7738186120986938,
+          "passing_yards": 230.0666046142578
+        },
+        {
+          "player_id": "00-0031381",
+          "player_name": "D.Adams",
+          "recent_team": "LA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.35672444105148315,
+          "receiving_yards": 68.38607025146484
+        },
+        {
+          "player_id": "00-0031408",
+          "player_name": "M.Evans",
+          "recent_team": "SF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2553912103176117,
+          "receiving_yards": 43.482147216796875
+        },
+        {
+          "player_id": "00-0031588",
+          "player_name": "S.Diggs",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.29354989528656006,
+          "receiving_yards": 55.659881591796875
+        },
+        {
+          "player_id": "00-0031610",
+          "player_name": "D.Waller",
+          "recent_team": "CAR",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14901864528656006,
+          "receiving_yards": 28.0037784576416
+        },
+        {
+          "player_id": "00-0032104",
+          "player_name": "A.Abdullah",
+          "recent_team": "JAX",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13295972347259521,
+          "rushing_yards": 22.456323623657227
+        },
+        {
+          "player_id": "00-0032398",
+          "player_name": "C.Moore",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14901864528656006,
+          "receiving_yards": 27.15760612487793
+        },
+        {
           "player_id": "00-0032464",
           "player_name": "K.Raymond",
           "recent_team": "CHI",
@@ -5141,6 +5261,276 @@
           "depth_slot": null,
           "anytime_td_prob": 0.29621848464012146,
           "receiving_yards": 60.11561965942383
+        },
+        {
+          "player_id": "00-0032764",
+          "player_name": "D.Henry",
+          "recent_team": "BAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.48242470622062683,
+          "rushing_yards": 81.16045379638672
+        },
+        {
+          "player_id": "00-0032775",
+          "player_name": "D.Robinson",
+          "recent_team": "SF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1959310919046402,
+          "receiving_yards": 38.83099365234375
+        },
+        {
+          "player_id": "00-0032950",
+          "player_name": "C.Wentz",
+          "recent_team": "MIN",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5531516671180725,
+          "passing_yards": 175.85244750976562
+        },
+        {
+          "player_id": "00-0032951",
+          "player_name": "L.Treadwell",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12188302725553513,
+          "receiving_yards": 26.196693420410156
+        },
+        {
+          "player_id": "00-0033077",
+          "player_name": "D.Prescott",
+          "recent_team": "DAL",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8025052547454834,
+          "passing_yards": 230.76206970214844
+        },
+        {
+          "player_id": "00-0033090",
+          "player_name": "H.Henry",
+          "recent_team": "NE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.185950368642807,
+          "receiving_yards": 34.830772399902344
+        },
+        {
+          "player_id": "00-0033106",
+          "player_name": "J.Goff",
+          "recent_team": "DET",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8363511562347412,
+          "passing_yards": 250.0867919921875
+        },
+        {
+          "player_id": "00-0033110",
+          "player_name": "T.Higbee",
+          "recent_team": "LA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0033119",
+          "player_name": "J.Brissett",
+          "recent_team": "ARI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.703357458114624,
+          "passing_yards": 202.8537139892578
+        },
+        {
+          "player_id": "00-0033280",
+          "player_name": "C.McCaffrey",
+          "recent_team": "SF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3690020740032196,
+          "rushing_yards": 48.296287536621094
+        },
+        {
+          "player_id": "00-0033288",
+          "player_name": "G.Kittle",
+          "recent_team": "SF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24143686890602112,
+          "receiving_yards": 41.35414123535156
+        },
+        {
+          "player_id": "00-0033293",
+          "player_name": "A.Jones",
+          "recent_team": "MIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.38704365491867065,
+          "rushing_yards": 55.59494400024414
+        },
+        {
+          "player_id": "00-0033307",
+          "player_name": "K.Bourne",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 44.278587341308594
+        },
+        {
+          "player_id": "00-0033319",
+          "player_name": "N.Mullens",
+          "recent_team": "JAX",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14145860075950623,
+          "passing_yards": 101.25968170166016
+        },
+        {
+          "player_id": "00-0033376",
+          "player_name": "P.Ricard",
+          "recent_team": "NYG",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 9.22647762298584
+        },
+        {
+          "player_id": "00-0033526",
+          "player_name": "S.Perine",
+          "recent_team": "CIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1348583996295929,
+          "rushing_yards": 20.214757919311523
+        },
+        {
+          "player_id": "00-0033537",
+          "player_name": "D.Watson",
+          "recent_team": "CLE",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8170953989028931,
+          "passing_yards": 217.3665008544922
+        },
+        {
+          "player_id": "00-0033555",
+          "player_name": "M.Hollins",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.185950368642807,
+          "receiving_yards": 33.339359283447266
+        },
+        {
+          "player_id": "00-0033576",
+          "player_name": "E.Saubert",
+          "recent_team": "SEA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0033662",
+          "player_name": "C.Rush",
+          "recent_team": "ATL",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.4726467430591583,
+          "passing_yards": 150.57461547851562
+        },
+        {
+          "player_id": "00-0033858",
+          "player_name": "J.Smith",
+          "recent_team": "GB",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1989109367132187,
+          "receiving_yards": 39.599552154541016
+        },
+        {
+          "player_id": "00-0033873",
+          "player_name": "P.Mahomes",
+          "recent_team": "KC",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8909847736358643,
+          "passing_yards": 260.2796936035156
+        },
+        {
+          "player_id": "00-0033881",
+          "player_name": "E.Engram",
+          "recent_team": "DEN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1622331738471985,
+          "receiving_yards": 29.729583740234375
+        },
+        {
+          "player_id": "00-0033885",
+          "player_name": "D.Njoku",
+          "recent_team": "LAC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.185950368642807,
+          "receiving_yards": 34.830772399902344
+        },
+        {
+          "player_id": "00-0033908",
+          "player_name": "C.Kupp",
+          "recent_team": "SEA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.142544686794281,
+          "receiving_yards": 26.998003005981445
+        },
+        {
+          "player_id": "00-0033921",
+          "player_name": "C.Godwin",
+          "recent_team": "TB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21679523587226868,
+          "receiving_yards": 41.00624465942383
+        },
+        {
+          "player_id": "00-0034348",
+          "player_name": "C.Sutton",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17705073952674866,
+          "receiving_yards": 31.65443229675293
         },
         {
           "player_id": "00-0034351",
@@ -5153,6 +5543,86 @@
           "receiving_yards": 35.894798278808594
         },
         {
+          "player_id": "00-0034383",
+          "player_name": "D.Schultz",
+          "recent_team": "HOU",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.4086330533027649,
+          "receiving_yards": 74.03721618652344
+        },
+        {
+          "player_id": "00-0034419",
+          "player_name": "B.Berrios",
+          "recent_team": "NYG",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0034613",
+          "player_name": "T.Hudson",
+          "recent_team": "CIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0034753",
+          "player_name": "M.Andrews",
+          "recent_team": "BAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 51.94742202758789
+        },
+        {
+          "player_id": "00-0034796",
+          "player_name": "L.Jackson",
+          "recent_team": "BAL",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8809020519256592,
+          "passing_yards": 256.00543212890625
+        },
+        {
+          "player_id": "00-0034798",
+          "player_name": "D.Smythe",
+          "recent_team": "BAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0034827",
+          "player_name": "D.Moore",
+          "recent_team": "BUF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21449188888072968,
+          "receiving_yards": 43.895790100097656
+        },
+        {
+          "player_id": "00-0034829",
+          "player_name": "M.Gesicki",
+          "recent_team": "CIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3361508846282959,
+          "receiving_yards": 65.9245834350586
+        },
+        {
           "player_id": "00-0034844",
           "player_name": "S.Barkley",
           "recent_team": "PHI",
@@ -5161,6 +5631,366 @@
           "depth_slot": null,
           "anytime_td_prob": 0.2980431914329529,
           "rushing_yards": 42.55207061767578
+        },
+        {
+          "player_id": "00-0034854",
+          "player_name": "K.Hodge",
+          "recent_team": "SF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 15.727004051208496
+        },
+        {
+          "player_id": "00-0034855",
+          "player_name": "B.Mayfield",
+          "recent_team": "TB",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7564200758934021,
+          "passing_yards": 215.03648376464844
+        },
+        {
+          "player_id": "00-0034857",
+          "player_name": "J.Allen",
+          "recent_team": "BUF",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.9107290506362915,
+          "passing_yards": 241.21681213378906
+        },
+        {
+          "player_id": "00-0034869",
+          "player_name": "S.Darnold",
+          "recent_team": "SEA",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12445878982543945,
+          "passing_yards": 78.3682632446289
+        },
+        {
+          "player_id": "00-0034960",
+          "player_name": "J.Meyers",
+          "recent_team": "JAX",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1304086595773697,
+          "receiving_yards": 25.290868759155273
+        },
+        {
+          "player_id": "00-0034975",
+          "player_name": "J.Hill",
+          "recent_team": "BAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14534154534339905,
+          "rushing_yards": 21.844236373901367
+        },
+        {
+          "player_id": "00-0034981",
+          "player_name": "F.Moreau",
+          "recent_team": "HOU",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11341248452663422,
+          "receiving_yards": 24.074485778808594
+        },
+        {
+          "player_id": "00-0035021",
+          "player_name": "A.Dulin",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0035208",
+          "player_name": "O.Zaccheaus",
+          "recent_team": "ATL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.17327308654785
+        },
+        {
+          "player_id": "00-0035228",
+          "player_name": "K.Murray",
+          "recent_team": "MIN",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17136497795581818,
+          "passing_yards": 101.15242767333984
+        },
+        {
+          "player_id": "00-0035229",
+          "player_name": "T.Hockenson",
+          "recent_team": "MIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21213193237781525,
+          "receiving_yards": 36.63370895385742
+        },
+        {
+          "player_id": "00-0035249",
+          "player_name": "J.Oliver",
+          "recent_team": "MIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.122874416410923,
+          "receiving_yards": 25.106637954711914
+        },
+        {
+          "player_id": "00-0035250",
+          "player_name": "D.Singletary",
+          "recent_team": "NYG",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14832937717437744,
+          "rushing_yards": 21.844236373901367
+        },
+        {
+          "player_id": "00-0035261",
+          "player_name": "T.Pollard",
+          "recent_team": "TEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.28762611746788025,
+          "rushing_yards": 44.67641830444336
+        },
+        {
+          "player_id": "00-0035500",
+          "player_name": "G.Dortch",
+          "recent_team": "BUF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0035544",
+          "player_name": "T.Kennedy",
+          "recent_team": "DET",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0035631",
+          "player_name": "D.Sample",
+          "recent_team": "CIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13880817592144012,
+          "receiving_yards": 25.880828857421875
+        },
+        {
+          "player_id": "00-0035640",
+          "player_name": "D.Metcalf",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2734055817127228,
+          "receiving_yards": 44.83167266845703
+        },
+        {
+          "player_id": "00-0035644",
+          "player_name": "N.Fant",
+          "recent_team": "NO",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.15435068309307098,
+          "receiving_yards": 30.337392807006836
+        },
+        {
+          "player_id": "00-0035659",
+          "player_name": "T.McLaurin",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21684537827968597,
+          "receiving_yards": 42.224334716796875
+        },
+        {
+          "player_id": "00-0035676",
+          "player_name": "A.Brown",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1692410707473755,
+          "receiving_yards": 33.54389572143555
+        },
+        {
+          "player_id": "00-0035685",
+          "player_name": "D.Montgomery",
+          "recent_team": "HOU",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3303261995315552,
+          "rushing_yards": 45.39817810058594
+        },
+        {
+          "player_id": "00-0035689",
+          "player_name": "D.Knox",
+          "recent_team": "BUF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.474721908569336
+        },
+        {
+          "player_id": "00-0035704",
+          "player_name": "D.Lock",
+          "recent_team": "SEA",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7718461751937866,
+          "passing_yards": 216.62228393554688
+        },
+        {
+          "player_id": "00-0035710",
+          "player_name": "D.Jones",
+          "recent_team": "IND",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.6984995007514954,
+          "passing_yards": 202.4543914794922
+        },
+        {
+          "player_id": "00-0035719",
+          "player_name": "D.Samuel",
+          "recent_team": "SF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.25123342871665955,
+          "receiving_yards": 43.43988037109375
+        },
+        {
+          "player_id": "00-0035891",
+          "player_name": "C.White",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.351186752319336
+        },
+        {
+          "player_id": "00-0036040",
+          "player_name": "J.Johnson",
+          "recent_team": "NO",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.26320740580558777,
+          "receiving_yards": 51.262935638427734
+        },
+        {
+          "player_id": "00-0036139",
+          "player_name": "R.Dowdle",
+          "recent_team": "PIT",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.223179429769516,
+          "rushing_yards": 29.609434127807617
+        },
+        {
+          "player_id": "00-0036158",
+          "player_name": "J.Dobbins",
+          "recent_team": "DEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2437872439622879,
+          "rushing_yards": 38.11272048950195
+        },
+        {
+          "player_id": "00-0036223",
+          "player_name": "J.Taylor",
+          "recent_team": "IND",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5178549885749817,
+          "rushing_yards": 78.70346069335938
+        },
+        {
+          "player_id": "00-0036244",
+          "player_name": "C.Parkinson",
+          "recent_team": "LA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.72312355041504
+        },
+        {
+          "player_id": "00-0036252",
+          "player_name": "M.Pittman",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.20094484090805054,
+          "receiving_yards": 41.421844482421875
+        },
+        {
+          "player_id": "00-0036259",
+          "player_name": "J.Jennings",
+          "recent_team": "MIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0036264",
+          "player_name": "J.Love",
+          "recent_team": "GB",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7823023796081543,
+          "passing_yards": 260.6199951171875
+        },
+        {
+          "player_id": "00-0036265",
+          "player_name": "A.Dillon",
+          "recent_team": "CAR",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13813643157482147,
+          "rushing_yards": 22.149826049804688
         },
         {
           "player_id": "00-0036275",
@@ -5183,6 +6013,56 @@
           "receiving_yards": 22.09202003479004
         },
         {
+          "player_id": "00-0036309",
+          "player_name": "D.Mooney",
+          "recent_team": "NYG",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1805633306503296,
+          "receiving_yards": 32.734432220458984
+        },
+        {
+          "player_id": "00-0036322",
+          "player_name": "J.Jefferson",
+          "recent_team": "MIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.332263320684433,
+          "receiving_yards": 66.19718933105469
+        },
+        {
+          "player_id": "00-0036331",
+          "player_name": "D.Duvernay",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0036355",
+          "player_name": "J.Herbert",
+          "recent_team": "LAC",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7618762254714966,
+          "passing_yards": 217.44989013671875
+        },
+        {
+          "player_id": "00-0036358",
+          "player_name": "C.Lamb",
+          "recent_team": "DAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.35962527990341187,
+          "receiving_yards": 70.60806274414062
+        },
+        {
           "player_id": "00-0036389",
           "player_name": "J.Hurts",
           "recent_team": "PHI",
@@ -5191,6 +6071,216 @@
           "depth_slot": null,
           "anytime_td_prob": 0.8518946170806885,
           "passing_yards": 234.4144287109375
+        },
+        {
+          "player_id": "00-0036407",
+          "player_name": "J.Jeudy",
+          "recent_team": "CLE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11529146879911423,
+          "receiving_yards": 23.316795349121094
+        },
+        {
+          "player_id": "00-0036410",
+          "player_name": "T.Higgins",
+          "recent_team": "CIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.34544265270233154,
+          "receiving_yards": 67.8887710571289
+        },
+        {
+          "player_id": "00-0036422",
+          "player_name": "A.Trautman",
+          "recent_team": "DEN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.12906837463379
+        },
+        {
+          "player_id": "00-0036425",
+          "player_name": "D.Dallas",
+          "recent_team": "MIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11022929102182388,
+          "rushing_yards": 13.184494972229004
+        },
+        {
+          "player_id": "00-0036442",
+          "player_name": "J.Burrow",
+          "recent_team": "CIN",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8009095191955566,
+          "passing_yards": 230.0666046142578
+        },
+        {
+          "player_id": "00-0036463",
+          "player_name": "C.Blair",
+          "recent_team": "ATL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10618452727794647,
+          "receiving_yards": 19.075847625732422
+        },
+        {
+          "player_id": "00-0036550",
+          "player_name": "R.Bateman",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 41.99831008911133
+        },
+        {
+          "player_id": "00-0036554",
+          "player_name": "N.Collins",
+          "recent_team": "HOU",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3437469005584717,
+          "receiving_yards": 76.08751678466797
+        },
+        {
+          "player_id": "00-0036555",
+          "player_name": "C.Hubbard",
+          "recent_team": "CAR",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3642570972442627,
+          "rushing_yards": 50.302059173583984
+        },
+        {
+          "player_id": "00-0036590",
+          "player_name": "Q.Morris",
+          "recent_team": "JAX",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0036613",
+          "player_name": "J.Waddle",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2720679044723511,
+          "receiving_yards": 58.1545295715332
+        },
+        {
+          "player_id": "00-0036626",
+          "player_name": "D.Brown",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13932035863399506,
+          "receiving_yards": 29.830768585205078
+        },
+        {
+          "player_id": "00-0036628",
+          "player_name": "J.Bates",
+          "recent_team": "WAS",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 25.0426025390625
+        },
+        {
+          "player_id": "00-0036637",
+          "player_name": "N.Gray",
+          "recent_team": "KC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0036646",
+          "player_name": "S.Fehoko",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0036754",
+          "player_name": "B.Wright",
+          "recent_team": "DET",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 15.842894554138184
+        },
+        {
+          "player_id": "00-0036825",
+          "player_name": "F.Franks",
+          "recent_team": "CAR",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0036875",
+          "player_name": "R.Stevenson",
+          "recent_team": "NE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3791266679763794,
+          "rushing_yards": 51.7704963684082
+        },
+        {
+          "player_id": "00-0036887",
+          "player_name": "L.Farrell",
+          "recent_team": "SF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
+        },
+        {
+          "player_id": "00-0036894",
+          "player_name": "P.Freiermuth",
+          "recent_team": "PIT",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2508234679698944,
+          "receiving_yards": 40.93365478515625
+        },
+        {
+          "player_id": "00-0036900",
+          "player_name": "J.Chase",
+          "recent_team": "CIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 50.64856719970703
         },
         {
           "player_id": "00-0036912",
@@ -5203,6 +6293,116 @@
           "receiving_yards": 70.45710754394531
         },
         {
+          "player_id": "00-0036919",
+          "player_name": "K.Gainwell",
+          "recent_team": "TB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14206421375274658,
+          "rushing_yards": 19.62261199951172
+        },
+        {
+          "player_id": "00-0036963",
+          "player_name": "A.St. Brown",
+          "recent_team": "DET",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3341550827026367,
+          "receiving_yards": 75.21055603027344
+        },
+        {
+          "player_id": "00-0036970",
+          "player_name": "K.Pitts",
+          "recent_team": "ATL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.37820816040039
+        },
+        {
+          "player_id": "00-0036971",
+          "player_name": "T.Lawrence",
+          "recent_team": "JAX",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7780826091766357,
+          "passing_yards": 226.21682739257812
+        },
+        {
+          "player_id": "00-0036973",
+          "player_name": "T.Etienne",
+          "recent_team": "NO",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3306102156639099,
+          "rushing_yards": 41.472076416015625
+        },
+        {
+          "player_id": "00-0036988",
+          "player_name": "J.Palmer",
+          "recent_team": "BUF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1805633306503296,
+          "receiving_yards": 32.734432220458984
+        },
+        {
+          "player_id": "00-0036997",
+          "player_name": "J.Williams",
+          "recent_team": "DAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.36140987277030945,
+          "rushing_yards": 46.51792526245117
+        },
+        {
+          "player_id": "00-0037004",
+          "player_name": "H.Long",
+          "recent_team": "ARI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037005",
+          "player_name": "T.Tremble",
+          "recent_team": "CAR",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14683599770069122,
+          "receiving_yards": 28.58107566833496
+        },
+        {
+          "player_id": "00-0037091",
+          "player_name": "B.Melton",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0037093",
+          "player_name": "D.Young",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 16.913349151611328
+        },
+        {
           "player_id": "00-0037132",
           "player_name": "B.Covey",
           "recent_team": "PHI",
@@ -5213,9 +6413,429 @@
           "receiving_yards": 16.004743576049805
         },
         {
+          "player_id": "00-0037228",
+          "player_name": "J.Warren",
+          "recent_team": "PIT",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3674638271331787,
+          "rushing_yards": 44.89930725097656
+        },
+        {
+          "player_id": "00-0037238",
+          "player_name": "D.London",
+          "recent_team": "ATL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24791456758975983,
+          "receiving_yards": 40.54197692871094
+        },
+        {
+          "player_id": "00-0037239",
+          "player_name": "C.Olave",
+          "recent_team": "NO",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.43054208159446716,
+          "receiving_yards": 81.07424926757812
+        },
+        {
+          "player_id": "00-0037240",
+          "player_name": "J.Williams",
+          "recent_team": "DET",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 45.68027114868164
+        },
+        {
+          "player_id": "00-0037247",
+          "player_name": "G.Pickens",
+          "recent_team": "DAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2459830939769745,
+          "receiving_yards": 44.22262954711914
+        },
+        {
+          "player_id": "00-0037248",
+          "player_name": "J.Cook",
+          "recent_team": "BUF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.48190316557884216,
+          "rushing_yards": 78.35728454589844
+        },
+        {
+          "player_id": "00-0037252",
+          "player_name": "G.Dulcich",
+          "recent_team": "MIA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12811534106731415,
+          "receiving_yards": 24.15502166748047
+        },
+        {
+          "player_id": "00-0037256",
+          "player_name": "R.White",
+          "recent_team": "WAS",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.23487795889377594,
+          "rushing_yards": 32.933292388916016
+        },
+        {
+          "player_id": "00-0037261",
+          "player_name": "K.Shakir",
+          "recent_team": "BUF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 45.7581787109375
+        },
+        {
+          "player_id": "00-0037263",
+          "player_name": "T.Allgeier",
+          "recent_team": "ARI",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.28807634115219116,
+          "rushing_yards": 41.630977630615234
+        },
+        {
+          "player_id": "00-0037291",
+          "player_name": "J.Nailor",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.15435068309307098,
+          "receiving_yards": 30.459205627441406
+        },
+        {
+          "player_id": "00-0037292",
+          "player_name": "A.Ogletree",
+          "recent_team": "IND",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0037317",
+          "player_name": "N.Muse",
+          "recent_team": "ATL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
           "player_id": "00-0037380",
           "player_name": "K.Davis",
           "recent_team": "CHI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037524",
+          "player_name": "T.Martin",
+          "recent_team": "DET",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037525",
+          "player_name": "J.Mason",
+          "recent_team": "MIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.36005261540412903,
+          "rushing_yards": 54.795936584472656
+        },
+        {
+          "player_id": "00-0037545",
+          "player_name": "R.Shaheed",
+          "recent_team": "SEA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1758357137441635,
+          "receiving_yards": 32.238956451416016
+        },
+        {
+          "player_id": "00-0037557",
+          "player_name": "R.Rivers",
+          "recent_team": "LA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14596445858478546,
+          "rushing_yards": 26.413236618041992
+        },
+        {
+          "player_id": "00-0037664",
+          "player_name": "A.Pierce",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21261444687843323,
+          "receiving_yards": 35.52659225463867
+        },
+        {
+          "player_id": "00-0037740",
+          "player_name": "G.Wilson",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.30572906136512756,
+          "receiving_yards": 60.49922180175781
+        },
+        {
+          "player_id": "00-0037741",
+          "player_name": "J.Dotson",
+          "recent_team": "ATL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14683599770069122,
+          "receiving_yards": 28.58107566833496
+        },
+        {
+          "player_id": "00-0037744",
+          "player_name": "T.McBride",
+          "recent_team": "ARI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.343830406665802,
+          "receiving_yards": 69.34524536132812
+        },
+        {
+          "player_id": "00-0037746",
+          "player_name": "Br.Robinson",
+          "recent_team": "ATL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2609819173812866,
+          "rushing_yards": 44.300376892089844
+        },
+        {
+          "player_id": "00-0037801",
+          "player_name": "K.Turpin",
+          "recent_team": "DAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10174814611673355,
+          "receiving_yards": 14.557476043701172
+        },
+        {
+          "player_id": "00-0037805",
+          "player_name": "J.Ruckert",
+          "recent_team": "NYJ",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.474721908569336
+        },
+        {
+          "player_id": "00-0037809",
+          "player_name": "C.Okonkwo",
+          "recent_team": "WAS",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13766850531101227,
+          "receiving_yards": 25.759016036987305
+        },
+        {
+          "player_id": "00-0037816",
+          "player_name": "R.Doubs",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21261444687843323,
+          "receiving_yards": 40.235958099365234
+        },
+        {
+          "player_id": "00-0037834",
+          "player_name": "B.Purdy",
+          "recent_team": "SF",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8129757046699524,
+          "passing_yards": 238.69876098632812
+        },
+        {
+          "player_id": "00-0037838",
+          "player_name": "I.Likely",
+          "recent_team": "NYG",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.32164573669433594,
+          "receiving_yards": 56.71852493286133
+        },
+        {
+          "player_id": "00-0037840",
+          "player_name": "K.Williams",
+          "recent_team": "LA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.41821664571762085,
+          "rushing_yards": 56.08203887939453
+        },
+        {
+          "player_id": "00-0038041",
+          "player_name": "J.Ferguson",
+          "recent_team": "DAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1450842320919037,
+          "receiving_yards": 27.251916885375977
+        },
+        {
+          "player_id": "00-0038046",
+          "player_name": "C.Kolar",
+          "recent_team": "LAC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.024572372436523
+        },
+        {
+          "player_id": "00-0038090",
+          "player_name": "S.Moore",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10692017525434494,
+          "receiving_yards": 20.774398803710938
+        },
+        {
+          "player_id": "00-0038102",
+          "player_name": "K.Pickett",
+          "recent_team": "CAR",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10215206444263458,
+          "passing_yards": 73.69090270996094
+        },
+        {
+          "player_id": "00-0038104",
+          "player_name": "T.Thornton",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1805633306503296,
+          "receiving_yards": 34.89049530029297
+        },
+        {
+          "player_id": "00-0038115",
+          "player_name": "D.Bellinger",
+          "recent_team": "TEN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0038117",
+          "player_name": "W.Robinson",
+          "recent_team": "TEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 30.1611270904541
+        },
+        {
+          "player_id": "00-0038120",
+          "player_name": "B.Hall",
+          "recent_team": "NYJ",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.4499851167201996,
+          "rushing_yards": 65.54045867919922
+        },
+        {
+          "player_id": "00-0038124",
+          "player_name": "C.Watson",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3687100112438202,
+          "receiving_yards": 71.42951965332031
+        },
+        {
+          "player_id": "00-0038128",
+          "player_name": "M.Willis",
+          "recent_team": "MIA",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7630078792572021,
+          "passing_yards": 218.5063934326172
+        },
+        {
+          "player_id": "00-0038129",
+          "player_name": "C.Otton",
+          "recent_team": "TB",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21684537827968597,
+          "receiving_yards": 40.190086364746094
+        },
+        {
+          "player_id": "00-0038134",
+          "player_name": "K.Walker",
+          "recent_team": "KC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.49108028411865234,
+          "rushing_yards": 102.42793273925781
+        },
+        {
+          "player_id": "00-0038359",
+          "player_name": "X.Smith",
+          "recent_team": "LA",
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
@@ -5233,6 +6853,96 @@
           "receiving_yards": 53.740211486816406
         },
         {
+          "player_id": "00-0038454",
+          "player_name": "K.Mitchell",
+          "recent_team": "LAC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14371904730796814,
+          "rushing_yards": 23.90834617614746
+        },
+        {
+          "player_id": "00-0038488",
+          "player_name": "B.Russell",
+          "recent_team": "SEA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11305081099271774,
+          "rushing_yards": 9.378531455993652
+        },
+        {
+          "player_id": "00-0038489",
+          "player_name": "B.VanSumeren",
+          "recent_team": "KC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0038519",
+          "player_name": "N.Remigio",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038542",
+          "player_name": "Bi.Robinson",
+          "recent_team": "ATL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5570796728134155,
+          "rushing_yards": 69.87861633300781
+        },
+        {
+          "player_id": "00-0038543",
+          "player_name": "J.Smith-Njigba",
+          "recent_team": "SEA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.41995105147361755,
+          "receiving_yards": 78.66881561279297
+        },
+        {
+          "player_id": "00-0038544",
+          "player_name": "Q.Johnston",
+          "recent_team": "LAC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.16723808646202087,
+          "receiving_yards": 36.163795471191406
+        },
+        {
+          "player_id": "00-0038547",
+          "player_name": "L.Schoonmaker",
+          "recent_team": "DAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.87346649169922
+        },
+        {
+          "player_id": "00-0038551",
+          "player_name": "K.Miller",
+          "recent_team": "NO",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.20353937149047852,
+          "rushing_yards": 36.18893051147461
+        },
+        {
           "player_id": "00-0038555",
           "player_name": "T.Bigsby",
           "recent_team": "PHI",
@@ -5241,6 +6951,266 @@
           "depth_slot": null,
           "anytime_td_prob": 0.18680140376091003,
           "rushing_yards": 29.372644424438477
+        },
+        {
+          "player_id": "00-0038558",
+          "player_name": "D.Washington",
+          "recent_team": "PIT",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0038559",
+          "player_name": "Mi.Wilson",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2783123552799225,
+          "receiving_yards": 48.61167526245117
+        },
+        {
+          "player_id": "00-0038563",
+          "player_name": "T.Tucker",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2883683145046234,
+          "receiving_yards": 58.37534713745117
+        },
+        {
+          "player_id": "00-0038573",
+          "player_name": "D.Davis",
+          "recent_team": "LAC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0038597",
+          "player_name": "C.Brown",
+          "recent_team": "CIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.47142723202705383,
+          "rushing_yards": 68.07211303710938
+        },
+        {
+          "player_id": "00-0038606",
+          "player_name": "P.Washington",
+          "recent_team": "JAX",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3687100112438202,
+          "receiving_yards": 69.7499008178711
+        },
+        {
+          "player_id": "00-0038608",
+          "player_name": "K.Boutte",
+          "recent_team": "HOU",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17667768895626068,
+          "receiving_yards": 32.21208190917969
+        },
+        {
+          "player_id": "00-0038611",
+          "player_name": "C.Rodriguez",
+          "recent_team": "JAX",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17131996154785156,
+          "rushing_yards": 27.23891830444336
+        },
+        {
+          "player_id": "00-0038618",
+          "player_name": "X.Hutchinson",
+          "recent_team": "HOU",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.25373512506484985,
+          "receiving_yards": 44.22262954711914
+        },
+        {
+          "player_id": "00-0038619",
+          "player_name": "A.Iosivas",
+          "recent_team": "CIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.262317657470703
+        },
+        {
+          "player_id": "00-0038621",
+          "player_name": "D.Douglas",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1686512976884842,
+          "receiving_yards": 30.685455322265625
+        },
+        {
+          "player_id": "00-0038685",
+          "player_name": "C.Brooks",
+          "recent_team": "GB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 26.643606185913086
+        },
+        {
+          "player_id": "00-0038705",
+          "player_name": "E.Demercado",
+          "recent_team": "DAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11316443234682083,
+          "rushing_yards": 17.96646499633789
+        },
+        {
+          "player_id": "00-0038710",
+          "player_name": "B.Whiteheart",
+          "recent_team": "CLE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11531183868646622,
+          "receiving_yards": 19.55524253845215
+        },
+        {
+          "player_id": "00-0038728",
+          "player_name": "J.Wayne",
+          "recent_team": "HOU",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 31.65253257751465
+        },
+        {
+          "player_id": "00-0038738",
+          "player_name": "H.Luepke",
+          "recent_team": "DAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11265289038419724,
+          "rushing_yards": 13.69785213470459
+        },
+        {
+          "player_id": "00-0038783",
+          "player_name": "N.Adkins",
+          "recent_team": "DEN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11528638005256653,
+          "receiving_yards": 19.73870277404785
+        },
+        {
+          "player_id": "00-0038797",
+          "player_name": "E.Wilson",
+          "recent_team": "SEA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3069496750831604,
+          "rushing_yards": 47.63569641113281
+        },
+        {
+          "player_id": "00-0038840",
+          "player_name": "B.Tremayne",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038896",
+          "player_name": "J.Saylors",
+          "recent_team": "DET",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0038933",
+          "player_name": "D.Kincaid",
+          "recent_team": "BUF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.34663811326026917,
+          "receiving_yards": 65.0103988647461
+        },
+        {
+          "player_id": "00-0038935",
+          "player_name": "B.Strange",
+          "recent_team": "JAX",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.122874416410923,
+          "receiving_yards": 24.15502166748047
+        },
+        {
+          "player_id": "00-0038976",
+          "player_name": "M.Mims",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038994",
+          "player_name": "J.Addison",
+          "recent_team": "MIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13932035863399506,
+          "receiving_yards": 28.456130981445312
+        },
+        {
+          "player_id": "00-0038996",
+          "player_name": "T.Kraft",
+          "recent_team": "GB",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24143686890602112,
+          "receiving_yards": 39.12970733642578
+        },
+        {
+          "player_id": "00-0038997",
+          "player_name": "J.Downs",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2586585581302643,
+          "receiving_yards": 52.43073654174805
         },
         {
           "player_id": "00-0039021",
@@ -5253,6 +7223,366 @@
           "rushing_yards": 10.05435848236084
         },
         {
+          "player_id": "00-0039032",
+          "player_name": "T.Spears",
+          "recent_team": "TEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17125944793224335,
+          "rushing_yards": 27.116783142089844
+        },
+        {
+          "player_id": "00-0039040",
+          "player_name": "D.Achane",
+          "recent_team": "MIA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.41417616605758667,
+          "rushing_yards": 60.38556671142578
+        },
+        {
+          "player_id": "00-0039062",
+          "player_name": "J.Mingo",
+          "recent_team": "DAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.16398811340332
+        },
+        {
+          "player_id": "00-0039064",
+          "player_name": "Z.Flowers",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3050236999988556,
+          "receiving_yards": 60.67279815673828
+        },
+        {
+          "player_id": "00-0039065",
+          "player_name": "S.LaPorta",
+          "recent_team": "DET",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.29055726528167725,
+          "receiving_yards": 55.47489929199219
+        },
+        {
+          "player_id": "00-0039066",
+          "player_name": "M.Mayer",
+          "recent_team": "LV",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19803525507450104,
+          "receiving_yards": 39.37251663208008
+        },
+        {
+          "player_id": "00-0039067",
+          "player_name": "R.Rice",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21823932230472565,
+          "receiving_yards": 41.983280181884766
+        },
+        {
+          "player_id": "00-0039074",
+          "player_name": "D.Allen",
+          "recent_team": "LA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.16398811340332
+        },
+        {
+          "player_id": "00-0039075",
+          "player_name": "P.Nacua",
+          "recent_team": "LA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3551245927810669,
+          "receiving_yards": 68.69429779052734
+        },
+        {
+          "player_id": "00-0039107",
+          "player_name": "S.Bennett",
+          "recent_team": "LA",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1536344587802887,
+          "passing_yards": 102.43711853027344
+        },
+        {
+          "player_id": "00-0039139",
+          "player_name": "J.Gibbs",
+          "recent_team": "DET",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.6395705342292786,
+          "rushing_yards": 78.6392822265625
+        },
+        {
+          "player_id": "00-0039146",
+          "player_name": "J.Reed",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13932035863399506,
+          "receiving_yards": 29.830768585205078
+        },
+        {
+          "player_id": "00-0039150",
+          "player_name": "B.Young",
+          "recent_team": "CAR",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8970540165901184,
+          "passing_yards": 276.0512390136719
+        },
+        {
+          "player_id": "00-0039163",
+          "player_name": "C.Stroud",
+          "recent_team": "HOU",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.9135012626647949,
+          "passing_yards": 274.9683532714844
+        },
+        {
+          "player_id": "00-0039299",
+          "player_name": "G.Holani",
+          "recent_team": "SEA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17131996154785156,
+          "rushing_yards": 27.17658805847168
+        },
+        {
+          "player_id": "00-0039337",
+          "player_name": "M.Nabers",
+          "recent_team": "NYG",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 44.808387756347656
+        },
+        {
+          "player_id": "00-0039342",
+          "player_name": "X.Legette",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17090512812137604,
+          "receiving_yards": 29.729583740234375
+        },
+        {
+          "player_id": "00-0039344",
+          "player_name": "J.Brooks",
+          "recent_team": "CAR",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13992542028427124,
+          "rushing_yards": 22.787248611450195
+        },
+        {
+          "player_id": "00-0039359",
+          "player_name": "C.Stover",
+          "recent_team": "HOU",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0039361",
+          "player_name": "B.Irving",
+          "recent_team": "TB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.47133779525756836,
+          "rushing_yards": 58.71687316894531
+        },
+        {
+          "player_id": "00-0039364",
+          "player_name": "S.Vaki",
+          "recent_team": "DET",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11417648941278458,
+          "rushing_yards": 16.933855056762695
+        },
+        {
+          "player_id": "00-0039365",
+          "player_name": "J.Cowing",
+          "recent_team": "SF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0039384",
+          "player_name": "T.Tracy",
+          "recent_team": "NYG",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11285394430160522,
+          "rushing_yards": 15.807557106018066
+        },
+        {
+          "player_id": "00-0039407",
+          "player_name": "D.Laube",
+          "recent_team": "LV",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0039410",
+          "player_name": "R.Flournoy",
+          "recent_team": "DAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17418643832206726,
+          "receiving_yards": 34.568939208984375
+        },
+        {
+          "player_id": "00-0039424",
+          "player_name": "D.Vele",
+          "recent_team": "NO",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3049134612083435,
+          "receiving_yards": 62.669979095458984
+        },
+        {
+          "player_id": "00-0039451",
+          "player_name": "I.Williams",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.148441344499588,
+          "receiving_yards": 29.992921829223633
+        },
+        {
+          "player_id": "00-0039471",
+          "player_name": "F.Gore",
+          "recent_team": "BUF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11265289038419724,
+          "rushing_yards": 13.078808784484863
+        },
+        {
+          "player_id": "00-0039491",
+          "player_name": "J.Coker",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.38031020760536194,
+          "receiving_yards": 73.40042877197266
+        },
+        {
+          "player_id": "00-0039518",
+          "player_name": "T.Welch",
+          "recent_team": "NO",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0039530",
+          "player_name": "B.Spann-Ford",
+          "recent_team": "DAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
+          "player_id": "00-0039589",
+          "player_name": "K.Johnson",
+          "recent_team": "TB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0039686",
+          "player_name": "C.Yankoff",
+          "recent_team": "WAS",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 15.842894554138184
+        },
+        {
+          "player_id": "00-0039732",
+          "player_name": "B.Nix",
+          "recent_team": "DEN",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7618892788887024,
+          "passing_yards": 219.3236846923828
+        },
+        {
+          "player_id": "00-0039738",
+          "player_name": "B.Corum",
+          "recent_team": "LA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.38821855187416077,
+          "rushing_yards": 56.44512176513672
+        },
+        {
+          "player_id": "00-0039739",
+          "player_name": "R.Wilson",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19803525507450104,
+          "receiving_yards": 41.19193649291992
+        },
+        {
           "player_id": "00-0039746",
           "player_name": "W.Shipley",
           "recent_team": "PHI",
@@ -5261,6 +7591,186 @@
           "depth_slot": null,
           "anytime_td_prob": 0.14132875204086304,
           "rushing_yards": 21.844236373901367
+        },
+        {
+          "player_id": "00-0039751",
+          "player_name": "J.Whittington",
+          "recent_team": "LA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
+          "player_id": "00-0039793",
+          "player_name": "A.Barner",
+          "recent_team": "SEA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10488729178905487,
+          "receiving_yards": 17.739152908325195
+        },
+        {
+          "player_id": "00-0039794",
+          "player_name": "B.Allen",
+          "recent_team": "NYJ",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.18680140376091003,
+          "rushing_yards": 29.451738357543945
+        },
+        {
+          "player_id": "00-0039796",
+          "player_name": "R.Ali",
+          "recent_team": "BAL",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0039811",
+          "player_name": "M.Lloyd",
+          "recent_team": "GB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21621666848659515,
+          "rushing_yards": 35.82145309448242
+        },
+        {
+          "player_id": "00-0039847",
+          "player_name": "T.Johnson",
+          "recent_team": "NYG",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11529146879911423,
+          "receiving_yards": 22.23627471923828
+        },
+        {
+          "player_id": "00-0039849",
+          "player_name": "M.Harrison",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11792907118797302,
+          "receiving_yards": 21.97020721435547
+        },
+        {
+          "player_id": "00-0039851",
+          "player_name": "D.Maye",
+          "recent_team": "NE",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7063920497894287,
+          "passing_yards": 199.7991943359375
+        },
+        {
+          "player_id": "00-0039868",
+          "player_name": "T.Franklin",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10488729178905487,
+          "receiving_yards": 18.786283493041992
+        },
+        {
+          "player_id": "00-0039874",
+          "player_name": "J.Wright",
+          "recent_team": "MIA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11258099228143692,
+          "rushing_yards": 16.717205047607422
+        },
+        {
+          "player_id": "00-0039875",
+          "player_name": "R.Davis",
+          "recent_team": "BUF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11076027154922485,
+          "rushing_yards": 10.627614974975586
+        },
+        {
+          "player_id": "00-0039880",
+          "player_name": "M.Washington",
+          "recent_team": "MIA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2508234679698944,
+          "receiving_yards": 53.256378173828125
+        },
+        {
+          "player_id": "00-0039890",
+          "player_name": "A.Mitchell",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3049134612083435,
+          "receiving_yards": 61.251922607421875
+        },
+        {
+          "player_id": "00-0039893",
+          "player_name": "Bri.Thomas",
+          "recent_team": "JAX",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24659761786460876,
+          "receiving_yards": 42.43760299682617
+        },
+        {
+          "player_id": "00-0039894",
+          "player_name": "X.Worthy",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.17418643832206726,
+          "receiving_yards": 39.549224853515625
+        },
+        {
+          "player_id": "00-0039901",
+          "player_name": "K.Coleman",
+          "recent_team": "BUF",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.185950368642807,
+          "receiving_yards": 33.05826187133789
+        },
+        {
+          "player_id": "00-0039910",
+          "player_name": "J.Daniels",
+          "recent_team": "WAS",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.7256028056144714,
+          "passing_yards": 174.6517333984375
+        },
+        {
+          "player_id": "00-0039915",
+          "player_name": "L.McConkey",
+          "recent_team": "LAC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2525007724761963,
+          "receiving_yards": 45.11945724487305
         },
         {
           "player_id": "00-0039918",
@@ -5283,6 +7793,16 @@
           "receiving_yards": 40.235958099365234
         },
         {
+          "player_id": "00-0039920",
+          "player_name": "M.Corley",
+          "recent_team": "CLE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
           "player_id": "00-0040024",
           "player_name": "D.Cooper",
           "recent_team": "PHI",
@@ -5291,6 +7811,46 @@
           "depth_slot": null,
           "anytime_td_prob": 0.1059223860502243,
           "receiving_yards": 19.55524253845215
+        },
+        {
+          "player_id": "00-0040075",
+          "player_name": "L.Wester",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11264067888259888,
+          "receiving_yards": 21.253793716430664
+        },
+        {
+          "player_id": "00-0040081",
+          "player_name": "J.Briningstool",
+          "recent_team": "KC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
+        },
+        {
+          "player_id": "00-0040122",
+          "player_name": "A.Jeanty",
+          "recent_team": "LV",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.4455454349517822,
+          "rushing_yards": 61.58852005004883
+        },
+        {
+          "player_id": "00-0040124",
+          "player_name": "T.McMillan",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3687100112438202,
+          "receiving_yards": 69.33271789550781
         },
         {
           "player_id": "00-0040126",
@@ -5303,6 +7863,136 @@
           "receiving_yards": 22.134408950805664
         },
         {
+          "player_id": "00-0040128",
+          "player_name": "T.Warren",
+          "recent_team": "IND",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19233283400535583,
+          "receiving_yards": 38.904781341552734
+        },
+        {
+          "player_id": "00-0040129",
+          "player_name": "E.Egbuka",
+          "recent_team": "TB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2634510397911072,
+          "receiving_yards": 41.93033218383789
+        },
+        {
+          "player_id": "00-0040131",
+          "player_name": "K.Williams",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0040134",
+          "player_name": "P.Bryant",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.148441344499588,
+          "receiving_yards": 29.992921829223633
+        },
+        {
+          "player_id": "00-0040138",
+          "player_name": "J.Noel",
+          "recent_team": "HOU",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21469110250473022,
+          "receiving_yards": 41.45658874511719
+        },
+        {
+          "player_id": "00-0040142",
+          "player_name": "K.Johnson",
+          "recent_team": "GB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1446232795715332,
+          "rushing_yards": 24.11007308959961
+        },
+        {
+          "player_id": "00-0040162",
+          "player_name": "D.Sampson",
+          "recent_team": "CLE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0040164",
+          "player_name": "J.Lane",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 15.842894554138184
+        },
+        {
+          "player_id": "00-0040170",
+          "player_name": "E.Ayomanor",
+          "recent_team": "TEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1959310919046402,
+          "receiving_yards": 33.83693313598633
+        },
+        {
+          "player_id": "00-0040187",
+          "player_name": "M.Evans",
+          "recent_team": "CAR",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.351186752319336
+        },
+        {
+          "player_id": "00-0040189",
+          "player_name": "O.Gadsden",
+          "recent_team": "LAC",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12170740962028503,
+          "receiving_yards": 25.941791534423828
+        },
+        {
+          "player_id": "00-0040208",
+          "player_name": "T.Brooks",
+          "recent_team": "CIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0040218",
+          "player_name": "Ji.Horn",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0040236",
           "player_name": "K.Monangai",
           "recent_team": "CHI",
@@ -5311,6 +8001,26 @@
           "depth_slot": null,
           "anytime_td_prob": 0.3753388822078705,
           "rushing_yards": 56.18500900268555
+        },
+        {
+          "player_id": "00-0040237",
+          "player_name": "T.Johnson",
+          "recent_team": "TB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13789837062358856,
+          "receiving_yards": 26.63823127746582
+        },
+        {
+          "player_id": "00-0040242",
+          "player_name": "J.Croskey-Merritt",
+          "recent_team": "WAS",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.32110604643821716,
+          "rushing_yards": 48.786075592041016
         },
         {
           "player_id": "00-0040277",
@@ -5323,6 +8033,246 @@
           "receiving_yards": 17.11890983581543
         },
         {
+          "player_id": "00-0040363",
+          "player_name": "K.Latu",
+          "recent_team": "BUF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0040429",
+          "player_name": "J.Williams",
+          "recent_team": "TB",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0040466",
+          "player_name": "R.Sanders",
+          "recent_team": "CLE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12305328994989395,
+          "rushing_yards": 13.54942798614502
+        },
+        {
+          "player_id": "00-0040506",
+          "player_name": "M.Price",
+          "recent_team": "MIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0040556",
+          "player_name": "C.Kiner",
+          "recent_team": "NE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13734233379364014,
+          "rushing_yards": 21.497161865234375
+        },
+        {
+          "player_id": "00-0040568",
+          "player_name": "L.Larison",
+          "recent_team": "NE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "rushing_yards": 9.388391494750977
+        },
+        {
+          "player_id": "00-0040582",
+          "player_name": "A.Smith",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0040583",
+          "player_name": "W.Marks",
+          "recent_team": "HOU",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.23071253299713135,
+          "rushing_yards": 36.8508186340332
+        },
+        {
+          "player_id": "00-0040584",
+          "player_name": "G.Helm",
+          "recent_team": "TEN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 29.483646392822266
+        },
+        {
+          "player_id": "00-0040590",
+          "player_name": "K.Mumpfield",
+          "recent_team": "LA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 18.474721908569336
+        },
+        {
+          "player_id": "00-0040621",
+          "player_name": "M.Foster",
+          "recent_team": "SEA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0040646",
+          "player_name": "J.Royals",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0040663",
+          "player_name": "H.Fannin",
+          "recent_team": "CLE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24143686890602112,
+          "receiving_yards": 39.12970733642578
+        },
+        {
+          "player_id": "00-0040666",
+          "player_name": "O.Hampton",
+          "recent_team": "LAC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.40726932883262634,
+          "rushing_yards": 65.50732421875
+        },
+        {
+          "player_id": "00-0040667",
+          "player_name": "M.Golden",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3687100112438202,
+          "receiving_yards": 68.69429779052734
+        },
+        {
+          "player_id": "00-0040669",
+          "player_name": "I.TeSlaa",
+          "recent_team": "DET",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 25.0426025390625
+        },
+        {
+          "player_id": "00-0040676",
+          "player_name": "C.Ward",
+          "recent_team": "TEN",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.646845817565918,
+          "passing_yards": 188.4296417236328
+        },
+        {
+          "player_id": "00-0040691",
+          "player_name": "J.Dart",
+          "recent_team": "NYG",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5613606572151184,
+          "passing_yards": 172.8070831298828
+        },
+        {
+          "player_id": "00-0040705",
+          "player_name": "C.Dike",
+          "recent_team": "TEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 15.842894554138184
+        },
+        {
+          "player_id": "00-0040715",
+          "player_name": "C.Skattebo",
+          "recent_team": "NYG",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3589221239089966,
+          "rushing_yards": 57.51821517944336
+        },
+        {
+          "player_id": "00-0040719",
+          "player_name": "B.Tuten",
+          "recent_team": "JAX",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.4219875931739807,
+          "rushing_yards": 58.40656661987305
+        },
+        {
+          "player_id": "00-0040727",
+          "player_name": "T.Harris",
+          "recent_team": "LAC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24143686890602112,
+          "receiving_yards": 38.76150131225586
+        },
+        {
+          "player_id": "00-0040729",
+          "player_name": "J.Bech",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1450842320919037,
+          "receiving_yards": 27.251916885375977
+        },
+        {
+          "player_id": "00-0040730",
+          "player_name": "R.Harvey",
+          "recent_team": "DEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.16380897164344788,
+          "rushing_yards": 22.62639045715332
+        },
+        {
           "player_id": "00-0040735",
           "player_name": "L.Burden",
           "recent_team": "CHI",
@@ -5331,6 +8281,56 @@
           "depth_slot": null,
           "anytime_td_prob": 0.2508234679698944,
           "receiving_yards": 47.152793884277344
+        },
+        {
+          "player_id": "00-0040736",
+          "player_name": "M.Taylor",
+          "recent_team": "NYJ",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13678766787052155,
+          "receiving_yards": 24.444299697875977
+        },
+        {
+          "player_id": "00-0040737",
+          "player_name": "T.Ferguson",
+          "recent_team": "LA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19803525507450104,
+          "receiving_yards": 36.84375762939453
+        },
+        {
+          "player_id": "00-0040743",
+          "player_name": "T.Shough",
+          "recent_team": "NO",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8494269251823425,
+          "passing_yards": 269.2214660644531
+        },
+        {
+          "player_id": "00-0040784",
+          "player_name": "Q.Judkins",
+          "recent_team": "CLE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.25956764817237854,
+          "rushing_yards": 40.87903594970703
+        },
+        {
+          "player_id": "00-0040785",
+          "player_name": "D.Meyers",
+          "recent_team": "CIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10174814611673355,
+          "receiving_yards": 16.33665657043457
         },
         {
           "player_id": "00-0040867",
@@ -5343,6 +8343,396 @@
           "receiving_yards": 22.034259796142578
         },
         {
+          "player_id": "00-0040870",
+          "player_name": "J.Lane",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.838546752929688
+        },
+        {
+          "player_id": "00-0040878",
+          "player_name": "M.Washington",
+          "recent_team": "LV",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1424940526485443,
+          "rushing_yards": 26.364835739135742
+        },
+        {
+          "player_id": "00-0040879",
+          "player_name": "M.Hibner",
+          "recent_team": "BAL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 18.07752227783203
+        },
+        {
+          "player_id": "00-0040890",
+          "player_name": "C.Allen",
+          "recent_team": "KC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0040894",
+          "player_name": "M.Benson",
+          "recent_team": "LV",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10966037213802338,
+          "receiving_yards": 19.044645309448242
+        },
+        {
+          "player_id": "00-0041013",
+          "player_name": "E.Johnson",
+          "recent_team": "KC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13409584760665894,
+          "rushing_yards": 26.369165420532227
+        },
+        {
+          "player_id": "00-0041027",
+          "player_name": "J.Love",
+          "recent_team": "ARI",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2984958589076996,
+          "rushing_yards": 38.815650939941406
+        },
+        {
+          "player_id": "00-0041032",
+          "player_name": "K.Sadiq",
+          "recent_team": "NYJ",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13877832889556885,
+          "receiving_yards": 25.3370304107666
+        },
+        {
+          "player_id": "00-0041037",
+          "player_name": "D.Boston",
+          "recent_team": "CLE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2952266037464142,
+          "receiving_yards": 59.239036560058594
+        },
+        {
+          "player_id": "00-0041040",
+          "player_name": "A.Williams",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21261444687843323,
+          "receiving_yards": 39.260955810546875
+        },
+        {
+          "player_id": "00-0041042",
+          "player_name": "M.Fields",
+          "recent_team": "NYG",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.19803525507450104,
+          "receiving_yards": 36.84375762939453
+        },
+        {
+          "player_id": "00-0041044",
+          "player_name": "Z.Branch",
+          "recent_team": "ATL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
+          "player_id": "00-0041048",
+          "player_name": "T.Hurst",
+          "recent_team": "TB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21684537827968597,
+          "receiving_yards": 37.66132736206055
+        },
+        {
+          "player_id": "00-0041052",
+          "player_name": "K.Black",
+          "recent_team": "SF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2808684706687927,
+          "rushing_yards": 43.54450225830078
+        },
+        {
+          "player_id": "00-0041067",
+          "player_name": "B.Lance",
+          "recent_team": "NO",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.142544686794281,
+          "receiving_yards": 26.998003005981445
+        },
+        {
+          "player_id": "00-0041094",
+          "player_name": "B.Sharp",
+          "recent_team": "TB",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041096",
+          "player_name": "K.Allen",
+          "recent_team": "WAS",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1424940526485443,
+          "rushing_yards": 25.15496063232422
+        },
+        {
+          "player_id": "00-0041099",
+          "player_name": "B.Brown",
+          "recent_team": "NO",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11076027154922485,
+          "receiving_yards": 14.71932315826416
+        },
+        {
+          "player_id": "00-0041100",
+          "player_name": "J.Cameron",
+          "recent_team": "JAX",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.16398811340332
+        },
+        {
+          "player_id": "00-0041125",
+          "player_name": "S.McGowan",
+          "recent_team": "IND",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11265289038419724,
+          "rushing_yards": 11.205623626708984
+        },
+        {
+          "player_id": "00-0041131",
+          "player_name": "C.Ryan",
+          "recent_team": "CLE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041326",
+          "player_name": "C.Donaldson",
+          "recent_team": "NO",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11258099228143692,
+          "rushing_yards": 13.746574401855469
+        },
+        {
+          "player_id": "00-0041395",
+          "player_name": "E.Raridon",
+          "recent_team": "NE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1118997260928154,
+          "receiving_yards": 18.793935775756836
+        },
+        {
+          "player_id": "00-0041397",
+          "player_name": "K.Wetjen",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041438",
+          "player_name": "C.Tate",
+          "recent_team": "TEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.21684537827968597,
+          "receiving_yards": 40.190086364746094
+        },
+        {
+          "player_id": "00-0041472",
+          "player_name": "M.Klein",
+          "recent_team": "HOU",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1118997260928154,
+          "receiving_yards": 18.793935775756836
+        },
+        {
+          "player_id": "00-0041490",
+          "player_name": "E.Heidenreich",
+          "recent_team": "PIT",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0041496",
+          "player_name": "J.Coleman",
+          "recent_team": "DEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.15023955702781677,
+          "rushing_yards": 26.413236618041992
+        },
+        {
+          "player_id": "00-0041503",
+          "player_name": "N.Boerkircher",
+          "recent_team": "JAX",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
+        },
+        {
+          "player_id": "00-0041511",
+          "player_name": "O.Cooper",
+          "recent_team": "NYJ",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11509647965431213,
+          "receiving_yards": 25.206932067871094
+        },
+        {
+          "player_id": "00-0041512",
+          "player_name": "J.Price",
+          "recent_team": "SEA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.3344081938266754,
+          "rushing_yards": 50.523475646972656
+        },
+        {
+          "player_id": "00-0041523",
+          "player_name": "C.Douglas",
+          "recent_team": "MIA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.2525007724761963,
+          "receiving_yards": 43.780479431152344
+        },
+        {
+          "player_id": "00-0041524",
+          "player_name": "W.Kacmarek",
+          "recent_team": "MIA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0041525",
+          "player_name": "C.Bell",
+          "recent_team": "MIA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 19.351186752319336
+        },
+        {
+          "player_id": "00-0041529",
+          "player_name": "K.Coleman",
+          "recent_team": "MIA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11604709178209305,
+          "receiving_yards": 21.358482360839844
+        },
+        {
+          "player_id": "00-0041547",
+          "player_name": "K.Concepcion",
+          "recent_team": "CLE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.25618776679039,
+          "receiving_yards": 40.45350646972656
+        },
+        {
+          "player_id": "00-0031503",
+          "player_name": "J.Winston",
+          "recent_team": "NYG",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5162578225135803,
+          "passing_yards": 157.99630737304688
+        },
+        {
+          "player_id": "00-0032268",
+          "player_name": "M.Mariota",
+          "recent_team": "WAS",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.5000227093696594,
+          "passing_yards": 149.43125915527344
+        },
+        {
+          "player_id": "00-0032392",
+          "player_name": "A.Hooper",
+          "recent_team": "ATL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14821897447109222,
+          "receiving_yards": 30.459205627441406
+        },
+        {
           "player_id": "00-0033246",
           "player_name": "J.Mundt",
           "recent_team": "PHI",
@@ -5351,6 +8741,66 @@
           "depth_slot": null,
           "anytime_td_prob": 0.12595784664154053,
           "receiving_yards": 24.167016983032227
+        },
+        {
+          "player_id": "00-0033906",
+          "player_name": "A.Kamara",
+          "recent_team": "NO",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.24955584108829498,
+          "rushing_yards": 36.574554443359375
+        },
+        {
+          "player_id": "00-0034365",
+          "player_name": "I.Thomas",
+          "recent_team": "LV",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.87346649169922
+        },
+        {
+          "player_id": "00-0034771",
+          "player_name": "M.Rudolph",
+          "recent_team": "PIT",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11265289038419724,
+          "passing_yards": 73.35758972167969
+        },
+        {
+          "player_id": "00-0034837",
+          "player_name": "C.Ridley",
+          "recent_team": "TEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14868716895580292,
+          "receiving_yards": 30.157827377319336
+        },
+        {
+          "player_id": "00-0035406",
+          "player_name": "L.Humphrey",
+          "recent_team": "DEN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0035594",
+          "player_name": "T.Homer",
+          "recent_team": "PIT",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12233738601207733,
+          "rushing_yards": 19.330116271972656
         },
         {
           "player_id": "00-0035662",
@@ -5363,6 +8813,126 @@
           "receiving_yards": 14.335423469543457
         },
         {
+          "player_id": "00-0036187",
+          "player_name": "R.Gilliam",
+          "recent_team": "NE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "rushing_yards": 9.37234115600586
+        },
+        {
+          "player_id": "00-0036429",
+          "player_name": "C.Woerner",
+          "recent_team": "ATL",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0036849",
+          "player_name": "T.Atwell",
+          "recent_team": "LA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11708786338567734,
+          "receiving_yards": 22.09202003479004
+        },
+        {
+          "player_id": "00-0036862",
+          "player_name": "B.Skowronek",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0036893",
+          "player_name": "N.Harris",
+          "recent_team": "NYG",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13734233379364014,
+          "rushing_yards": 22.01940155029297
+        },
+        {
+          "player_id": "00-0036972",
+          "player_name": "M.Jones",
+          "recent_team": "SF",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14099569618701935,
+          "passing_yards": 98.93814849853516
+        },
+        {
+          "player_id": "00-0037085",
+          "player_name": "T.Badie",
+          "recent_team": "DEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.16705383360385895,
+          "rushing_yards": 11.959073066711426
+        },
+        {
+          "player_id": "00-0037157",
+          "player_name": "Z.Knight",
+          "recent_team": "ARI",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12233738601207733,
+          "rushing_yards": 17.300575256347656
+        },
+        {
+          "player_id": "00-0037231",
+          "player_name": "K.Austin",
+          "recent_team": "NO",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
+          "player_id": "00-0037594",
+          "player_name": "J.Chestnut",
+          "recent_team": "TEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0037614",
+          "player_name": "J.Metchie",
+          "recent_team": "CAR",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0037742",
+          "player_name": "T.Burks",
+          "recent_team": "WAS",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
           "player_id": "00-0038416",
           "player_name": "T.Bagent",
           "recent_team": "CHI",
@@ -5373,6 +8943,246 @@
           "passing_yards": 129.92547607421875
         },
         {
+          "player_id": "00-0038564",
+          "player_name": "C.Latu",
+          "recent_team": "NE",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038640",
+          "player_name": "J.Brooks",
+          "recent_team": "ARI",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038643",
+          "player_name": "B.Willis",
+          "recent_team": "SF",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0038794",
+          "player_name": "J.McLaughlin",
+          "recent_team": "CLE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11265289038419724,
+          "rushing_yards": 12.221526145935059
+        },
+        {
+          "player_id": "00-0038824",
+          "player_name": "R.Miller",
+          "recent_team": "MIA",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.15094220638275146,
+          "receiving_yards": 38.6989631652832
+        },
+        {
+          "player_id": "00-0039041",
+          "player_name": "E.Higgins",
+          "recent_team": "ARI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0039391",
+          "player_name": "K.Vidal",
+          "recent_team": "LAC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0039603",
+          "player_name": "B.Brooks",
+          "recent_team": "HOU",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0039792",
+          "player_name": "D.Walker",
+          "recent_team": "BAL",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.14868716895580292,
+          "receiving_yards": 31.691537857055664
+        },
+        {
+          "player_id": "00-0039798",
+          "player_name": "I.Davis",
+          "recent_team": "NYJ",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0039814",
+          "player_name": "E.All",
+          "recent_team": "CIN",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 23.962081909179688
+        },
+        {
+          "player_id": "00-0039816",
+          "player_name": "A.Gould",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0039912",
+          "player_name": "B.Sinnott",
+          "recent_team": "WAS",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.11890983581543
+        },
+        {
+          "player_id": "00-0040078",
+          "player_name": "B.Smith",
+          "recent_team": "KC",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 10.05435848236084
+        },
+        {
+          "player_id": "00-0040177",
+          "player_name": "J.James",
+          "recent_team": "SF",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13813643157482147,
+          "rushing_yards": 23.102699279785156
+        },
+        {
+          "player_id": "00-0040198",
+          "player_name": "O.Gordon",
+          "recent_team": "MIA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11316443234682083,
+          "rushing_yards": 20.03665542602539
+        },
+        {
+          "player_id": "00-0040238",
+          "player_name": "L.Allen",
+          "recent_team": "JAX",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "rushing_yards": 9.22647762298584
+        },
+        {
+          "player_id": "00-0040563",
+          "player_name": "E.Chism",
+          "recent_team": "NE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 17.86484146118164
+        },
+        {
+          "player_id": "00-0040734",
+          "player_name": "T.Henderson",
+          "recent_team": "NE",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.39341098070144653,
+          "rushing_yards": 62.779598236083984
+        },
+        {
+          "player_id": "00-0040739",
+          "player_name": "E.Arroyo",
+          "recent_team": "SEA",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11366865038871765,
+          "receiving_yards": 18.793935775756836
+        },
+        {
+          "player_id": "00-0040782",
+          "player_name": "I.Bond",
+          "recent_team": "CLE",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.16398811340332
+        },
+        {
+          "player_id": "00-0040886",
+          "player_name": "N.Singleton",
+          "recent_team": "TEN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.13510620594024658,
+          "rushing_yards": 22.087440490722656
+        },
+        {
+          "player_id": "00-0040948",
+          "player_name": "J.Sturdivant",
+          "recent_team": "GB",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041041",
+          "player_name": "O.Delp",
+          "recent_team": "NO",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
           "player_id": "00-0041051",
           "player_name": "Z.Thomas",
           "recent_team": "CHI",
@@ -5381,6 +9191,76 @@
           "depth_slot": null,
           "anytime_td_prob": 0.11184605211019516,
           "receiving_yards": 16.004743576049805
+        },
+        {
+          "player_id": "00-0041069",
+          "player_name": "C.Young",
+          "recent_team": "CIN",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.201936721801758
+        },
+        {
+          "player_id": "00-0041104",
+          "player_name": "D.Claiborne",
+          "recent_team": "MIN",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10301101207733154,
+          "rushing_yards": 9.22647762298584
+        },
+        {
+          "player_id": "00-0041132",
+          "player_name": "D.Burks",
+          "recent_team": "IND",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11671369522809982,
+          "receiving_yards": 14.335423469543457
+        },
+        {
+          "player_id": "00-0041194",
+          "player_name": "J.Strand",
+          "recent_team": "ATL",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.43847742676734924,
+          "passing_yards": 140.5720977783203
+        },
+        {
+          "player_id": "00-0041436",
+          "player_name": "D.Herman",
+          "recent_team": "MIA",
+          "position": "RB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.1397807002067566,
+          "rushing_yards": 9.378531455993652
+        },
+        {
+          "player_id": "00-0041489",
+          "player_name": "G.Bernard",
+          "recent_team": "PIT",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.28669583797454834,
+          "receiving_yards": 48.74949645996094
+        },
+        {
+          "player_id": "00-0041550",
+          "player_name": "B.Thompson",
+          "recent_team": "LAC",
+          "position": "WR",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 25.0426025390625
         },
         {
           "player_id": "00-0041558",
@@ -5489,8 +9369,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": 3.5,
+          "total_line": 42.5
         },
         {
           "game_id": "2026_04_JAX_CIN",
@@ -5565,8 +9445,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null
+          "spread_line": -2.5,
+          "total_line": 44.5
         },
         {
           "game_id": "2026_04_GB_TB",
@@ -5642,7 +9522,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 43.5
+          "total_line": 42.5
         },
         {
           "game_id": "2026_04_DEN_SF",
@@ -5756,12 +9636,14 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_NYJ_CHI": {
-          "home_win_prob": 0.7960866730898533,
-          "away_win_prob": 0.20391332691014674,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
-          "predicted_margin": 10.945125579833984,
-          "predicted_total": 47.483768463134766,
+          "home_win_prob": 0.8050682228966202,
+          "away_win_prob": 0.19493177710337983,
+          "home_cover_prob": 0.7241376186612719,
+          "away_cover_prob": 0.2758623813387281,
+          "over_prob": 0.6732926132630254,
+          "under_prob": 0.32670738673697464,
+          "predicted_margin": 11.370124816894531,
+          "predicted_total": 48.106815338134766,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -5806,12 +9688,14 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_04_LA_PHI": {
-          "home_win_prob": 0.5136778200790724,
-          "away_win_prob": 0.48632217992092763,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
-          "predicted_margin": 0.45344746112823486,
-          "predicted_total": 40.409820556640625,
+          "home_win_prob": 0.4655014892252637,
+          "away_win_prob": 0.5344985107747363,
+          "home_cover_prob": 0.5408118832712756,
+          "away_cover_prob": 0.4591881167287244,
+          "over_prob": 0.43463349161731424,
+          "under_prob": 0.5653665083826858,
+          "predicted_margin": -1.1449003219604492,
+          "predicted_total": 42.444820404052734,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -5860,8 +9744,8 @@
           "away_win_prob": 0.2141854553873942,
           "home_cover_prob": 0.6035736229591295,
           "away_cover_prob": 0.39642637704087047,
-          "over_prob": 0.5297880884496005,
-          "under_prob": 0.47021191155039954,
+          "over_prob": 0.5615193608193615,
+          "under_prob": 0.4384806391806385,
           "predicted_margin": 10.472505569458008,
           "predicted_total": 44.43321990966797,
           "sigma": 13.223153618916728,
@@ -6036,8 +9920,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.29621848464012146,
-          "receiving_yards": 60.11561965942383
+          "anytime_td_prob": 0.30572906136512756,
+          "receiving_yards": 64.88545989990234
         },
         {
           "player_id": "00-0032764",
@@ -6406,8 +10290,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2980431914329529,
-          "rushing_yards": 42.55207061767578
+          "anytime_td_prob": 0.3499719202518463,
+          "rushing_yards": 52.63039779663086
         },
         {
           "player_id": "00-0034854",
@@ -6776,8 +10660,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.49325162172317505,
-          "rushing_yards": 73.10424041748047
+          "anytime_td_prob": 0.4531680941581726,
+          "rushing_yards": 73.13845825195312
         },
         {
           "player_id": "00-0036290",
@@ -6786,8 +10670,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11792907118797302,
-          "receiving_yards": 22.09202003479004
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 20.0340633392334
         },
         {
           "player_id": "00-0036309",
@@ -6846,8 +10730,8 @@
           "position": "QB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.8518946170806885,
-          "passing_yards": 234.4144287109375
+          "anytime_td_prob": 0.7528699040412903,
+          "passing_yards": 217.38681030273438
         },
         {
           "player_id": "00-0036407",
@@ -7067,7 +10951,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.3687100112438202,
-          "receiving_yards": 70.45710754394531
+          "receiving_yards": 68.69429779052734
         },
         {
           "player_id": "00-0036919",
@@ -7626,8 +11510,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.28177204728126526,
-          "receiving_yards": 53.740211486816406
+          "anytime_td_prob": 0.26014095544815063,
+          "receiving_yards": 46.62779998779297
         },
         {
           "player_id": "00-0038454",
@@ -7726,8 +11610,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.18680140376091003,
-          "rushing_yards": 29.372644424438477
+          "anytime_td_prob": 0.13726624846458435,
+          "rushing_yards": 21.68689727783203
         },
         {
           "player_id": "00-0038558",
@@ -8366,8 +12250,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.14132875204086304,
-          "rushing_yards": 21.844236373901367
+          "anytime_td_prob": 0.11804565787315369,
+          "rushing_yards": 19.799100875854492
         },
         {
           "player_id": "00-0039751",
@@ -8567,7 +12451,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 40.235958099365234
+          "receiving_yards": 40.66850662231445
         },
         {
           "player_id": "00-0039920",
@@ -8586,8 +12470,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.1059223860502243,
-          "receiving_yards": 19.55524253845215
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
         },
         {
           "player_id": "00-0040075",
@@ -8636,8 +12520,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11557378619909286,
-          "receiving_yards": 22.134408950805664
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.838546752929688
         },
         {
           "player_id": "00-0040128",
@@ -8776,8 +12660,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.3753388822078705,
-          "rushing_yards": 56.18500900268555
+          "anytime_td_prob": 0.33223772048950195,
+          "rushing_yards": 54.87784194946289
         },
         {
           "player_id": "00-0040237",
@@ -9056,8 +12940,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2508234679698944,
-          "receiving_yards": 47.152793884277344
+          "anytime_td_prob": 0.3010285496711731,
+          "receiving_yards": 58.368988037109375
         },
         {
           "player_id": "00-0040736",
@@ -9116,8 +13000,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11902575939893723,
-          "receiving_yards": 22.034259796142578
+          "anytime_td_prob": 0.12998682260513306,
+          "receiving_yards": 26.16921615600586
         },
         {
           "player_id": "00-0040870",
@@ -9516,8 +13400,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.167016983032227
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.17327308654785
         },
         {
           "player_id": "00-0033906",
@@ -9966,8 +13850,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 16.004743576049805
+          "anytime_td_prob": 0.10929381102323532,
+          "receiving_yards": 15.842894554138184
         },
         {
           "player_id": "00-0041069",
@@ -10046,8 +13930,38 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.05112648010254
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0027973",
+          "player_name": "A.Dalton",
+          "recent_team": "PHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "passing_yards": 62.59242630004883
+        },
+        {
+          "player_id": "00-0028986",
+          "player_name": "C.Keenum",
+          "recent_team": "CHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8014851212501526,
+          "passing_yards": 237.4410400390625
+        },
+        {
+          "player_id": "00-0030061",
+          "player_name": "Z.Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.262317657470703
         },
         {
           "player_id": "00-0031235",
@@ -10178,6 +14092,16 @@
           "depth_slot": null,
           "anytime_td_prob": 0.25307610630989075,
           "passing_yards": 98.28350067138672
+        },
+        {
+          "player_id": "00-0038498",
+          "player_name": "E.Jenkins",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
         },
         {
           "player_id": "00-0038740",
@@ -10713,12 +14637,12 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_PHI_JAX": {
-          "home_win_prob": 0.6738743244808019,
-          "away_win_prob": 0.32612567551919813,
+          "home_win_prob": 0.6723093987438703,
+          "away_win_prob": 0.3276906012561297,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": 5.958839416503906,
-          "predicted_total": 48.91310119628906,
+          "predicted_margin": 5.901481628417969,
+          "predicted_total": 47.08271026611328,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -10823,12 +14747,12 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_05_CHI_GB": {
-          "home_win_prob": 0.47932578561665073,
-          "away_win_prob": 0.5206742143833493,
+          "home_win_prob": 0.4097612161229428,
+          "away_win_prob": 0.5902387838770572,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": -0.6855648159980774,
-          "predicted_total": 44.04950714111328,
+          "predicted_margin": -3.0169849395751953,
+          "predicted_total": 44.48167419433594,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -10975,8 +14899,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.29621848464012146,
-          "receiving_yards": 60.11561965942383
+          "anytime_td_prob": 0.30572906136512756,
+          "receiving_yards": 64.88545989990234
         },
         {
           "player_id": "00-0032764",
@@ -11335,8 +15259,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2980431914329529,
-          "rushing_yards": 42.55207061767578
+          "anytime_td_prob": 0.3499719202518463,
+          "rushing_yards": 52.63039779663086
         },
         {
           "player_id": "00-0034854",
@@ -11695,8 +15619,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.49325162172317505,
-          "rushing_yards": 73.10424041748047
+          "anytime_td_prob": 0.4531680941581726,
+          "rushing_yards": 73.13845825195312
         },
         {
           "player_id": "00-0036290",
@@ -11705,8 +15629,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11792907118797302,
-          "receiving_yards": 22.09202003479004
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 20.0340633392334
         },
         {
           "player_id": "00-0036309",
@@ -11765,8 +15689,8 @@
           "position": "QB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.8518946170806885,
-          "passing_yards": 234.4144287109375
+          "anytime_td_prob": 0.7528699040412903,
+          "passing_yards": 217.38681030273438
         },
         {
           "player_id": "00-0036407",
@@ -11956,7 +15880,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.3687100112438202,
-          "receiving_yards": 70.45710754394531
+          "receiving_yards": 68.69429779052734
         },
         {
           "player_id": "00-0036919",
@@ -12475,8 +16399,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.28177204728126526,
-          "receiving_yards": 53.740211486816406
+          "anytime_td_prob": 0.26014095544815063,
+          "receiving_yards": 46.62779998779297
         },
         {
           "player_id": "00-0038454",
@@ -12555,8 +16479,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.18680140376091003,
-          "rushing_yards": 29.372644424438477
+          "anytime_td_prob": 0.13726624846458435,
+          "rushing_yards": 21.68689727783203
         },
         {
           "player_id": "00-0038558",
@@ -13135,8 +17059,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.14132875204086304,
-          "rushing_yards": 21.844236373901367
+          "anytime_td_prob": 0.11804565787315369,
+          "rushing_yards": 19.799100875854492
         },
         {
           "player_id": "00-0039751",
@@ -13326,7 +17250,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 40.235958099365234
+          "receiving_yards": 40.66850662231445
         },
         {
           "player_id": "00-0039920",
@@ -13345,8 +17269,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.1059223860502243,
-          "receiving_yards": 19.55524253845215
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
         },
         {
           "player_id": "00-0040075",
@@ -13375,8 +17299,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11557378619909286,
-          "receiving_yards": 22.134408950805664
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.838546752929688
         },
         {
           "player_id": "00-0040128",
@@ -13495,8 +17419,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.3753388822078705,
-          "rushing_yards": 56.18500900268555
+          "anytime_td_prob": 0.33223772048950195,
+          "rushing_yards": 54.87784194946289
         },
         {
           "player_id": "00-0040237",
@@ -13765,8 +17689,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2508234679698944,
-          "receiving_yards": 47.152793884277344
+          "anytime_td_prob": 0.3010285496711731,
+          "receiving_yards": 58.368988037109375
         },
         {
           "player_id": "00-0040736",
@@ -13825,8 +17749,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11902575939893723,
-          "receiving_yards": 22.034259796142578
+          "anytime_td_prob": 0.12998682260513306,
+          "receiving_yards": 26.16921615600586
         },
         {
           "player_id": "00-0040870",
@@ -14205,8 +18129,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.167016983032227
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.17327308654785
         },
         {
           "player_id": "00-0033906",
@@ -14635,8 +18559,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 16.004743576049805
+          "anytime_td_prob": 0.10929381102323532,
+          "receiving_yards": 15.842894554138184
         },
         {
           "player_id": "00-0041069",
@@ -14715,8 +18639,38 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.05112648010254
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0027973",
+          "player_name": "A.Dalton",
+          "recent_team": "PHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "passing_yards": 62.59242630004883
+        },
+        {
+          "player_id": "00-0028986",
+          "player_name": "C.Keenum",
+          "recent_team": "CHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8014851212501526,
+          "passing_yards": 237.4410400390625
+        },
+        {
+          "player_id": "00-0030061",
+          "player_name": "Z.Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.262317657470703
         },
         {
           "player_id": "00-0031235",
@@ -14837,6 +18791,16 @@
           "depth_slot": null,
           "anytime_td_prob": 0.25307610630989075,
           "passing_yards": 98.28350067138672
+        },
+        {
+          "player_id": "00-0038498",
+          "player_name": "E.Jenkins",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
         },
         {
           "player_id": "00-0038740",
@@ -15354,12 +19318,12 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_CHI_ATL": {
-          "home_win_prob": 0.40409756304391153,
-          "away_win_prob": 0.5959024369560885,
+          "home_win_prob": 0.3173096544500338,
+          "away_win_prob": 0.6826903455499662,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": -3.2099878787994385,
-          "predicted_total": 39.96498107910156,
+          "predicted_margin": -6.284108638763428,
+          "predicted_total": 40.30762481689453,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -15409,12 +19373,12 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_06_CAR_PHI": {
-          "home_win_prob": 0.5833110159599886,
-          "away_win_prob": 0.4166889840400114,
+          "home_win_prob": 0.5706235034887887,
+          "away_win_prob": 0.42937649651121135,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": 2.781770706176758,
-          "predicted_total": 39.03291320800781,
+          "predicted_margin": 2.3532159328460693,
+          "predicted_total": 39.47157669067383,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -15614,8 +19578,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.29621848464012146,
-          "receiving_yards": 60.11561965942383
+          "anytime_td_prob": 0.30572906136512756,
+          "receiving_yards": 64.88545989990234
         },
         {
           "player_id": "00-0032764",
@@ -15924,8 +19888,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2980431914329529,
-          "rushing_yards": 42.55207061767578
+          "anytime_td_prob": 0.3499719202518463,
+          "rushing_yards": 52.63039779663086
         },
         {
           "player_id": "00-0034854",
@@ -16234,8 +20198,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.49325162172317505,
-          "rushing_yards": 73.10424041748047
+          "anytime_td_prob": 0.4531680941581726,
+          "rushing_yards": 73.13845825195312
         },
         {
           "player_id": "00-0036290",
@@ -16244,8 +20208,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11792907118797302,
-          "receiving_yards": 22.09202003479004
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 20.0340633392334
         },
         {
           "player_id": "00-0036309",
@@ -16294,8 +20258,8 @@
           "position": "QB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.8518946170806885,
-          "passing_yards": 234.4144287109375
+          "anytime_td_prob": 0.7528699040412903,
+          "passing_yards": 217.38681030273438
         },
         {
           "player_id": "00-0036407",
@@ -16465,7 +20429,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.3687100112438202,
-          "receiving_yards": 70.45710754394531
+          "receiving_yards": 68.69429779052734
         },
         {
           "player_id": "00-0036919",
@@ -16964,8 +20928,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.28177204728126526,
-          "receiving_yards": 53.740211486816406
+          "anytime_td_prob": 0.26014095544815063,
+          "receiving_yards": 46.62779998779297
         },
         {
           "player_id": "00-0038454",
@@ -17064,8 +21028,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.18680140376091003,
-          "rushing_yards": 29.372644424438477
+          "anytime_td_prob": 0.13726624846458435,
+          "rushing_yards": 21.68689727783203
         },
         {
           "player_id": "00-0038558",
@@ -17624,8 +21588,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.14132875204086304,
-          "rushing_yards": 21.844236373901367
+          "anytime_td_prob": 0.11804565787315369,
+          "rushing_yards": 19.799100875854492
         },
         {
           "player_id": "00-0039751",
@@ -17805,7 +21769,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 40.235958099365234
+          "receiving_yards": 40.66850662231445
         },
         {
           "player_id": "00-0039920",
@@ -17824,8 +21788,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.1059223860502243,
-          "receiving_yards": 19.55524253845215
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
         },
         {
           "player_id": "00-0040075",
@@ -17874,8 +21838,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11557378619909286,
-          "receiving_yards": 22.134408950805664
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.838546752929688
         },
         {
           "player_id": "00-0040128",
@@ -18004,8 +21968,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.3753388822078705,
-          "rushing_yards": 56.18500900268555
+          "anytime_td_prob": 0.33223772048950195,
+          "rushing_yards": 54.87784194946289
         },
         {
           "player_id": "00-0040237",
@@ -18264,8 +22228,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2508234679698944,
-          "receiving_yards": 47.152793884277344
+          "anytime_td_prob": 0.3010285496711731,
+          "receiving_yards": 58.368988037109375
         },
         {
           "player_id": "00-0040736",
@@ -18314,8 +22278,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11902575939893723,
-          "receiving_yards": 22.034259796142578
+          "anytime_td_prob": 0.12998682260513306,
+          "receiving_yards": 26.16921615600586
         },
         {
           "player_id": "00-0040870",
@@ -18674,8 +22638,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.167016983032227
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.17327308654785
         },
         {
           "player_id": "00-0033906",
@@ -19094,8 +23058,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 16.004743576049805
+          "anytime_td_prob": 0.10929381102323532,
+          "receiving_yards": 15.842894554138184
         },
         {
           "player_id": "00-0041132",
@@ -19144,8 +23108,38 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.05112648010254
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0027973",
+          "player_name": "A.Dalton",
+          "recent_team": "PHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "passing_yards": 62.59242630004883
+        },
+        {
+          "player_id": "00-0028986",
+          "player_name": "C.Keenum",
+          "recent_team": "CHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8014851212501526,
+          "passing_yards": 237.4410400390625
+        },
+        {
+          "player_id": "00-0030061",
+          "player_name": "Z.Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.262317657470703
         },
         {
           "player_id": "00-0031235",
@@ -19276,6 +23270,16 @@
           "depth_slot": null,
           "anytime_td_prob": 0.25307610630989075,
           "passing_yards": 98.28350067138672
+        },
+        {
+          "player_id": "00-0038498",
+          "player_name": "E.Jenkins",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
         },
         {
           "player_id": "00-0038740",
@@ -19741,12 +23745,12 @@
       ],
       "predictions": {
         "2026_07_NE_CHI": {
-          "home_win_prob": 0.5791065687790453,
-          "away_win_prob": 0.4208934312209547,
+          "home_win_prob": 0.605452776281856,
+          "away_win_prob": 0.394547223718144,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": 2.6394524574279785,
-          "predicted_total": 42.455162048339844,
+          "predicted_margin": 3.537017822265625,
+          "predicted_total": 41.98476028442383,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -19884,12 +23888,12 @@
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
         },
         "2026_07_DAL_PHI": {
-          "home_win_prob": 0.5988987031472743,
-          "away_win_prob": 0.40110129685272566,
+          "home_win_prob": 0.5664270025390166,
+          "away_win_prob": 0.43357299746098343,
           "home_cover_prob": null,
           "away_cover_prob": null,
-          "predicted_margin": 3.3123676776885986,
-          "predicted_total": 42.583736419677734,
+          "predicted_margin": 2.2120320796966553,
+          "predicted_total": 43.02239990234375,
           "sigma": 13.223153618916728,
           "total_sigma": 12.486688413234214,
           "model_version": "ridge@2026-09-04T22:12:49.750941+00:00"
@@ -20003,8 +24007,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.29621848464012146,
-          "receiving_yards": 60.11561965942383
+          "anytime_td_prob": 0.30572906136512756,
+          "receiving_yards": 64.88545989990234
         },
         {
           "player_id": "00-0032764",
@@ -20343,8 +24347,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2980431914329529,
-          "rushing_yards": 42.55207061767578
+          "anytime_td_prob": 0.3499719202518463,
+          "rushing_yards": 52.63039779663086
         },
         {
           "player_id": "00-0034854",
@@ -20663,8 +24667,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.49325162172317505,
-          "rushing_yards": 73.10424041748047
+          "anytime_td_prob": 0.4531680941581726,
+          "rushing_yards": 73.13845825195312
         },
         {
           "player_id": "00-0036290",
@@ -20673,8 +24677,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11792907118797302,
-          "receiving_yards": 22.09202003479004
+          "anytime_td_prob": 0.1059223860502243,
+          "receiving_yards": 20.0340633392334
         },
         {
           "player_id": "00-0036309",
@@ -20723,8 +24727,8 @@
           "position": "QB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.8518946170806885,
-          "passing_yards": 234.4144287109375
+          "anytime_td_prob": 0.7528699040412903,
+          "passing_yards": 217.38681030273438
         },
         {
           "player_id": "00-0036407",
@@ -20914,7 +24918,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.3687100112438202,
-          "receiving_yards": 70.45710754394531
+          "receiving_yards": 68.69429779052734
         },
         {
           "player_id": "00-0036919",
@@ -21403,8 +25407,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.28177204728126526,
-          "receiving_yards": 53.740211486816406
+          "anytime_td_prob": 0.26014095544815063,
+          "receiving_yards": 46.62779998779297
         },
         {
           "player_id": "00-0038488",
@@ -21483,8 +25487,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.18680140376091003,
-          "rushing_yards": 29.372644424438477
+          "anytime_td_prob": 0.13726624846458435,
+          "rushing_yards": 21.68689727783203
         },
         {
           "player_id": "00-0038558",
@@ -22053,8 +26057,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.14132875204086304,
-          "rushing_yards": 21.844236373901367
+          "anytime_td_prob": 0.11804565787315369,
+          "rushing_yards": 19.799100875854492
         },
         {
           "player_id": "00-0039751",
@@ -22204,7 +26208,7 @@
           "is_starter": null,
           "depth_slot": null,
           "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 40.235958099365234
+          "receiving_yards": 40.66850662231445
         },
         {
           "player_id": "00-0039920",
@@ -22223,8 +26227,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.1059223860502243,
-          "receiving_yards": 19.55524253845215
+          "anytime_td_prob": 0.10275581479072571,
+          "receiving_yards": 17.08604621887207
         },
         {
           "player_id": "00-0040075",
@@ -22273,8 +26277,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11557378619909286,
-          "receiving_yards": 22.134408950805664
+          "anytime_td_prob": 0.12595784664154053,
+          "receiving_yards": 24.838546752929688
         },
         {
           "player_id": "00-0040128",
@@ -22393,8 +26397,8 @@
           "position": "RB",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.3753388822078705,
-          "rushing_yards": 56.18500900268555
+          "anytime_td_prob": 0.33223772048950195,
+          "rushing_yards": 54.87784194946289
         },
         {
           "player_id": "00-0040237",
@@ -22623,8 +26627,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.2508234679698944,
-          "receiving_yards": 47.152793884277344
+          "anytime_td_prob": 0.3010285496711731,
+          "receiving_yards": 58.368988037109375
         },
         {
           "player_id": "00-0040736",
@@ -22683,8 +26687,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11902575939893723,
-          "receiving_yards": 22.034259796142578
+          "anytime_td_prob": 0.12998682260513306,
+          "receiving_yards": 26.16921615600586
         },
         {
           "player_id": "00-0040870",
@@ -23033,8 +27037,8 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.167016983032227
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.17327308654785
         },
         {
           "player_id": "00-0033906",
@@ -23443,8 +27447,8 @@
           "position": "WR",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 16.004743576049805
+          "anytime_td_prob": 0.10929381102323532,
+          "receiving_yards": 15.842894554138184
         },
         {
           "player_id": "00-0041069",
@@ -23513,8 +27517,38 @@
           "position": "TE",
           "is_starter": null,
           "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 24.05112648010254
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 21.04973793029785
+        },
+        {
+          "player_id": "00-0027973",
+          "player_name": "A.Dalton",
+          "recent_team": "PHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "passing_yards": 62.59242630004883
+        },
+        {
+          "player_id": "00-0028986",
+          "player_name": "C.Keenum",
+          "recent_team": "CHI",
+          "position": "QB",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.8014851212501526,
+          "passing_yards": 237.4410400390625
+        },
+        {
+          "player_id": "00-0030061",
+          "player_name": "Z.Ertz",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.10665644705295563,
+          "receiving_yards": 20.262317657470703
         },
         {
           "player_id": "00-0031235",
@@ -23625,6 +27659,16 @@
           "depth_slot": null,
           "anytime_td_prob": 0.25307610630989075,
           "passing_yards": 98.28350067138672
+        },
+        {
+          "player_id": "00-0038498",
+          "player_name": "E.Jenkins",
+          "recent_team": "PHI",
+          "position": "TE",
+          "is_starter": null,
+          "depth_slot": null,
+          "anytime_td_prob": 0.11184605211019516,
+          "receiving_yards": 16.004743576049805
         },
         {
           "player_id": "00-0038740",
@@ -75309,9 +79353,9 @@
       "losses": 0,
       "ties": 0,
       "point_diff": 23.0,
-      "projected_wins": 12.6,
-      "projected_losses": 4.4,
-      "projected_point_diff": 118.1,
+      "projected_wins": 12.5,
+      "projected_losses": 4.5,
+      "projected_point_diff": 116.7,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -75327,7 +79371,7 @@
       "point_diff": -15.0,
       "projected_wins": 8.3,
       "projected_losses": 8.7,
-      "projected_point_diff": -4.4,
+      "projected_point_diff": -5.3,
       "current_division_rank": 3,
       "projected_division_rank": 2,
       "division_rank_delta": 1
@@ -75343,7 +79387,7 @@
       "point_diff": 3.0,
       "projected_wins": 5.9,
       "projected_losses": 11.1,
-      "projected_point_diff": -72.1,
+      "projected_point_diff": -72.5,
       "current_division_rank": 2,
       "projected_division_rank": 3,
       "division_rank_delta": -1
@@ -75357,9 +79401,9 @@
       "losses": 3,
       "ties": 0,
       "point_diff": -50.0,
-      "projected_wins": 4.6,
-      "projected_losses": 12.4,
-      "projected_point_diff": -137.3,
+      "projected_wins": 4.5,
+      "projected_losses": 12.5,
+      "projected_point_diff": -141.4,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -75407,7 +79451,7 @@
       "point_diff": -7.0,
       "projected_wins": 9.1,
       "projected_losses": 7.9,
-      "projected_point_diff": -4.5,
+      "projected_point_diff": -2.5,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -75437,9 +79481,9 @@
       "losses": 1,
       "ties": 0,
       "point_diff": 46.0,
-      "projected_wins": 11.5,
-      "projected_losses": 5.5,
-      "projected_point_diff": 140.5,
+      "projected_wins": 11.4,
+      "projected_losses": 5.6,
+      "projected_point_diff": 138.4,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -75455,7 +79499,7 @@
       "point_diff": -21.0,
       "projected_wins": 7.9,
       "projected_losses": 9.1,
-      "projected_point_diff": 11.6,
+      "projected_point_diff": 11.2,
       "current_division_rank": 3,
       "projected_division_rank": 2,
       "division_rank_delta": 1
@@ -75469,9 +79513,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": -19.0,
-      "projected_wins": 6.7,
-      "projected_losses": 10.3,
-      "projected_point_diff": -64.0,
+      "projected_wins": 6.8,
+      "projected_losses": 10.2,
+      "projected_point_diff": -62.8,
       "current_division_rank": 2,
       "projected_division_rank": 3,
       "division_rank_delta": -1
@@ -75560,17 +79604,17 @@
       "team": "PHI",
       "conference": "NFC",
       "division": "NFC East",
-      "played": 2,
+      "played": 3,
       "wins": 2,
-      "losses": 0,
+      "losses": 1,
       "ties": 0,
-      "point_diff": 6.0,
-      "projected_wins": 10.2,
-      "projected_losses": 6.8,
-      "projected_point_diff": 30.3,
-      "current_division_rank": 1,
+      "point_diff": -14.0,
+      "projected_wins": 9.4,
+      "projected_losses": 7.6,
+      "projected_point_diff": -0.4,
+      "current_division_rank": 2,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
+      "division_rank_delta": 1
     },
     {
       "team": "NYG",
@@ -75581,12 +79625,12 @@
       "losses": 1,
       "ties": 0,
       "point_diff": -9.0,
-      "projected_wins": 8.4,
-      "projected_losses": 8.6,
-      "projected_point_diff": -29.0,
-      "current_division_rank": 2,
+      "projected_wins": 8.5,
+      "projected_losses": 8.5,
+      "projected_point_diff": -26.5,
+      "current_division_rank": 1,
       "projected_division_rank": 2,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "DAL",
@@ -75597,9 +79641,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 6.0,
-      "projected_wins": 7.4,
-      "projected_losses": 9.6,
-      "projected_point_diff": -13.1,
+      "projected_wins": 7.5,
+      "projected_losses": 9.5,
+      "projected_point_diff": -11.9,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -75615,7 +79659,7 @@
       "point_diff": -17.0,
       "projected_wins": 7.1,
       "projected_losses": 9.9,
-      "projected_point_diff": -48.0,
+      "projected_point_diff": -47.7,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -75629,11 +79673,27 @@
       "losses": 0,
       "ties": 0,
       "point_diff": 30.0,
-      "projected_wins": 12.1,
-      "projected_losses": 4.9,
-      "projected_point_diff": 103.3,
+      "projected_wins": 12.0,
+      "projected_losses": 5.0,
+      "projected_point_diff": 100.0,
       "current_division_rank": 1,
       "projected_division_rank": 1,
+      "division_rank_delta": 0
+    },
+    {
+      "team": "CHI",
+      "conference": "NFC",
+      "division": "NFC North",
+      "played": 3,
+      "wins": 2,
+      "losses": 1,
+      "ties": 0,
+      "point_diff": 36.0,
+      "projected_wins": 10.4,
+      "projected_losses": 6.6,
+      "projected_point_diff": 84.2,
+      "current_division_rank": 2,
+      "projected_division_rank": 2,
       "division_rank_delta": 0
     },
     {
@@ -75645,25 +79705,9 @@
       "losses": 1,
       "ties": 0,
       "point_diff": -2.0,
-      "projected_wins": 10.4,
-      "projected_losses": 6.6,
-      "projected_point_diff": 48.1,
-      "current_division_rank": 2,
-      "projected_division_rank": 2,
-      "division_rank_delta": 0
-    },
-    {
-      "team": "CHI",
-      "conference": "NFC",
-      "division": "NFC North",
-      "played": 2,
-      "wins": 1,
-      "losses": 1,
-      "ties": 0,
-      "point_diff": 16.0,
-      "projected_wins": 9.2,
-      "projected_losses": 7.8,
-      "projected_point_diff": 40.7,
+      "projected_wins": 10.3,
+      "projected_losses": 6.7,
+      "projected_point_diff": 42.6,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -75679,7 +79723,7 @@
       "point_diff": -35.0,
       "projected_wins": 7.1,
       "projected_losses": 9.9,
-      "projected_point_diff": -64.0,
+      "projected_point_diff": -66.7,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -75695,7 +79739,7 @@
       "point_diff": -2.0,
       "projected_wins": 7.6,
       "projected_losses": 9.4,
-      "projected_point_diff": -17.3,
+      "projected_point_diff": -16.8,
       "current_division_rank": 2,
       "projected_division_rank": 1,
       "division_rank_delta": 1
@@ -75711,7 +79755,7 @@
       "point_diff": 6.0,
       "projected_wins": 6.9,
       "projected_losses": 10.1,
-      "projected_point_diff": -32.4,
+      "projected_point_diff": -31.9,
       "current_division_rank": 1,
       "projected_division_rank": 2,
       "division_rank_delta": -1
@@ -75725,9 +79769,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": -17.0,
-      "projected_wins": 6.7,
-      "projected_losses": 10.3,
-      "projected_point_diff": -62.4,
+      "projected_wins": 6.6,
+      "projected_losses": 10.4,
+      "projected_point_diff": -65.5,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -75743,7 +79787,7 @@
       "point_diff": -17.0,
       "projected_wins": 6.0,
       "projected_losses": 11.0,
-      "projected_point_diff": -49.9,
+      "projected_point_diff": -50.4,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -75759,7 +79803,7 @@
       "point_diff": 48.0,
       "projected_wins": 11.6,
       "projected_losses": 5.4,
-      "projected_point_diff": 103.3,
+      "projected_point_diff": 103.4,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -75775,7 +79819,7 @@
       "point_diff": 25.0,
       "projected_wins": 11.0,
       "projected_losses": 6.0,
-      "projected_point_diff": 92.8,
+      "projected_point_diff": 94.6,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -75789,9 +79833,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": -2.0,
-      "projected_wins": 9.1,
-      "projected_losses": 7.9,
-      "projected_point_diff": 36.8,
+      "projected_wins": 9.2,
+      "projected_losses": 7.8,
+      "projected_point_diff": 38.4,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -75867,19 +79911,9 @@
         "division": "NFC West"
       },
       {
-        "team": "PHI",
-        "rating": 1634.7,
-        "rank": 6,
-        "wins": 2,
-        "losses": 0,
-        "ties": 0,
-        "conference": "NFC",
-        "division": "NFC East"
-      },
-      {
         "team": "LA",
         "rating": 1623.7,
-        "rank": 7,
+        "rank": 6,
         "wins": 1,
         "losses": 2,
         "ties": 0,
@@ -75889,7 +79923,7 @@
       {
         "team": "DET",
         "rating": 1614.6,
-        "rank": 8,
+        "rank": 7,
         "wins": 2,
         "losses": 1,
         "ties": 0,
@@ -75899,12 +79933,22 @@
       {
         "team": "JAX",
         "rating": 1608.5,
-        "rank": 9,
+        "rank": 8,
         "wins": 2,
         "losses": 1,
         "ties": 0,
         "conference": "AFC",
         "division": "AFC South"
+      },
+      {
+        "team": "PHI",
+        "rating": 1599.4,
+        "rank": 9,
+        "wins": 2,
+        "losses": 1,
+        "ties": 0,
+        "conference": "NFC",
+        "division": "NFC East"
       },
       {
         "team": "NE",
@@ -75947,9 +79991,19 @@
         "division": "AFC South"
       },
       {
+        "team": "CHI",
+        "rating": 1567.7,
+        "rank": 14,
+        "wins": 2,
+        "losses": 1,
+        "ties": 0,
+        "conference": "NFC",
+        "division": "NFC North"
+      },
+      {
         "team": "CIN",
         "rating": 1536.6,
-        "rank": 14,
+        "rank": 15,
         "wins": 2,
         "losses": 1,
         "ties": 0,
@@ -75959,22 +80013,12 @@
       {
         "team": "PIT",
         "rating": 1535.0,
-        "rank": 15,
+        "rank": 16,
         "wins": 2,
         "losses": 1,
         "ties": 0,
         "conference": "AFC",
         "division": "AFC North"
-      },
-      {
-        "team": "CHI",
-        "rating": 1532.3,
-        "rank": 16,
-        "wins": 1,
-        "losses": 1,
-        "ties": 0,
-        "conference": "NFC",
-        "division": "NFC North"
       },
       {
         "team": "GB",
@@ -76398,26 +80442,35 @@
       },
       {
         "team": "CHI",
-        "games": 2,
-        "wins": 1,
+        "games": 3,
+        "wins": 2,
         "losses": 1,
         "ties": 0,
-        "points_for_pg": 31.0,
-        "points_against_pg": 23.0,
-        "off_epa_play": 0.144,
-        "def_epa_play": 0.064,
-        "off_success_rate": 0.432,
-        "def_success_rate": 0.416,
-        "yards_per_play": 6.11,
-        "pass_rate": 0.568,
-        "turnover_margin": -1,
-        "streak": -1,
+        "points_for_pg": 29.7,
+        "points_against_pg": 17.7,
+        "off_epa_play": 0.127,
+        "def_epa_play": -0.044,
+        "off_success_rate": 0.451,
+        "def_success_rate": 0.412,
+        "yards_per_play": 5.95,
+        "pass_rate": 0.553,
+        "turnover_margin": 2,
+        "streak": 1,
         "form": [
           "W",
-          "L"
+          "L",
+          "W"
         ],
-        "form_trend": "new",
+        "form_trend": "steady",
         "recent_games": [
+          {
+            "gameday": "2026-09-29",
+            "opponent": "PHI",
+            "is_home": true,
+            "team_score": 27,
+            "opponent_score": 7,
+            "result": "W"
+          },
           {
             "gameday": "2026-09-20",
             "opponent": "MIN",
@@ -77369,26 +81422,35 @@
       },
       {
         "team": "PHI",
-        "games": 2,
+        "games": 3,
         "wins": 2,
-        "losses": 0,
+        "losses": 1,
         "ties": 0,
-        "points_for_pg": 24.0,
-        "points_against_pg": 21.0,
-        "off_epa_play": 0.052,
-        "def_epa_play": 0.066,
-        "off_success_rate": 0.382,
-        "def_success_rate": 0.429,
-        "yards_per_play": 5.37,
-        "pass_rate": 0.61,
-        "turnover_margin": -2,
-        "streak": 2,
+        "points_for_pg": 18.3,
+        "points_against_pg": 23.0,
+        "off_epa_play": -0.046,
+        "def_epa_play": 0.076,
+        "off_success_rate": 0.388,
+        "def_success_rate": 0.452,
+        "yards_per_play": 5.35,
+        "pass_rate": 0.624,
+        "turnover_margin": -5,
+        "streak": -1,
         "form": [
           "W",
-          "W"
+          "W",
+          "L"
         ],
-        "form_trend": "new",
+        "form_trend": "steady",
         "recent_games": [
+          {
+            "gameday": "2026-09-29",
+            "opponent": "CHI",
+            "is_home": false,
+            "team_score": 7,
+            "opponent_score": 27,
+            "result": "L"
+          },
           {
             "gameday": "2026-09-20",
             "opponent": "TEN",
