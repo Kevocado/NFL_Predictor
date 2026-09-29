@@ -325,3 +325,25 @@ grades every unresolved row that joins to stats. It does not check
 neither guard the games path carries exists here. Every row graded so far is
 pre-kickoff by timestamp, so nothing live is corrupt — but the games path's
 protection is absent, and the next person to touch reconciliation should port it.
+
+## Update 2026-09-29: the reconcile gap is closed
+
+The latent gap recorded above — `reconcile_player_prop_predictions` grading every
+unresolved row that joins to stats, with neither the kickoff guard nor the
+post-kickoff exclusion the games path carries — is fixed (PR #21, merged and
+deployed 2026-09-29).
+
+Both sites now join prop rows to `game_predictions` on `game_id` (that table's
+PRIMARY KEY, so many-to-one and safe) to obtain `commence_time`, then apply
+`_snapshotted_after_kickoff`:
+
+* **reconcile** skips any row snapshotted at or after its game's kickoff, so a
+  reconstruction is never graded; an orphan row (game absent) drops out of the
+  inner join and is also not graded — fail closed.
+* **summary** excludes post-kickoff rows from every market's metrics and reports
+  the count apart as `n_rebuilt`, matching the games path.
+
+Verified live after deploy: `player_props.n_rebuilt` reads **0** (every graded
+row is pre-kickoff by timestamp, as predicted), `games.n_rebuilt` unchanged at
+33, and `anytime_td` still resolves 323. Nothing live was corrupt; the protection
+was simply absent and now is not.
