@@ -1,3 +1,5 @@
+import contextlib
+
 import pandas as pd
 import pytest
 
@@ -68,6 +70,7 @@ def test_reconcile_game_predictions_counts_duplicate_results_once():
 
 
 def test_record_and_reconcile_player_prop_predictions():
+    store.record_game_predictions([_future_game()])
     prop = {"game_id": "2025_01_BAL_KC", "player_id": "p1", "player_name": "Runner",
             "market": "rushing_yards", "predicted_value": 85.0}
     store.record_player_prop_predictions([prop])
@@ -82,6 +85,7 @@ def test_record_and_reconcile_player_prop_predictions():
 
 
 def test_reconcile_player_prop_predictions_counts_duplicate_stats_once():
+    store.record_game_predictions([_future_game()])
     prop = {"game_id": "2025_01_BAL_KC", "player_id": "p1", "player_name": "Runner",
             "market": "rushing_yards", "predicted_value": 85.0}
     store.record_player_prop_predictions([prop])
@@ -497,6 +501,7 @@ def _td_stats(*player_tds):
 
 
 def test_anytime_td_confidence_buckets_group_by_predicted_probability():
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "anytime_td", 0.55),
         _prop("p2", "anytime_td", 0.65),
@@ -522,6 +527,7 @@ def test_confidence_buckets_have_agreed_keys():
     """Contract test: confidence bucket objects must carry exactly
     {label, n, hit_rate}. Renaming any key breaks the frontend
     guard b.n > 0 and the section silently never renders."""
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "anytime_td", 0.55),
         _prop("p2", "anytime_td", 0.65),
@@ -542,6 +548,7 @@ def test_confidence_buckets_have_agreed_keys():
 def test_yardage_markets_report_signed_bias_as_predicted_minus_actual():
     """Consistent overprediction must show positive signed bias (bias is
     mean(predicted - actual)), while unsigned MAE stays positive."""
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "rushing_yards", 100.0),
         _prop("p2", "rushing_yards", 100.0),
@@ -560,6 +567,7 @@ def test_yardage_markets_report_signed_bias_as_predicted_minus_actual():
 def test_signed_bias_cancels_when_over_and_under_predictions_balance_out():
     """Signed bias distinguishes systematic skew from noise: symmetric
     errors give ~zero bias even though MAE is clearly nonzero."""
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "rushing_yards", 100.0),
         _prop("p2", "rushing_yards", 80.0),
@@ -576,6 +584,7 @@ def test_signed_bias_cancels_when_over_and_under_predictions_balance_out():
 
 
 def test_yardage_summary_breaks_down_mae_by_position():
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "rushing_yards", 100.0, position="RB"),
         _prop("p2", "rushing_yards", 100.0, position="RB"),
@@ -612,6 +621,7 @@ def test_record_player_prop_predictions_persists_position():
 def test_rows_recorded_without_position_stay_in_overall_metrics_only():
     """Legacy rows (recorded before the position column existed) keep
     counting toward overall MAE but are excluded from per-position groups."""
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([_prop("p1", "rushing_yards", 100.0)])
     stats = pd.DataFrame([
         {"game_id": "2025_01_BAL_KC", "player_id": "p1", "rushing_yards": 90},
@@ -627,6 +637,7 @@ def test_rows_recorded_without_position_stay_in_overall_metrics_only():
 def test_receptions_and_carries_appear_in_track_record():
     """Phase 8 added receptions/carries as recorded markets; the track
     record must summarize them like the other yardage-style markets."""
+    store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([
         _prop("p1", "receptions", 5.0, position="WR"),
         _prop("p2", "carries", 18.0, position="RB"),
@@ -831,3 +842,149 @@ def test_get_game_verdict_keeps_reconciling_markets_when_probabilities_are_prese
     assert verdict["ats"]["predicted"] == "home_cover"
     assert verdict["ats"]["hit"] is True
     assert verdict["totals"] is not None
+
+
+# --- the pre-kickoff guard on the prop path ------------------------------------
+#
+# The games path refuses to count a pick snapshotted at/after kickoff
+# (get_track_record / get_feed_predictions / get_calibration all apply
+# `_snapshotted_after_kickoff`). The prop path grades in
+# `reconcile_player_prop_predictions` and summarizes in
+# `_summarize_player_props`, and neither carried the guard: every unresolved
+# row that joined to stats was graded, and every resolved row counted. The
+# prop table has no commence_time, so both guard it by joining to
+# game_predictions on game_id (that table's primary key, so the join is
+# many-to-one and safe) and failing closed, exactly like the games path.
+
+
+def _insert_game(game_id, commence_time):
+    """Insert a game row directly. `record_game_predictions` refuses
+    past-kickoff games, but the guard's post-kickoff cases need one."""
+    with contextlib.closing(store._connect()) as conn, conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO game_predictions
+                (game_id, home_team, away_team, commence_time, snapshotted_at,
+                 home_win_prob, away_win_prob)
+            VALUES (?, 'H', 'A', ?, '2026-01-01T00:00:00+00:00', 0.5, 0.5)
+            """,
+            (game_id, commence_time),
+        )
+
+
+def _insert_prop(game_id, player_id, snapshotted_at, market="rushing_yards",
+                 predicted=85.0, resolved=False, actual=None):
+    with contextlib.closing(store._connect()) as conn, conn:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO player_prop_predictions
+                (game_id, player_id, player_name, market, predicted_value, snapshotted_at,
+                 resolved, actual_value)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (game_id, player_id, f"Player {player_id}", market, predicted,
+             snapshotted_at, 1 if resolved else 0, actual),
+        )
+
+
+def _resolved_flags(game_id):
+    with contextlib.closing(store._connect()) as conn:
+        rows = pd.read_sql(
+            "SELECT player_id, resolved FROM player_prop_predictions WHERE game_id = ?",
+            conn, params=(game_id,),
+        )
+    return dict(zip(rows["player_id"], rows["resolved"]))
+
+
+def test_reconcile_skips_prop_rows_snapshotted_after_kickoff():
+    """A prop snapshot taken at/after its game's kickoff is a reconstruction,
+    not a pick: the same rule the games path applies. The prop table carries
+    no commence_time, so the guard joins to game_predictions on game_id."""
+    _insert_game("g_post", "2000-09-04T20:20:00+00:00")  # long past
+    store.record_player_prop_predictions([_prop(game_id="g_post")])
+    stats = pd.DataFrame([{"game_id": "g_post", "player_id": "p1", "rushing_yards": 92}])
+
+    assert store.reconcile_player_prop_predictions(stats) == 0
+    assert _resolved_flags("g_post")["p1"] == 0
+
+
+def test_reconcile_grades_prop_rows_snapshotted_before_kickoff():
+    """The guard is a filter, not a block: a genuine pre-kickoff snapshot is
+    still graded."""
+    store.record_game_predictions([_future_game(game_id="g_pre")])
+    store.record_player_prop_predictions([_prop(game_id="g_pre")])
+    stats = pd.DataFrame([{"game_id": "g_pre", "player_id": "p1", "rushing_yards": 92}])
+
+    assert store.reconcile_player_prop_predictions(stats) == 1
+    assert _resolved_flags("g_pre")["p1"] == 1
+
+
+def test_reconcile_kickoff_boundary_is_exact():
+    """The boundary is the games path's `>=`: a row exactly at kickoff is
+    excluded, one second before is included. Pinned so the boundary cannot
+    drift -- a test that only checked 'some post-kickoff row is skipped' would
+    pass against an off-by-one guard."""
+    _insert_game("g_boundary", "2099-09-04T20:20:00+00:00")
+    _insert_prop("g_boundary", "p_at", "2099-09-04T20:20:00+00:00")      # exactly at kickoff
+    _insert_prop("g_boundary", "p_before", "2099-09-04T20:19:59+00:00")  # one second before
+    stats = pd.DataFrame([
+        {"game_id": "g_boundary", "player_id": "p_at", "rushing_yards": 92},
+        {"game_id": "g_boundary", "player_id": "p_before", "rushing_yards": 92},
+    ])
+
+    assert store.reconcile_player_prop_predictions(stats) == 1
+
+    resolved = _resolved_flags("g_boundary")
+    assert resolved["p_at"] == 0
+    assert resolved["p_before"] == 1
+
+
+def test_reconcile_fails_closed_on_unparseable_snapshot_time():
+    """When the timing can't be proven, the honest default is 'after
+    kickoff' -- the same fail-closed rule as the games path
+    (test_an_unreadable_snapshot_time_counts_as_rebuilt)."""
+    store.record_game_predictions([_future_game(game_id="g_bad")])
+    _insert_prop("g_bad", "p1", "not a time")
+    stats = pd.DataFrame([{"game_id": "g_bad", "player_id": "p1", "rushing_yards": 92}])
+
+    assert store.reconcile_player_prop_predictions(stats) == 0
+    assert _resolved_flags("g_bad")["p1"] == 0
+
+
+def test_reconcile_skips_orphan_prop_rows_with_no_game():
+    """A prop row whose game is absent from game_predictions cannot be proven
+    pre-kickoff, so it is not graded -- fail closed on the missing join, not
+    silently graded on the strength of a timestamp alone."""
+    store.record_player_prop_predictions([_prop(game_id="g_orphan")])
+    stats = pd.DataFrame([{"game_id": "g_orphan", "player_id": "p1", "rushing_yards": 92}])
+
+    assert store.reconcile_player_prop_predictions(stats) == 0
+    assert _resolved_flags("g_orphan")["p1"] == 0
+
+
+def test_summary_excludes_post_kickoff_props_and_reports_them_apart():
+    """The summary applies the same pre-kickoff guard as the games path: a
+    resolved prop row snapshotted at/after kickoff is excluded from every
+    market's metrics and counted apart under n_rebuilt, while a genuine
+    pre-kickoff row still counts. Post-kickoff rows in BOTH market families
+    (yardage and anytime_td) are planted, so a guard that only filtered one
+    family -- or not at all -- cannot pass."""
+    _insert_game("g_pre", "2099-09-04T20:20:00+00:00")
+    _insert_game("g_post", "2000-09-04T20:20:00+00:00")
+    _insert_prop("g_pre", "p_pre", "2099-09-01T00:00:00+00:00",
+                 market="rushing_yards", predicted=90.0, resolved=True, actual=80.0)
+    _insert_prop("g_post", "p_post_yards", "2001-01-01T00:00:00+00:00",
+                 market="rushing_yards", predicted=10.0, resolved=True, actual=80.0)
+    _insert_prop("g_post", "p_post_td", "2001-01-01T00:00:00+00:00",
+                 market="anytime_td", predicted=0.9, resolved=True, actual=1.0)
+
+    props = store.get_track_record()["player_props"]
+
+    assert props["n_rebuilt"] == 2
+    # Only the pre-kickoff row counts: MAE is |90-80| = 10. If the post-kickoff
+    # yardage row leaked in, n_resolved would be 2 and MAE would be 40.
+    assert props["rushing_yards"]["n_resolved"] == 1
+    assert props["rushing_yards"]["mean_absolute_error"] == pytest.approx(10.0)
+    # The only anytime_td row is post-kickoff, so the market is empty.
+    assert props["anytime_td"]["n_resolved"] == 0
+    assert props["anytime_td"]["brier_score"] is None

@@ -1181,7 +1181,26 @@ _TD_CONFIDENCE_BUCKETS = (
 
 
 def _summarize_player_props(resolved: pd.DataFrame) -> dict:
+    """Per-market metrics over graded props. Post-kickoff rows are excluded
+    from every market's metrics and reported apart under `n_rebuilt` -- the
+    same rule the games path applies in `get_track_record`. The prop table
+    carries no commence_time, so it is joined to game_predictions on game_id
+    (that table's primary key, so the join is many-to-one and safe); a row
+    whose game is absent, or whose timestamp cannot be parsed, fails closed
+    and is excluded."""
     result: dict[str, dict] = {}
+
+    if not resolved.empty:
+        with contextlib.closing(_connect()) as conn:
+            kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
+        resolved = resolved.merge(kickoff_times, on="game_id", how="left")
+        rebuilt = resolved.apply(
+            lambda r: _snapshotted_after_kickoff(r["snapshotted_at"], r["commence_time"]), axis=1
+        ).astype(bool)
+        n_rebuilt = int(rebuilt.sum())
+        resolved = resolved[~rebuilt]
+    else:
+        n_rebuilt = 0
 
     anytime_td = resolved[resolved["market"] == "anytime_td"]
     if anytime_td.empty:
@@ -1233,7 +1252,7 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
                 "mean_signed_error": float(signed_errors.mean()),
                 "by_position": by_position,
             }
-    return result
+    return {**result, "n_rebuilt": n_rebuilt}
 
 
 def get_game_verdict(game_id: str) -> dict | None:
@@ -1309,7 +1328,16 @@ _MARKET_TO_STAT_COLUMN = {
 
 
 def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
-    """Fill outcomes for existing unresolved player-prop snapshots only."""
+    """Fill outcomes for existing unresolved player-prop snapshots only.
+
+    A row snapshotted at or after its game's kickoff is a reconstruction, not
+    a pick, and is never graded -- the same guard the games path applies in
+    `get_track_record`/`get_feed_predictions`. The prop table carries no
+    commence_time, so it is joined to game_predictions on game_id (that
+    table's primary key, so the join is many-to-one and safe). An unparseable
+    timestamp fails closed, and a prop row whose game is absent from
+    game_predictions drops out of the inner join -- also fail closed.
+    """
     if player_stats_df.empty:
         return 0
     with contextlib.closing(_connect()) as conn, conn:
@@ -1317,9 +1345,13 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
         if unresolved.empty:
             return 0
 
-        merged = unresolved.merge(player_stats_df, on=["game_id", "player_id"], how="inner")
+        kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
+        merged = unresolved.merge(kickoff_times, on="game_id", how="inner")
+        merged = merged.merge(player_stats_df, on=["game_id", "player_id"], how="inner")
         resolved_count = 0
         for _, row in merged.iterrows():
+            if _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
+                continue
             if row["market"] == "anytime_td":
                 actual = float(
                     (row.get("rushing_tds", 0) or 0)
