@@ -133,6 +133,18 @@ def data_seams(monkeypatch):
         lambda season: pd.DataFrame(columns=["player_id", "player_name", "position", "recent_team"]),
     )
     monkeypatch.setattr(routes, "_load_models_cached", lambda: _player_models())
+    # The depth chart is the fourth network seam, and the one this file's first
+    # round missed: `_get_player_props_live` calls `flags_for_season_week`
+    # (routes.py:632) on every request that gets past the roster filter, and
+    # with `data/cache/` gitignored a clean checkout has no cached parquet, so
+    # it reached for depth_charts_2026.parquet on GitHub. The call is wrapped
+    # in `except Exception` downstream, so every such test still passed while
+    # the offline guard caught the traffic -- the same shape as the
+    # `_load_player_history` leak this fixture was written to close.
+    monkeypatch.setattr(
+        routes.depth_charts, "flags_for_season_week",
+        lambda season, week, cache_dir: {},
+    )
     return monkeypatch
 
 
