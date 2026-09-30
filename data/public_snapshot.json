@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30T05:36:38.054737+00:00",
+  "generated_at": "2026-09-30T12:42:41.026745+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -9350,7 +9350,7 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": 7.0,
+          "spread_line": 6.5,
           "total_line": 48.5
         },
         {
@@ -9625,8 +9625,8 @@
         "2026_04_NE_BUF": {
           "home_win_prob": 0.8283099600812208,
           "away_win_prob": 0.17169003991877918,
-          "home_cover_prob": 0.6620751822830037,
-          "away_cover_prob": 0.33792481771699634,
+          "home_cover_prob": 0.6757855213613313,
+          "away_cover_prob": 0.3242144786386687,
           "over_prob": 0.2961452936197665,
           "under_prob": 0.7038547063802335,
           "predicted_margin": 12.529041290283203,
