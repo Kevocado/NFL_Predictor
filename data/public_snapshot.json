@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30T12:42:41.026745+00:00",
+  "generated_at": "2026-09-30T20:06:30.704919+00:00",
   "season": 2026,
   "current_week": 3,
   "weeks": {
@@ -9370,7 +9370,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.5,
-          "total_line": 43.5
+          "total_line": 42.5
         },
         {
           "game_id": "2026_04_JAX_CIN",
@@ -9426,7 +9426,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": -2.5,
           "total_line": 44.5
         },
         {
@@ -9560,7 +9560,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.5,
-          "total_line": 50.5
+          "total_line": 51.5
         },
         {
           "game_id": "2026_04_ATL_NO",
@@ -9578,8 +9578,8 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
-          "total_line": 48.5
+          "spread_line": 2.5,
+          "total_line": 47.5
         }
       ],
       "predictions": {
@@ -9640,8 +9640,8 @@
           "away_win_prob": 0.19493177710337983,
           "home_cover_prob": 0.7241376186612719,
           "away_cover_prob": 0.2758623813387281,
-          "over_prob": 0.6439130752397684,
-          "under_prob": 0.3560869247602316,
+          "over_prob": 0.6732926132630254,
+          "under_prob": 0.32670738673697464,
           "predicted_margin": 11.370124816894531,
           "predicted_total": 48.106815338134766,
           "sigma": 13.223153618916728,
@@ -9677,8 +9677,8 @@
         "2026_04_ARI_NYG": {
           "home_win_prob": 0.6159290234533068,
           "away_win_prob": 0.3840709765466932,
-          "home_cover_prob": 0.658452563478582,
-          "away_cover_prob": 0.34154743652141795,
+          "home_cover_prob": 0.685760395099339,
+          "away_cover_prob": 0.31423960490066105,
           "over_prob": 0.5263888590150878,
           "under_prob": 0.4736111409849122,
           "predicted_margin": 3.8982672691345215,
@@ -9770,8 +9770,8 @@
           "away_win_prob": 0.6089589377611297,
           "home_cover_prob": 0.495244937550987,
           "away_cover_prob": 0.504755062449013,
-          "over_prob": 0.5758082534032104,
-          "under_prob": 0.4241917465967896,
+          "over_prob": 0.5442299263226638,
+          "under_prob": 0.45577007367733624,
           "predicted_margin": -3.6576128005981445,
           "predicted_total": 52.88722229003906,
           "sigma": 13.223153618916728,
@@ -9781,10 +9781,10 @@
         "2026_04_ATL_NO": {
           "home_win_prob": 0.5409185332149257,
           "away_win_prob": 0.45908146678507433,
-          "home_cover_prob": 0.450607470941332,
-          "away_cover_prob": 0.549392529058668,
-          "over_prob": 0.6102319579625677,
-          "under_prob": 0.3897680420374323,
+          "home_cover_prob": 0.46560830226540106,
+          "away_cover_prob": 0.5343916977345989,
+          "over_prob": 0.6405797731794797,
+          "under_prob": 0.3594202268205203,
           "predicted_margin": 1.3586533069610596,
           "predicted_total": 51.99531936645508,
           "sigma": 13.223153618916728,
@@ -14526,7 +14526,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 42.5
+          "total_line": 43.5
         },
         {
           "game_id": "2026_05_DEN_LAC",
@@ -14747,8 +14747,8 @@
           "away_win_prob": 0.5285279042777249,
           "home_cover_prob": 0.39718807136028866,
           "away_cover_prob": 0.6028119286397113,
-          "over_prob": 0.5319367901495731,
-          "under_prob": 0.46806320985042693,
+          "over_prob": 0.5000215722843071,
+          "under_prob": 0.4999784277156929,
           "predicted_margin": -0.9463798403739929,
           "predicted_total": 43.500675201416016,
           "sigma": 13.223153618916728,
