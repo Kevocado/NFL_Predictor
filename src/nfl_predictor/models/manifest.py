@@ -13,12 +13,13 @@ from ..data import player_stats, schedules
 from ..evaluate import walk_forward
 from ..features import build as feature_build
 from ..features import player_usage
-from . import game_outcome, player_props
+from . import game_outcome, player_props, qb_passing_td
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
 GAME_MODEL_FILENAME = "game_outcome_model.pkl"
 TOTAL_MODEL_FILENAME = "total_points_model.pkl"
 ANYTIME_TD_MODEL_FILENAME = "anytime_td_model.pkl"
+PASSING_TD_MODEL_FILENAME = "qb_passing_td_model.pkl"
 
 DEFAULT_TRAIN_SEASONS = 8
 
@@ -40,6 +41,53 @@ def _artifact_path(filename: str):
 
 def _yardage_model_path(market: str):
     return _artifact_path(f"{market}_model.pkl")
+
+
+def _fit_qb_passing_td(player_train_df: pd.DataFrame) -> dict | None:
+    """Fit the QB passing-TD count model, or None when there is no QB history.
+
+    The rolling TD feature is built here rather than in `player_usage` so the
+    existing `PLAYER_FEATURE_COLUMNS` -- which the anytime-TD classifier and
+    every yardage regressor are fitted on, and which `predict_props` indexes by
+    name -- stays exactly as it was. Widening that list would silently change
+    the feature count of every model already committed.
+    """
+    qb = player_train_df[player_train_df["position"] == "QB"].copy()
+    if qb.empty:
+        return None
+    qb = qb.sort_values(["player_id", "season", "week"])
+    grouped = qb.groupby("player_id")["passing_tds"]
+    # Same shift(1)-then-rolling discipline as `_add_rolling`, for the same
+    # reason: a pregame feature cannot know the game being predicted.
+    qb["passing_tds_roll"] = grouped.transform(
+        lambda s: s.shift(1).rolling(5, min_periods=1).mean())
+
+    cols = ["passing_tds_roll", *qb_passing_td.MU_FEATURE_COLUMNS]
+    usable = qb.dropna(subset=cols, how="all")
+    if usable.empty:
+        return None
+    fitted = qb_passing_td.fit_qb_passing_td_model(
+        usable[cols].fillna(0), usable["passing_tds"])
+    return fitted
+
+
+def _passing_td_manifest_entry(fitted: dict | None) -> dict | None:
+    """The passing-TD model's provenance for the manifest, or None.
+
+    Both log losses are written, not just the winner's: the choice between
+    Poisson and negative binomial is only meaningful if the losing number is
+    inspectable, and a manifest that records one number cannot be re-checked
+    against the history later.
+    """
+    if fitted is None:
+        return None
+    return {
+        "distribution": fitted["distribution"],
+        "log_loss": fitted["log_loss"],
+        "alpha": fitted["alpha"],
+        "n_train": fitted["n_train"],
+        "variance_ratio": fitted["variance_ratio"],
+    }
 
 
 def train_all(seasons: list[int] | None = None) -> dict:
@@ -107,6 +155,16 @@ def train_all(seasons: list[int] | None = None) -> dict:
         _save_pickle(model, path)
         yardage_metrics[market] = {"n_train": int(len(subset))}
 
+    # QB passing-TD projection. QBs only, and only the rolling features a
+    # pregame feature row actually carries -- `passing_tds_roll` is deliberately
+    # absent because `player_usage.build_features_for_player` does not emit it,
+    # so training on it would mean serving on a feature that does not exist.
+    passing_td = _fit_qb_passing_td(player_train_df)
+    if passing_td is None:
+        _artifact_path(PASSING_TD_MODEL_FILENAME).unlink(missing_ok=True)
+    else:
+        _save_pickle(passing_td, _artifact_path(PASSING_TD_MODEL_FILENAME))
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(int(s) for s in seasons),
@@ -118,6 +176,7 @@ def train_all(seasons: list[int] | None = None) -> dict:
         "sigma": sigma,
         "total_sigma": total_sigma,
         "yardage_metrics": yardage_metrics,
+        "qb_passing_td": _passing_td_manifest_entry(passing_td),
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
     return manifest
@@ -149,6 +208,20 @@ def load_models() -> dict:
     }
     for market in manifest["yardage_metrics"]:
         player_models[market] = _load_pickle(_yardage_model_path(market))
+
+    # The passing-TD model is optional in the same way a yardage market is: an
+    # older artifact directory has no such file, and serving must not KeyError
+    # on it. `predict_props` omits the market when the model is absent.
+    passing_td_path = _artifact_path(PASSING_TD_MODEL_FILENAME)
+    try:
+        present = passing_td_path.exists()
+    except AttributeError:
+        # `_artifact_path` is stubbed to a bare object in several tests, and a
+        # path that cannot answer is treated as absent rather than fatal. The
+        # market is then simply not served, which is the documented behaviour.
+        present = False
+    if present:
+        player_models[qb_passing_td.PASSING_TD_MARKET] = _load_pickle(passing_td_path)
 
     return {
         "game_outcome_model": _load_pickle(_artifact_path(GAME_MODEL_FILENAME)),
