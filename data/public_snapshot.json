@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-01T10:13:39.687817+00:00",
+  "generated_at": "2026-10-01T18:32:12.310778+00:00",
   "season": 2026,
   "current_week": 4,
   "weeks": {
@@ -5273,16 +5273,6 @@
           "rushing_yards": 81.16045379638672
         },
         {
-          "player_id": "00-0032775",
-          "player_name": "D.Robinson",
-          "recent_team": "SF",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.1959310919046402,
-          "receiving_yards": 38.83099365234375
-        },
-        {
           "player_id": "00-0032950",
           "player_name": "C.Wentz",
           "recent_team": "MIN",
@@ -5533,16 +5523,6 @@
           "receiving_yards": 31.65443229675293
         },
         {
-          "player_id": "00-0034351",
-          "player_name": "D.Goedert",
-          "recent_team": "PHI",
-          "position": "TE",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 35.894798278808594
-        },
-        {
           "player_id": "00-0034383",
           "player_name": "D.Schultz",
           "recent_team": "HOU",
@@ -5701,16 +5681,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.11341248452663422,
           "receiving_yards": 24.074485778808594
-        },
-        {
-          "player_id": "00-0035021",
-          "player_name": "A.Dulin",
-          "recent_team": "IND",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.11184605211019516,
-          "receiving_yards": 17.86484146118164
         },
         {
           "player_id": "00-0035208",
@@ -5911,16 +5881,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.26320740580558777,
           "receiving_yards": 51.262935638427734
-        },
-        {
-          "player_id": "00-0036139",
-          "player_name": "R.Dowdle",
-          "recent_team": "PIT",
-          "position": "RB",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.223179429769516,
-          "rushing_yards": 29.609434127807617
         },
         {
           "player_id": "00-0036158",
@@ -6141,16 +6101,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.24659761786460876,
           "receiving_yards": 41.99831008911133
-        },
-        {
-          "player_id": "00-0036554",
-          "player_name": "N.Collins",
-          "recent_team": "HOU",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.3437469005584717,
-          "receiving_yards": 76.08751678466797
         },
         {
           "player_id": "00-0036555",
@@ -6593,16 +6543,6 @@
           "rushing_yards": 26.413236618041992
         },
         {
-          "player_id": "00-0037664",
-          "player_name": "A.Pierce",
-          "recent_team": "IND",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.21261444687843323,
-          "receiving_yards": 35.52659225463867
-        },
-        {
           "player_id": "00-0037740",
           "player_name": "G.Wilson",
           "recent_team": "NYJ",
@@ -6663,16 +6603,6 @@
           "receiving_yards": 18.474721908569336
         },
         {
-          "player_id": "00-0037809",
-          "player_name": "C.Okonkwo",
-          "recent_team": "WAS",
-          "position": "TE",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.13766850531101227,
-          "receiving_yards": 25.759016036987305
-        },
-        {
           "player_id": "00-0037816",
           "player_name": "R.Doubs",
           "recent_team": "NE",
@@ -6721,16 +6651,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.1450842320919037,
           "receiving_yards": 27.251916885375977
-        },
-        {
-          "player_id": "00-0038046",
-          "player_name": "C.Kolar",
-          "recent_team": "LAC",
-          "position": "TE",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.1059223860502243,
-          "receiving_yards": 19.024572372436523
         },
         {
           "player_id": "00-0038090",
@@ -7043,16 +6963,6 @@
           "receiving_yards": 44.22262954711914
         },
         {
-          "player_id": "00-0038619",
-          "player_name": "A.Iosivas",
-          "recent_team": "CIN",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.10665644705295563,
-          "receiving_yards": 20.262317657470703
-        },
-        {
           "player_id": "00-0038621",
           "player_name": "D.Douglas",
           "recent_team": "NE",
@@ -7331,16 +7241,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.6395705342292786,
           "rushing_yards": 78.6392822265625
-        },
-        {
-          "player_id": "00-0039146",
-          "player_name": "J.Reed",
-          "recent_team": "GB",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.13932035863399506,
-          "receiving_yards": 29.830768585205078
         },
         {
           "player_id": "00-0039150",
@@ -7753,16 +7653,6 @@
           "receiving_yards": 33.05826187133789
         },
         {
-          "player_id": "00-0039910",
-          "player_name": "J.Daniels",
-          "recent_team": "WAS",
-          "position": "QB",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.7256028056144714,
-          "passing_yards": 174.6517333984375
-        },
-        {
           "player_id": "00-0039915",
           "player_name": "L.McConkey",
           "recent_team": "LAC",
@@ -7771,16 +7661,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.2525007724761963,
           "receiving_yards": 45.11945724487305
-        },
-        {
-          "player_id": "00-0039918",
-          "player_name": "C.Williams",
-          "recent_team": "CHI",
-          "position": "QB",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.830967128276825,
-          "passing_yards": 206.74972534179688
         },
         {
           "player_id": "00-0039919",
@@ -8283,16 +8163,6 @@
           "receiving_yards": 47.152793884277344
         },
         {
-          "player_id": "00-0040736",
-          "player_name": "M.Taylor",
-          "recent_team": "NYJ",
-          "position": "TE",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.13678766787052155,
-          "receiving_yards": 24.444299697875977
-        },
-        {
           "player_id": "00-0040737",
           "player_name": "T.Ferguson",
           "recent_team": "LA",
@@ -8513,16 +8383,6 @@
           "rushing_yards": 25.15496063232422
         },
         {
-          "player_id": "00-0041099",
-          "player_name": "B.Brown",
-          "recent_team": "NO",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.11076027154922485,
-          "receiving_yards": 14.71932315826416
-        },
-        {
           "player_id": "00-0041100",
           "player_name": "J.Cameron",
           "recent_team": "JAX",
@@ -8613,16 +8473,6 @@
           "rushing_yards": 10.05435848236084
         },
         {
-          "player_id": "00-0041496",
-          "player_name": "J.Coleman",
-          "recent_team": "DEN",
-          "position": "RB",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.15023955702781677,
-          "rushing_yards": 26.413236618041992
-        },
-        {
           "player_id": "00-0041503",
           "player_name": "N.Boerkircher",
           "recent_team": "JAX",
@@ -8651,16 +8501,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.3344081938266754,
           "rushing_yards": 50.523475646972656
-        },
-        {
-          "player_id": "00-0041523",
-          "player_name": "C.Douglas",
-          "recent_team": "MIA",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.2525007724761963,
-          "receiving_yards": 43.780479431152344
         },
         {
           "player_id": "00-0041524",
@@ -8801,16 +8641,6 @@
           "depth_slot": null,
           "anytime_td_prob": 0.12233738601207733,
           "rushing_yards": 19.330116271972656
-        },
-        {
-          "player_id": "00-0035662",
-          "player_name": "M.Brown",
-          "recent_team": "PHI",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.11671369522809982,
-          "receiving_yards": 14.335423469543457
         },
         {
           "player_id": "00-0036187",
@@ -9253,16 +9083,6 @@
           "receiving_yards": 48.74949645996094
         },
         {
-          "player_id": "00-0041550",
-          "player_name": "B.Thompson",
-          "recent_team": "LAC",
-          "position": "WR",
-          "is_starter": null,
-          "depth_slot": null,
-          "anytime_td_prob": 0.12595784664154053,
-          "receiving_yards": 25.0426025390625
-        },
-        {
           "player_id": "00-0041558",
           "player_name": "S.Roush",
           "recent_team": "CHI",
@@ -9273,7 +9093,171 @@
           "receiving_yards": 24.05112648010254
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": [
+        {
+          "player_id": "00-0039918",
+          "player_name": "Caleb Williams",
+          "recent_team": "CHI",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0038619",
+          "player_name": "Andrei Iosivas",
+          "recent_team": "CIN",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0041496",
+          "player_name": "Jonah Coleman",
+          "recent_team": "DEN",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0039146",
+          "player_name": "Jayden Reed",
+          "recent_team": "GB",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0036554",
+          "player_name": "Nico Collins",
+          "recent_team": "HOU",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0035021",
+          "player_name": "Ashton Dulin",
+          "recent_team": "IND",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0037664",
+          "player_name": "Alec Pierce",
+          "recent_team": "IND",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0038046",
+          "player_name": "Charlie Kolar",
+          "recent_team": "LAC",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0041550",
+          "player_name": "Brenen Thompson",
+          "recent_team": "LAC",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0041523",
+          "player_name": "Caleb Douglas",
+          "recent_team": "MIA",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0041099",
+          "player_name": "Barion Brown",
+          "recent_team": "NO",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0040736",
+          "player_name": "Mason Taylor",
+          "recent_team": "NYJ",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0034351",
+          "player_name": "Dallas Goedert",
+          "recent_team": "PHI",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0035662",
+          "player_name": "Marquise Brown",
+          "recent_team": "PHI",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0036139",
+          "player_name": "Rico Dowdle",
+          "recent_team": "PIT",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0032775",
+          "player_name": "Demarcus Robinson",
+          "recent_team": "SF",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0037809",
+          "player_name": "Chig Okonkwo",
+          "recent_team": "WAS",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        },
+        {
+          "player_id": "00-0039910",
+          "player_name": "Jayden Daniels",
+          "recent_team": "WAS",
+          "report_status": "Out",
+          "report_season": 2026,
+          "report_week": 3,
+          "source": "nflverse official weekly injury report"
+        }
+      ]
     },
     "4": {
       "games": [
@@ -14334,7 +14318,8 @@
           "receiving_yards": 17.86484146118164
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": []
     },
     "5": {
       "games": [
@@ -19053,7 +19038,8 @@
           "receiving_yards": 17.86484146118164
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": []
     },
     "6": {
       "games": [
@@ -23502,7 +23488,8 @@
           "receiving_yards": 17.86484146118164
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": []
     },
     "7": {
       "games": [
@@ -27901,7 +27888,8 @@
           "receiving_yards": 17.86484146118164
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": []
     },
     "8": {
       "games": [
@@ -32300,7 +32288,8 @@
           "rushing_yards": 10.05435848236084
         }
       ],
-      "player_props_status": "ok"
+      "player_props_status": "ok",
+      "player_props_out": []
     },
     "9": {
       "games": [
