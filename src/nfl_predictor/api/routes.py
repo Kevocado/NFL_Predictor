@@ -511,6 +511,9 @@ def snapshot_props_unavailable(snap: dict) -> str | None:
 #: a wrong match here is a real player deleted from a list.
 GATING_INJURY_STATUS = "out"
 
+# How long the CURRENT season's injury report may be reused before it is refetched.
+INJURY_REPORT_MAX_AGE_SECONDS = 3600
+
 #: What an out entry is, in words. The frontend renders this verbatim, so a bare
 #: player name with no source and no date is not a claim anybody can check.
 INJURY_SOURCE = "nflverse official weekly injury report"
@@ -541,7 +544,11 @@ def _out_players_for(season: int, week: int) -> list[dict]:
     open.
     """
     try:
-        frame = injuries.fetch_injuries([season])
+        # The current season's report changes through the week, so its cache expires;
+        # a finished season's never does. Without this the gate read one frozen file.
+        frame = injuries.fetch_injuries(
+            [season], max_age_seconds=INJURY_REPORT_MAX_AGE_SECONDS if season == CURRENT_SEASON else None
+        )
     except Exception as injury_err:  # noqa: BLE001 - absence must gate nobody
         logger.warning("injury report unavailable for %s wk%s: %s", season, week, injury_err)
         return []

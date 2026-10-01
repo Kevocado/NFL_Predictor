@@ -132,7 +132,7 @@ def no_report(monkeypatch):
     survived is a claim about that test's own condition and not an accident of
     the default.
     """
-    monkeypatch.setattr(injuries, "fetch_injuries", lambda seasons, force_refresh=False: _out_report())
+    monkeypatch.setattr(injuries, "fetch_injuries", lambda seasons, force_refresh=False, max_age_seconds=None: _out_report())
 
 
 # --- the gate removes, and reports what it removed -------------------------

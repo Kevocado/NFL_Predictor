@@ -277,7 +277,7 @@ def _no_live_injury_feed(monkeypatch, request):
 
     monkeypatch.setattr(
         injuries, "fetch_injuries",
-        lambda seasons, force_refresh=False: pd.DataFrame(columns=injuries.KEEP_COLUMNS),
+        lambda seasons, force_refresh=False, max_age_seconds=None: pd.DataFrame(columns=injuries.KEEP_COLUMNS),
     )
 
 
