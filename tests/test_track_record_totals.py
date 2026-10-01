@@ -225,9 +225,10 @@ def test_the_weekly_row_of_a_tracked_week_can_be_exactly_zero():
     assert by_week[2]["signed_error"] == 0.0
 
 
-def test_a_rebuilt_pick_stays_out_of_the_points_metrics():
-    """The headline is the pre-kickoff record. A pick backfilled after kickoff is
-    shown, never judged, and that now covers the points forecasts too."""
+def test_a_rebuilt_pick_is_in_the_headline_metrics_and_out_of_the_pre_kickoff_ones():
+    """Points forecasts took the same reversal as the graded markets. Before it, a forecast
+    backfilled after kickoff was excluded from the headline's MAE; now it is counted, and the
+    pre-kickoff figure beside the headline is where the exclusion survives."""
     _resolve("pregame", 1, home_score=24, away_score=20, predicted_total=50.0)
     store.record_resolved_game_predictions([{
         "game_id": "rebuilt", "home_team": "NYJ", "away_team": "BUF",
@@ -239,8 +240,14 @@ def test_a_rebuilt_pick_stays_out_of_the_points_metrics():
 
     games = store.get_track_record(current_week=1, season=2026)["games"]
 
+    # The reversal: the rebuilt forecast is a recorded pick, so it is in the headline's points
+    # metrics. It is still reported apart, and the pre-kickoff figure beside the headline is the
+    # one that excludes it -- which is the honest read of what the model did live.
     assert games["n_rebuilt"] == 1
-    assert games["totals"]["n"] == 1, "a rebuilt forecast is not a pre-kickoff forecast"
+    assert games["totals"]["n"] == 2, "every counted pick's forecast is in the headline"
+    assert games["pre_kickoff"]["totals"]["n"] == 1, (
+        "a rebuilt forecast is not a pre-kickoff forecast, and the secondary figure says so"
+    )
 
 
 # --- the migration ---------------------------------------------------------

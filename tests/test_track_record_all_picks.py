@@ -73,39 +73,54 @@ def _rebuilt(game_id, *, week=1, season=2026):
     }])
 
 
-def test_the_headline_still_excludes_rebuilt_rows():
-    """The honesty rule survives B8, and this is the test that would catch its loss."""
+def test_the_headline_now_counts_the_rebuilt_row_and_pre_kickoff_beside_it_does_not():
+    """B8's two figures swapped roles on 2026-10-01: the headline counts every recorded pick and
+    `pre_kickoff` is the subset made before kickoff. This is the test that would catch the old
+    exclusion creeping back -- and, just as importantly, the test that would catch someone
+    'fixing' the headline back down to the pre-kickoff subset to make a flattering number."""
     _pre_kickoff("pre")
     _rebuilt("post")
 
     games = store.get_track_record(current_week=3)["games"]
-    assert games["n_resolved"] == 1
-    assert games["n_rebuilt"] == 1
-    assert games["n_moneyline"] == 1
+
+    assert games["n_resolved"] == 2, "a recorded pick stays counted whether or not it beat kickoff"
+    assert games["n_moneyline"] == 2
+    assert games["n_rebuilt"] == 1, "still reported, for disclosure"
+    assert games["pre_kickoff"]["n_resolved"] == 1
+    assert games["pre_kickoff"]["n_moneyline"] == 1
+    assert games["n_resolved"] == games["pre_kickoff"]["n_resolved"] + games["n_rebuilt"]
 
 
 def test_all_picks_includes_rebuilt_rows():
-    """The other figure. If this dropped rebuilt rows it would be the headline again and the
-    second figure would be decoration."""
+    """The key is kept, and it still means every counted pick. If it dropped rebuilt rows it would
+    quietly become a pre-kickoff figure under a name that promises otherwise."""
     _pre_kickoff("pre")
     _rebuilt("post")
 
     games = store.get_track_record(current_week=3)["games"]
     assert games["all_picks"]["n_resolved"] == 2
-    assert games["all_picks"]["n_resolved"] > games["n_resolved"]
 
 
-def test_all_picks_is_not_computed_over_the_pre_kickoff_subset():
-    """The opposite error: identical figures. Two numbers that always agree are one number."""
+def test_all_picks_and_the_headline_are_the_same_population_and_pre_kickoff_is_not():
+    """The two figures that are supposed to differ. Under the reversal `all_picks` and the
+    headline are the same population -- every counted pick -- and `pre_kickoff` is the one that
+    differs, so the pair a reader reconciles is (headline, pre_kickoff) and not
+    (headline, all_picks).
+
+    If these two ever agree again, one of them is decoration."""
     _pre_kickoff("pre")
     _rebuilt("post")
     _rebuilt("post2")
 
     games = store.get_track_record(current_week=3)["games"]
+
     assert games["all_picks"]["n_resolved"] == 3
-    assert games["n_resolved"] == 1
+    assert games["n_resolved"] == 3
+    assert games["pre_kickoff"]["n_resolved"] == 1
+    assert games["pre_kickoff"]["n_resolved"] < games["n_resolved"]
     # And the rates actually differ, which is the point of showing both.
     assert games["all_picks"]["pct_moneyline_correct"] is not None
+    assert games["pre_kickoff"]["pct_moneyline_correct"] is not None
 
 
 def test_per_pick_carries_rebuilt_per_row_not_only_in_aggregate():
@@ -115,6 +130,9 @@ def test_per_pick_carries_rebuilt_per_row_not_only_in_aggregate():
 
     rows = store.get_track_record(current_week=3)["games"]["per_pick"]
     by_game = {row["game_id"]: row for row in rows}
+    assert by_game["pre"]["made_before_kickoff"] is True
+    assert by_game["post"]["made_before_kickoff"] is False
+    # `rebuilt` is retained as the exact negation, so the two cannot drift apart.
     assert by_game["pre"]["rebuilt"] is False
     assert by_game["post"]["rebuilt"] is True
 

@@ -686,8 +686,13 @@ def test_get_predictions_for_week_marks_picks_rebuilt_after_kickoff():
     assert by_id["g3"]["status"] == "resolved"
 
 
-def test_track_record_leaves_rebuilt_picks_out_of_every_rate():
-    """Picks backfilled after kickoff are shown, never counted (PRODUCT.md)."""
+def test_the_track_record_counts_a_backfilled_pick_and_reports_it_apart():
+    """Kevin's 2026-10-01 reversal: a pick recorded after its own kickoff is still a recorded
+    pick, so it counts toward the headline. It used to be excluded outright, which meant a re-run
+    of the models made a past game stop counting and the record emptied out on every change.
+
+    `n_rebuilt` is retained and still reports those rows; it no longer means "not counted", and the
+    pre-kickoff figure beside the headline is the one that leaves them out."""
     store.record_game_predictions([_future_game(game_id="g1")])
     store.reconcile_game_predictions(pd.DataFrame([{"game_id": "g1", "home_score": 10, "away_score": 20}]))
     store.record_resolved_game_predictions([{
@@ -697,13 +702,18 @@ def test_track_record_leaves_rebuilt_picks_out_of_every_rate():
 
     games = store.get_track_record()["games"]
 
-    assert games["n_resolved"] == 1
+    assert games["n_resolved"] == 2
     assert games["n_rebuilt"] == 1
+    assert games["pre_kickoff"]["n_resolved"] == 1
+    assert games["n_resolved"] == games["pre_kickoff"]["n_resolved"] + games["n_rebuilt"]
 
 
-def test_an_unreadable_snapshot_time_counts_as_rebuilt():
-    """When the timing can't be proven, the honest default is 'rebuilt'."""
+def test_an_unreadable_snapshot_time_is_never_labelled_pre_kickoff():
+    """Fails closed on the LABEL, which is what the flag is for. Note what it no longer means: the
+    pick is still counted, because 'cannot prove it was made before kickoff' is a reason to withhold
+    a claim, not a reason to drop a recorded prediction from the record."""
     assert store._snapshotted_after_kickoff("not a time", "2025-09-07T17:00:00+00:00") is True
+    assert store._made_before_kickoff("not a time", "2025-09-07T17:00:00+00:00") is False
 
 
 # --- a missing probability must not become a recorded verdict ------------------
@@ -962,13 +972,15 @@ def test_reconcile_skips_orphan_prop_rows_with_no_game():
     assert _resolved_flags("g_orphan")["p1"] == 0
 
 
-def test_summary_excludes_post_kickoff_props_and_reports_them_apart():
-    """The summary applies the same pre-kickoff guard as the games path: a
-    resolved prop row snapshotted at/after kickoff is excluded from every
-    market's metrics and counted apart under n_rebuilt, while a genuine
-    pre-kickoff row still counts. Post-kickoff rows in BOTH market families
-    (yardage and anytime_td) are planted, so a guard that only filtered one
-    family -- or not at all -- cannot pass."""
+def test_the_prop_summary_counts_post_kickoff_rows_and_reports_the_pre_kickoff_subset_apart():
+    """The 2026-10-01 reversal applied to the prop markets, and this is where it matters most: in
+    the real database every prop row was recorded after its game's kickoff, so under the old rule
+    the anytime_td market had no track record at all (n_resolved 0, brier None) -- a market the
+    model prices every day, reported as unmeasured.
+
+    Now the headline counts all three rows and `pre_kickoff` carries the one pre-kickoff row. Both
+    market families are planted, so a swap applied to only one of them cannot pass. `n_rebuilt` is
+    retained and reconciles the two figures."""
     _insert_game("g_pre", "2099-09-04T20:20:00+00:00")
     _insert_game("g_post", "2000-09-04T20:20:00+00:00")
     _insert_prop("g_pre", "p_pre", "2099-09-01T00:00:00+00:00",
@@ -981,10 +993,19 @@ def test_summary_excludes_post_kickoff_props_and_reports_them_apart():
     props = store.get_track_record()["player_props"]
 
     assert props["n_rebuilt"] == 2
-    # Only the pre-kickoff row counts: MAE is |90-80| = 10. If the post-kickoff
-    # yardage row leaked in, n_resolved would be 2 and MAE would be 40.
-    assert props["rushing_yards"]["n_resolved"] == 1
-    assert props["rushing_yards"]["mean_absolute_error"] == pytest.approx(10.0)
-    # The only anytime_td row is post-kickoff, so the market is empty.
-    assert props["anytime_td"]["n_resolved"] == 0
-    assert props["anytime_td"]["brier_score"] is None
+    # Headline: all three rows count. Yardage MAE is mean(|90-80|, |10-80|) = 40.
+    assert props["rushing_yards"]["n_resolved"] == 2
+    assert props["rushing_yards"]["mean_absolute_error"] == pytest.approx(40.0)
+    # The anytime_td market is no longer empty -- the post-kickoff row counts.
+    assert props["anytime_td"]["n_resolved"] == 1
+    assert props["anytime_td"]["brier_score"] == pytest.approx(0.01)
+    # The pre-kickoff figure beside it is exactly the one pre-kickoff row, in both families.
+    assert props["pre_kickoff"]["rushing_yards"]["n_resolved"] == 1
+    assert props["pre_kickoff"]["rushing_yards"]["mean_absolute_error"] == pytest.approx(10.0)
+    assert props["pre_kickoff"]["anytime_td"]["n_resolved"] == 0
+    assert props["pre_kickoff"]["anytime_td"]["brier_score"] is None
+    # One post-kickoff row per family, so each market's headline is its pre-kickoff figure plus
+    # one -- and n_rebuilt is the sum of those, never per-market.
+    for market in ("rushing_yards", "anytime_td"):
+        assert props[market]["n_resolved"] == props["pre_kickoff"][market]["n_resolved"] + 1
+    assert props["n_rebuilt"] == 2

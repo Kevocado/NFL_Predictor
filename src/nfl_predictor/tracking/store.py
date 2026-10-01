@@ -442,35 +442,61 @@ def get_track_record(current_week: int | None = None, season: int | None = None)
     headline) gets the newest week actually recorded. Either way the list runs
     from week 1 to that bound with no gaps -- see `_weekly_window`.
 
-    **Nothing is hidden and everything is counted, in two figures.** The headline above is the
-    pre-kickoff record and rebuilt picks never count toward it -- that rule is what makes a hit
-    rate mean anything, and it survives. What B8 adds is the other figure, `all_picks`, which
-    summarises every resolved row with rebuilt INCLUDED, and `per_pick`, one row per resolved
-    (game, market) pick with `rebuilt` on the row so the two kinds are distinguishable per pick
-    and not only in aggregate. See `_all_picks_record` and `_per_pick_rows` for why they are
-    computed over the unfiltered frame.
+    **The headline counts every counted pick, whenever it was made, and `pre_kickoff` beside it is
+    the subset made before kickoff.** This reverses the pre-2026-10-01 rule, under which the
+    headline was the pre-kickoff record and a pick recorded after its own kickoff never counted
+    toward it. Kevin's reason, and it is the right one: the models are re-run constantly, so
+    under the old rule a re-run on an already-played game stopped counting and the record
+    emptied out on every model change.
+
+    Three consequences, stated so a reader is never misled about what the headline is:
+
+    - **A recorded pick is never re-scored.** One counted pick per (game, market) -- the EARLIEST
+      recorded one (`_counted_picks`). A later rerun is kept in the table as history; it neither
+      displaces the counted pick nor counts a second time, because re-running until the model is
+      right would otherwise be free.
+    - **`pre_kickoff` is the honest read of live performance**, and it is the figure to quote for
+      what the model would have done on the night. It is the same summariser over the counted
+      picks whose own timestamps prove they were made before kickoff, so its `n` is the exact size
+      of that subset rather than a figure reconciled by hand.
+    - **Counting a late pick is a known, accepted cost.** A model fitted on data including the
+      result can look better than it would have on the night. That is why the two figures are
+      published together and why `n_rebuilt` is still reported: the difference between the
+      headline and `pre_kickoff` is exactly the size of the inflation.
+
+    `n_rebuilt` is RETAINED and still counts counted picks made at or after their own kickoff. It
+    used to mean "excluded from the headline"; it no longer does, and
+    `n_resolved == pre_kickoff.n_resolved + n_rebuilt` holds on the counted frame.
+
+    `all_picks` is retained under its published name and still means "every counted pick" -- which
+    is now the same population as the headline. It is not a rename to `pre_kickoff`; nothing a
+    site reads today changes meaning or disappears. `per_pick` lists counted picks only, each with
+    its own `made_before_kickoff` and `snapshotted_at`.
     """
     with contextlib.closing(_connect()) as conn, conn:
         resolved_games = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
         resolved_props = pd.read_sql("SELECT * FROM player_prop_predictions WHERE resolved = 1", conn)
-    # Only picks made before kickoff count; rebuilt ones are reported apart.
-    if not resolved_games.empty:
-        rebuilt = resolved_games.apply(lambda r: _snapshotted_after_kickoff(r["snapshotted_at"], r["commence_time"]), axis=1).astype(bool)
-    else:
-        rebuilt = pd.Series(dtype=bool)
-    n_rebuilt = int(rebuilt.sum())
-    # `all_picks` and `per_pick` are computed over the UNFILTERED frame -- rebuilt included, which
-    # is the entire point. `all_picks_games` is the pre-kickoff subset the headline uses.
-    all_picks = _all_picks_record(resolved_games)
-    per_pick = _per_pick_rows(resolved_games)
-    resolved_games = resolved_games[~rebuilt] if not resolved_games.empty else resolved_games
-    summary = _summarize_games(resolved_games, current_week=current_week, season=season)
+
+    # One counted pick per game, the earliest recorded; the losers stay in the table as history.
+    counted = _counted_picks(resolved_games)
+    # The secondary figure: of the counted picks, the ones whose own timestamps prove they were
+    # made before their game's kickoff. Its n is therefore exactly the size of that subset.
+    pre_kickoff_games = counted[counted.apply(_made_before_kickoff_row, axis=1)] if not counted.empty else counted
+    n_rebuilt = int(len(counted) - len(pre_kickoff_games))
+
+    summary = _summarize_games(counted, current_week=current_week, season=season)
     return {
         "games": {
             **summary,
+            # Still reported, still the same rows the secondary figure leaves out. It is the
+            # reconciliation between the two figures: headline = pre_kickoff + n_rebuilt.
             "n_rebuilt": n_rebuilt,
-            "all_picks": all_picks,
-            "per_pick": per_pick,
+            "pre_kickoff": _summarize_games(
+                pre_kickoff_games, current_week=current_week, season=season
+            ),
+            # Kept under its published name; it means every counted pick, as it always did.
+            "all_picks": _all_picks_record(counted),
+            "per_pick": _per_pick_rows(counted),
         },
         "player_props": _summarize_player_props(resolved_props),
     }
@@ -561,14 +587,23 @@ def get_calibration(n_buckets: int = CALIBRATION_N_BUCKETS) -> dict:
     home won, home cover probability vs covered (at the recorded line), over probability vs went
     over. Ties and pushes are left out.
 
+    **Unchanged by the 2026-10-01 track-record reversal, deliberately.** A bucket here is not a
+    track record, it is a price: the hub compares a live probability against it, and a bucket fed
+    with picks made after kickoff would be telling the hub that a probability is better calibrated
+    than it is, on evidence that could not have existed when the price was quoted. So the
+    pre-kickoff guard stays exactly as strict here, and only the track record was reversed. If this
+    ever should follow, that is a pricing change with its own review, not a side effect.
+
     Rebuilt rows are excluded by the same predicate the feed uses, so the buckets the hub
-    calibrates against and the rows it prices come from the same population.
+    calibrates against and the rows it prices come from the same population, and one counted pick
+    per game (`_counted_picks`) so a re-keyed history cannot be graded twice.
 
     The bucket count is the hub's gate arithmetic reaching this side: see CALIBRATION_N_BUCKETS. It
     stays a parameter so a caller can still ask for a finer view without changing the default.
     """
     with contextlib.closing(_connect()) as conn:
         rows = pd.read_sql("SELECT * FROM game_predictions WHERE resolved = 1", conn)
+    rows = _counted_picks(rows)
     winner: list[tuple[float, int]] = []
     spread: list[tuple[float, int]] = []
     total: list[tuple[float, int]] = []
@@ -1147,19 +1182,50 @@ def _point_forecast_week(week: int, frame: pd.DataFrame | None, column: str, rea
     return {"week": int(week), "tracked": summary["n"] > 0, **summary}
 
 
+def _counted_picks(resolved: pd.DataFrame) -> pd.DataFrame:
+    """The rows that count toward the record: one per game, the EARLIEST recorded.
+
+    The uniqueness key of a counted pick is (game, market). On the games side all three graded
+    markets live as columns on one row, so the key reduces to the game and the three markets are
+    read off the same counted row -- which is why `_per_pick_rows` still emits one row per
+    (game, market) off it, and why the dedup must not collapse that row to a single market.
+
+    `game_predictions` is keyed on `game_id` and both writers are `INSERT OR IGNORE`, so no writer
+    in this repo can today put two rows on one game: the uniqueness is currently a property of the
+    schema rather than of this function. It is implemented in the reader anyway, because a rule
+    enforced only by a primary key stops being enforced the moment the key changes, and the
+    failure when it does is invisible -- the accuracy simply improves, silently, and a rerun of
+    the model gets to grade a second time.
+
+    "Earliest" is by UTC instant (`_utc_instant`), so which row wins does not depend on how its
+    timestamp happens to be spelled. An unparseable timestamp cannot be proven earliest, so it
+    sorts last and never displaces a row carrying a real instant; where no row in a group has one,
+    the first row encountered stands and `_made_before_kickoff` fails closed on it.
+
+    Rows that lose here are NOT deleted. They stay in the table -- rule 1, recorded stays recorded
+    -- and they are deliberately absent from `per_pick` as well, so that the list a reader tallies
+    is the list that produced the headline. A non-counted rerun is in the table, in no figure, and
+    in no list: that is what history is.
+    """
+    if resolved.empty:
+        return resolved
+    ordered = resolved.assign(_instant=resolved["snapshotted_at"].map(_utc_instant_or_none))
+    ordered = ordered.sort_values("_instant", na_position="last", kind="stable", ignore_index=True)
+    return ordered.drop_duplicates(subset=["game_id"], keep="first")
+
+
 def _all_picks_record(resolved: pd.DataFrame) -> dict:
-    """The same three accuracies as the headline, over EVERY resolved row.
+    """The same three accuracies as the headline, over EVERY counted pick.
 
-    Rebuilt picks are INCLUDED here. That is the whole of B8: the headline above is the
-    pre-kickoff record and rebuilt picks never count toward it, because a hit rate is only
-    meaningful if the pick existed before the result -- counting post-kickoff picks toward one
-    number means the number can be inflated by construction, pick the winner after the fact and
-    score 100%. What changes is that nothing is hidden and everything is counted, in two figures
-    instead of one.
+    **Kept under its published name, and it means the same thing it always did: every pick.**
+    The pre-reversal headline excluded picks recorded after their own kickoff, so this block was
+    the wider figure. The reversal makes the headline the wider figure instead (see
+    `get_track_record`), and this key is what a site that already reads it gets. It is kept rather
+    than renamed so no consumer breaks, and it is kept rather than deleted so a consumer reading
+    `all_picks` is not silently pointed at a subset it believes is the whole record.
 
-    Computed over the unfiltered frame, so `n_resolved` here is larger than the headline's
-    whenever any row was rebuilt. The two `n_resolved` values are the reason the two figures
-    differ, and the page says so rather than leaving a reader to reconcile them.
+    Its `n_resolved` therefore now equals the headline's rather than exceeding it. The
+    pre-kickoff figure a reader wants is `pre_kickoff`.
     """
     if resolved.empty:
         return {"n_resolved": 0, "pct_moneyline_correct": None, "pct_ats_correct": None, "pct_totals_correct": None}
@@ -1171,19 +1237,29 @@ def _all_picks_record(resolved: pd.DataFrame) -> dict:
 
 
 def _per_pick_rows(resolved: pd.DataFrame) -> list[dict]:
-    """One row per resolved (game, market) pick, hit and miss alike, never filtered.
+    """One row per counted (game, market) pick, hit and miss alike, never filtered.
 
-    `rebuilt` is on the row, not only in the aggregate, so the two kinds of pick are
-    distinguishable per pick. `snapshotted_at` is on every row because the plan's standing
-    constraint is that every pick is displayed with the time it was made -- and until B8 that
-    column was stored and exposed nowhere, so the constraint was unmet on every surface.
+    Every row carries `made_before_kickoff` and `snapshotted_at`, which is the disclosure the
+    reversal asks for: honesty moves from exclusion to being told. `made_before_kickoff` is
+    DERIVED from the row's own two timestamps compared as UTC instants (`_made_before_kickoff`),
+    not read from a stored flag, so there is nothing to be stale and nothing to backfill. The
+    timestamp is beside it so a reader can check the claim rather than take it.
+
+    `rebuilt` is retained on the row as the exact negation, because it was published and a site
+    may read it. It is no longer the word for "not counted" -- under the reversal a rebuilt pick
+    IS counted -- so `made_before_kickoff` is the field to read, and the two cannot disagree
+    because one is computed from the other.
+
+    This lists COUNTED picks only, so `len(per_pick) / 3` and the headline's `n_resolved` agree and
+    a reader tallying the list arrives at the headline. A non-counted rerun is in the table as
+    history and in neither figure.
 
     A market with no grade is omitted rather than emitted as a miss: an ungraded market is not a
     pick the model made, and listing it as a miss would be a fabricated failure.
     """
     rows: list[dict] = []
     for _, game in resolved.iterrows():
-        rebuilt = _snapshotted_after_kickoff(game["snapshotted_at"], game["commence_time"])
+        made_before_kickoff = _made_before_kickoff(game["snapshotted_at"], game["commence_time"])
         for market, column in (("moneyline", "moneyline_hit"), ("ats", "ats_hit"), ("totals", "total_hit")):
             hit = game[column]
             if hit is None or pd.isna(hit):
@@ -1195,8 +1271,14 @@ def _per_pick_rows(resolved: pd.DataFrame) -> list[dict]:
                 "pick": _pick_words(game, market),
                 "actual": _actual_words(game, market),
                 "hit": bool(hit),
-                "rebuilt": bool(rebuilt),
+                # The disclosure the reversal asks for, derived and never stored.
+                "made_before_kickoff": bool(made_before_kickoff),
+                # The time the pick was made, so the flag above can be checked.
                 "snapshotted_at": game["snapshotted_at"],
+                # Retained name, now meaning "made at or after kickoff" and NOTHING more: this
+                # pick is still counted. Kept so an existing reader does not break; use
+                # `made_before_kickoff` for anything a reader is meant to understand.
+                "rebuilt": not made_before_kickoff,
             })
     return rows
 
@@ -1274,32 +1356,79 @@ _TD_CONFIDENCE_BUCKETS = (
 )
 
 
+def _counted_prop_picks(resolved: pd.DataFrame) -> pd.DataFrame:
+    """The prop rows that count: one per (game, player, market), the EARLIEST recorded.
+
+    The prop table's primary key is already (game_id, player_id, market) and the writers are
+    `INSERT OR IGNORE`, so today no writer can produce two rows for one pick -- exactly the
+    situation `_counted_picks` handles for games, and the reason the selection is done here in
+    the reader rather than relied upon from the schema. A rule enforced only by a primary key
+    stops being enforced the moment the key changes, and a re-keyed or restored history is
+    exactly the case where double-counting would be invisible.
+
+    "Earliest" is compared as UTC instants, so a pick stamped with a `-05:00` offset sorts by when
+    it actually happened rather than by how its string reads. See `_utc_instant`.
+    """
+    if resolved.empty:
+        return resolved
+    ordered = resolved.assign(_instant=resolved["snapshotted_at"].map(_utc_instant_or_none))
+    # An unparseable timestamp cannot be proven to be the earliest, so it sorts LAST and never
+    # displaces a row that carries a real instant. Where NO row in a group has one, the first
+    # row encountered stands -- and `_made_before_kickoff` still fails closed on it below, so
+    # the pick is counted but never labelled pre-kickoff.
+    ordered = ordered.sort_values(
+        "_instant", na_position="last", kind="stable", ignore_index=True
+    )
+    return ordered.drop_duplicates(subset=["game_id", "player_id", "market"], keep="first")
+
+
 def _summarize_player_props(resolved: pd.DataFrame) -> dict:
-    """Per-market metrics over graded props. Post-kickoff rows are excluded
-    from every market's metrics and reported apart under `n_rebuilt` -- the
-    same rule the games path applies in `get_track_record`. The prop table
-    carries no commence_time, so it is joined to game_predictions on game_id
-    (that table's primary key, so the join is many-to-one and safe); a row
-    whose game is absent, or whose timestamp cannot be parsed, fails closed
-    and is excluded."""
+    """Per-market metrics over graded props, in two figures.
+
+    **The headline counts every recorded pick**, whenever it was made, and `pre_kickoff` beside it
+    is the subset whose own timestamps prove they were made before kickoff. That is the reversal
+    Kevin decided (see the 2026-10-01 spec): a re-run model must not make a past game stop
+    counting, or the record empties out on every model change. `n_rebuilt` is kept, and still
+    means "counted picks made after their own kickoff" -- the same rows the secondary figure
+    leaves out, so the arithmetic reconciles.
+
+    The prop table carries no commence_time, so it is joined to game_predictions on game_id (that
+    table's primary key, so the join is many-to-one and safe). A row whose game is absent cannot
+    be proven pre-kickoff, so it is counted and reported under `n_rebuilt` rather than excluded:
+    the label fails closed, but rule 1 (recorded stays recorded) has no exception for a missing
+    join.
+    """
+    if resolved.empty:
+        return {**_prop_markets(resolved), "n_rebuilt": 0, "pre_kickoff": _prop_markets(resolved)}
+
+    with contextlib.closing(_connect()) as conn:
+        kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
+    resolved = resolved.merge(kickoff_times, on="game_id", how="left")
+
+    counted = _counted_prop_picks(resolved)
+    pre_kickoff_resolved = counted[counted.apply(_made_before_kickoff_row, axis=1)]
+    n_rebuilt = int(len(counted) - len(pre_kickoff_resolved))
+    return {**_prop_markets(counted), "n_rebuilt": n_rebuilt,
+            "pre_kickoff": _prop_markets(pre_kickoff_resolved)}
+
+
+
+
+def _prop_markets(resolved: pd.DataFrame) -> dict:
+    """Every prop market's own metrics over exactly the rows handed in, and nothing else.
+
+    Split from `_summarize_player_props` so the headline (every counted pick) and the secondary
+    figure (the made-before-kickoff subset) are the SAME summariser over two frames, rather than
+    two blocks of arithmetic that can drift apart. The secondary's `n` is then equal to the count
+    of counted picks whose own timestamps prove they were made before kickoff, by construction
+    rather than by agreement.
+    """
     result: dict[str, dict] = {}
 
-    if not resolved.empty:
-        with contextlib.closing(_connect()) as conn:
-            kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
-        resolved = resolved.merge(kickoff_times, on="game_id", how="left")
-        rebuilt = resolved.apply(
-            lambda r: _snapshotted_after_kickoff(r["snapshotted_at"], r["commence_time"]), axis=1
-        ).astype(bool)
-        n_rebuilt = int(rebuilt.sum())
-        resolved = resolved[~rebuilt]
-    else:
-        n_rebuilt = 0
-
-    anytime_td = resolved[resolved["market"] == "anytime_td"]
+    anytime_td = resolved[resolved["market"] == "anytime_td"] if not resolved.empty else resolved
     if anytime_td.empty:
-        result["anytime_td"] = {"n_resolved": 0, "hit_rate_when_called": None, "brier_score": None,
-                                "confidence_buckets": []}
+        result["anytime_td"] = {"n_resolved": 0, "n_called": 0, "hit_rate_when_called": None,
+                                "brier_score": None, "confidence_buckets": []}
     else:
         called = anytime_td[anytime_td["predicted_value"] >= 0.5]
         buckets = []
@@ -1321,7 +1450,7 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
         }
 
     for market in _YARDAGE_MARKETS:
-        rows = resolved[resolved["market"] == market]
+        rows = resolved[resolved["market"] == market] if not resolved.empty else resolved
         if rows.empty:
             result[market] = {"n_resolved": 0, "mean_absolute_error": None,
                               "mean_signed_error": None, "by_position": []}
@@ -1346,7 +1475,7 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
                 "mean_signed_error": float(signed_errors.mean()),
                 "by_position": by_position,
             }
-    return {**result, "n_rebuilt": n_rebuilt}
+    return result
 
 
 def get_game_verdict(game_id: str) -> dict | None:
@@ -1470,16 +1599,65 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
         return resolved_count
 
 
-def _snapshotted_after_kickoff(snapshotted_at: str, commence_time: str) -> bool:
-    def parse(value: str) -> datetime:
-        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+def _utc_instant(value) -> datetime | None:
+    """An ISO-8601 timestamp as an aware UTC instant, or None if it cannot be read as one.
 
+    **The offset is honoured, and that is the whole point.** `2026-01-15T20:00:00` and
+    `2026-01-14T19:00:00-05:00` are the same wall clock in different notations of the same
+    evening, and a string comparison of the two against a kickoff written with an offset gives the
+    OPPOSITE answer to the truth for a large part of any evening. So the parse goes through
+    `fromisoformat` (which reads the offset) and then to UTC, and every comparison in the
+    track-record path is between two of these -- never between two strings.
+
+    Naive values are read as UTC, which is how both `commence_time` and `snapshotted_at` are
+    written everywhere in this repo.
+    """
     try:
-        return parse(snapshotted_at) >= parse(commence_time)
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
     except (TypeError, ValueError):
-        # Can't prove it was made before kickoff, so it doesn't count.
-        return True
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _utc_instant_or_none(value) -> datetime | None:
+    """`_utc_instant` under a name that says what it returns when the value is unusable."""
+    return _utc_instant(value)
+
+
+def _made_before_kickoff(snapshotted_at: str, commence_time: str) -> bool:
+    """Whether this pick was made before this game's kickoff, from its own two timestamps.
+
+    Derived, never stored: there is no `made_before_kickoff` column to be wrong, and nothing to
+    backfill. Both sides are compared as UTC instants (`_utc_instant`), and a pick stamped exactly
+    at kickoff is not before it.
+
+    **Fails closed.** An unparseable timestamp on either side, or a missing kickoff, gives False:
+    "cannot prove it was made before kickoff" is the only honest answer, and it is never a `true`
+    the timestamps do not support. Note what failing closed does and does not mean now -- the
+    label is withheld, but the pick is still COUNTED. Under the pre-reversal rule this function's
+    answer decided whether a pick counted at all; it no longer does.
+    """
+    picked, kickoff = _utc_instant(snapshotted_at), _utc_instant(commence_time)
+    if picked is None or kickoff is None:
+        return False
+    return picked < kickoff
+
+
+def _made_before_kickoff_row(row: pd.Series) -> bool:
+    """`_made_before_kickoff` over one row, for a frame filter."""
+    return _made_before_kickoff(row["snapshotted_at"], row["commence_time"])
+
+
+def _snapshotted_after_kickoff(snapshotted_at: str, commence_time: str) -> bool:
+    """Whether a pick was recorded at or after its own kickoff -- i.e. rebuilt after the fact.
+
+    Exactly the negation of `_made_before_kickoff`, and it still fails closed the same way. This
+    is the predicate the feed and the calibration buckets keep using, where a post-kickoff row
+    genuinely must not be served; it is no longer what decides whether a pick is counted.
+    """
+    return not _made_before_kickoff(snapshotted_at, commence_time)
 
 
 def get_predictions_for_week(season: int, week: int, games_df: pd.DataFrame) -> list[dict]:
