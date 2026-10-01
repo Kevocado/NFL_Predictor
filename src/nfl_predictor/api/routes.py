@@ -22,7 +22,7 @@ from ..config import (
     PUBLIC_SNAPSHOT_PATH,
     PUBLIC_SNAPSHOT_REFRESH_URL,
 )
-from ..data import depth_charts, player_stats, schedules, teams as teams_data
+from ..data import depth_charts, injuries, player_stats, schedules, teams as teams_data
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
 from ..features import build as feature_build
@@ -492,6 +492,131 @@ def snapshot_props_unavailable(snap: dict) -> str | None:
     return None
 
 
+# --- the availability gate --------------------------------------------------
+#
+# The official weekly injury report, as published by nflverse, is the one feed
+# that says a player is not playing. `data/injuries.py` existed for the whole
+# life of the props endpoint and nothing called it: its only references in the
+# tree were itself, its test and a plan document. So the spec's claim that NFL
+# injuries "gate props today" was false, and this is the code that makes it
+# true rather than a feature being switched on.
+
+#: The ONLY report status that removes a player. `Doubtful` and `Questionable`
+#: are deliberately excluded: a player reported questionable very often plays,
+#: and dropping him from a ranked list asserts that he definitely will not.
+#:
+#: Compared as a normalised whole token, so an unreviewed future value like
+#: "Out (Ankle)" fails to match instead of matching loosely. A gate that widens
+#: itself on a string nobody looked at is a gate nobody reviewed, and the cost of
+#: a wrong match here is a real player deleted from a list.
+GATING_INJURY_STATUS = "out"
+
+# How long the CURRENT season's injury report may be reused before it is refetched.
+INJURY_REPORT_MAX_AGE_SECONDS = 3600
+
+#: What an out entry is, in words. The frontend renders this verbatim, so a bare
+#: player name with no source and no date is not a claim anybody can check.
+INJURY_SOURCE = "nflverse official weekly injury report"
+
+
+def _is_gating_status(status) -> bool:
+    """True only for a report status that means the player is not playing."""
+    if status is None or not isinstance(status, str):
+        return False
+    return status.strip().lower() == GATING_INJURY_STATUS
+
+
+def _out_players_for(season: int, week: int) -> list[dict]:
+    """Every player the official report lists Out for this season and week.
+
+    **Never raises, and an absence is always `[]`.** Four different absences are
+    all expected, not exceptional: the fetch failing, an empty release, a
+    release that carries no row for the requested week (the per-season cache is
+    written once and never expires, so a week-1 cache read for week 12 is the
+    normal case late in a season), and a feed that hands back something that is
+    not a frame at all.
+
+    Every one of them resolves to "gate nobody", and that is the asymmetry this
+    whole function is built around. A false removal deletes a real player from a
+    ranked list a reader is about to act on; a missed removal shows one player
+    who does not play. The first is the worse error by a wide margin, so an
+    unknown feed is never allowed to remove anything -- it can only ever fail
+    open.
+    """
+    try:
+        # The current season's report changes through the week, so its cache expires;
+        # a finished season's never does. Without this the gate read one frozen file.
+        frame = injuries.fetch_injuries(
+            [season], max_age_seconds=INJURY_REPORT_MAX_AGE_SECONDS if season == CURRENT_SEASON else None
+        )
+    except Exception as injury_err:  # noqa: BLE001 - absence must gate nobody
+        logger.warning("injury report unavailable for %s wk%s: %s", season, week, injury_err)
+        return []
+    if frame is None or frame.empty:
+        return []
+
+    try:
+        status_by_player = injuries.current_status_by_player(frame, season=season, week=week)
+    except Exception as injury_err:  # noqa: BLE001 - absence must gate nobody
+        logger.warning("injury report unreadable for %s wk%s: %s", season, week, injury_err)
+        return []
+    if not status_by_player:
+        return []
+
+    # The name and team come out of the SAME report frame that called the player
+    # out, so an entry cannot cite a source and disagree with it. `player_id` on
+    # the props path is the GSIS id (`00-…`), the same key the report carries,
+    # so this join needs no name matching -- which is the failure mode NBA's
+    # equivalent of this gate has.
+    week_rows = frame[frame["week"] == week]
+    by_id = {str(row.get("gsis_id")): row for _, row in week_rows.iterrows()}
+
+    entries = []
+    for player_id, status in status_by_player.items():
+        if not _is_gating_status(status):
+            continue
+        row = by_id.get(str(player_id))
+        entries.append({
+            "player_id": player_id,
+            "player_name": (row.get("full_name") if row is not None else None) or str(player_id),
+            "recent_team": (row.get("team") if row is not None else None) or "",
+            "report_status": status,
+            "report_season": season,
+            "report_week": week,
+            "source": INJURY_SOURCE,
+        })
+    return entries
+
+
+@router.get("/players/{season}/{week}/out")
+def get_out_players(season: int, week: int):
+    """The players the official report lists Out for this week.
+
+    Separate from `/props` rather than a field on it. That body is a bare JSON
+    array and three things depend on it staying one: `public_snapshot` stores it,
+    `facts._props` reads it, and the frontend client types it as
+    `PlayerPropPrediction[]`. A picks list is not a reason to break it.
+
+    Always 200 with a list, including when the feed is unavailable. Not 503:
+    "we could not check" and "nobody is out" are different facts, and the only
+    thing a caller can honestly render for both is nothing -- a 503 here would
+    take down a picks page over a transient upstream blip, which is strictly
+    worse than showing the ranking ungated.
+
+    There is deliberately no `except Exception` backstop, for the reason
+    `get_player_props` gives for not having one either: `_out_players_for`
+    already swallows every failure and returns `[]`, so a second net could only
+    be unreachable code. The contract that makes it unreachable is pinned by
+    `TestAbsenceRemovesNobody`, which reaches the real function rather than
+    trusting this comment.
+    """
+    if PUBLIC_MODE:
+        snap = _snapshot_week(season, week)
+        if snap is not None:
+            return snap.get("player_props_out") or []
+    return _out_players_for(season, week)
+
+
 @router.get("/players/{season}/{week}/props")
 def get_player_props(season: int, week: int, response: Response = None):
     """The HTTP endpoint.
@@ -538,7 +663,23 @@ def get_player_props(season: int, week: int, response: Response = None):
         raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc
 
 
-def _get_player_props_live(season: int, week: int):
+def _get_player_props_live(season: int, week: int, out_players: list | None = None):
+    """The live prop rows for this week, with listed-out players removed.
+
+    `out_players` is an optional collector rather than a second return value
+    because this function is called from five places with two different
+    expectations -- `get_player_props` wants only rows, and `public_snapshot`'s
+    `_build_week` wants both the rows and the out entries to store in the
+    artifact production actually serves. Returning a tuple would force every one
+    of those call sites, including the ones that have no use for the out list,
+    to unpack it and drop half.
+
+    The gate runs at the very END, after the total-failure check below. Applying
+    it earlier would let a slate where every player is listed Out trip the
+    "produced nothing at all" rule and answer 503 -- which claims the props
+    pipeline broke, on a week where it worked perfectly and the honest answer is
+    an empty ranking plus an out list that explains it.
+    """
     try:
         models = _load_models_cached()
         player_history = _load_player_history(season)
@@ -700,6 +841,29 @@ def _get_player_props_live(season: int, week: int):
                 f"player(s) failed to predict (first={failed[:3]}) and {len(skipped)} were "
                 "skipped for want of a pregame usage history"
             )
+
+        # The availability gate, and it is LAST on purpose -- see the docstring.
+        # Everything above measures what the pipeline produced; the gate removes
+        # from that result without ever being able to turn it into an error.
+        gated = _out_players_for(season, week)
+        if gated:
+            ranked_ids = {str(row["player_id"]) for row in results}
+            gated_ids = {str(entry["player_id"]) for entry in gated}
+            kept = [row for row in results if str(row["player_id"]) not in gated_ids]
+            # An entry for a player who was not in this week's ranking is not an
+            # out player of it, and the frontend renders whatever it is handed as
+            # the reason a name is missing from the lists. Reporting one would be
+            # attributing a removal that never happened.
+            entries = [entry for entry in gated if str(entry["player_id"]) in ranked_ids]
+            if out_players is not None:
+                out_players.extend(entries)
+            if len(kept) != len(results):
+                logger.info(
+                    "injury gate removed %d of %d prop row(s) for %s wk%s",
+                    len(results) - len(kept), len(results), season, week,
+                )
+            results = kept
+
         return results
     except PlayerPropsUnavailable:
         # Already carries the reason. Logging it again as a traceback here would

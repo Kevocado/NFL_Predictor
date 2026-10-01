@@ -90,7 +90,7 @@ def test_the_snapshot_window_really_does_span_two_weeks(monkeypatch):
         _game("W3_1", 3, "BUF", "MIA"),
         _game("W4_1", 4, "BUF", "KC"),  # same team, next week
     ])
-    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: frame)
+    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False, max_age_seconds=None: frame)
     monkeypatch.setattr(schedules, "fetch_upcoming_games", lambda season, week: frame)
     monkeypatch.setattr(schedules, "CURRENT_SEASON", 2026)
 
@@ -137,7 +137,7 @@ def test_a_team_playing_both_weeks_is_not_stored_against_next_week(monkeypatch, 
         _game("W4_1", 4, "BUF", "KC"),
     ])
     monkeypatch.setattr(schedules, "fetch_upcoming_games", lambda season, week: both[both["week"] == week])
-    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False: both)
+    monkeypatch.setattr(schedules, "fetch_schedules", lambda seasons, force_refresh=False, max_age_seconds=None: both)
     # The tick also reconciles finished games at the end, from this fetch, and a
     # non-empty answer sends it down the backfill path (routes.py:819 fetches
     # weekly player stats there). Neither is what this test is about, both are
