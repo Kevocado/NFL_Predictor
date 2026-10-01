@@ -223,7 +223,10 @@ def test_the_track_record_keeps_reporting_the_rebuilt_count():
     games = store.get_track_record()["games"]
 
     assert games["n_rebuilt"] == 1, games
-    assert games["n_resolved"] == 1, games          # only the tracked one
+    # Since the 2026-10-01 reversal the headline counts the rebuilt row too; what is reported
+    # apart is the pre-kickoff subset. `n_backfilled` is still not a second name for anything.
+    assert games["n_resolved"] == 2, games
+    assert games["pre_kickoff"]["n_resolved"] == 1, games
     assert "n_backfilled" not in games
 
 

@@ -498,22 +498,29 @@ def test_the_cohort_hit_rate_is_over_the_graded_disagreements():
     assert cohort["games"] == ["graded"]
 
 
-def test_a_rebuilt_pick_is_in_neither_the_edge_nor_the_disagreement():
-    """The pre-kickoff record is the headline. A post-kickoff rebuild is shown,
-    never judged, and the market comparison is a judgement."""
+def test_a_rebuilt_pick_reaches_the_headline_edge_and_not_the_pre_kickoff_one():
+    """The market comparison is a judgement, and the 2026-10-01 reversal made a post-kickoff pick
+    part of the record, so the headline's edge now includes it. The pre-kickoff figure beside the
+    headline is where the old answer survives, and it is the figure to read for live performance.
+
+    The model takes KC +7.0 while the line favours BAL, which is both a -40-point edge and a
+    member of the disagreement cohort -- so this one row reaches both blocks of the headline's
+    comparison, and both would read 0 if the headline still excluded rebuilt rows."""
     store.record_resolved_game_predictions([{
         "game_id": "rebuilt", "home_team": "BAL", "away_team": "KC",
         "commence_time": "2026-09-07T17:00:00+00:00",
         "home_win_prob": 0.6, "away_win_prob": 0.4,
-        "home_cover_prob": 0.7, "away_cover_prob": 0.3,
+        "home_cover_prob": 0.3, "away_cover_prob": 0.7,
         "home_spread_line": 7.0, "season": 2026, "week": 1,
         "actual_home_score": 20, "actual_away_score": 10,
     }])
 
-    vs_market = _vs_market()
+    games = store.get_track_record(current_week=1, season=2026)["games"]
 
-    assert vs_market["n"] == 0
-    assert vs_market["disagreement"] == {"n": 0, "hit_rate": None, "games": []}
+    assert games["vs_market"]["n"] == 1, "a recorded pick's edge is in the headline"
+    assert games["vs_market"]["disagreement"]["n"] == 1
+    assert games["pre_kickoff"]["vs_market"]["n"] == 0
+    assert games["pre_kickoff"]["vs_market"]["disagreement"] == {"n": 0, "hit_rate": None, "games": []}
 
 
 # --- by week ---------------------------------------------------------------

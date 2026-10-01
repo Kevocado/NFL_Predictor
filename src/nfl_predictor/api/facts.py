@@ -137,13 +137,21 @@ def _players(props: list[dict], teams: set[str]) -> list[dict]:
 
 
 def _record() -> dict | None:
-    """Pre-kickoff-only accuracy. get_track_record()["games"] already
-    excludes rebuilt picks, so these are honest counts."""
+    """Pre-kickoff-only accuracy, and the block is LABELLED that way, so it has to read the
+    pre-kickoff figure.
+
+    This call site moved with the 2026-10-01 reversal. `get_track_record()["games"]` used to be
+    pre-kickoff by construction, so reading the headline was correct; the headline now counts
+    every recorded pick, and reading it here would print post-kickoff picks under a
+    "Picks made before kickoff" label. `pre_kickoff` is the subset whose own timestamps prove the
+    same thing, so the label and the numbers are the same claim.
+    """
     games = (store.get_track_record() or {}).get("games") or {}
-    settled = int(games.get("n_resolved") or 0)
+    pre_kickoff = games.get("pre_kickoff") or {}
+    settled = int(pre_kickoff.get("n_resolved") or 0)
     if settled <= 0:
         return None
-    pct = _num(games.get("pct_moneyline_correct"))
+    pct = _num(pre_kickoff.get("pct_moneyline_correct"))
     return {
         "label": "Picks made before kickoff",
         "hits": None if pct is None else int(round(pct * settled)),

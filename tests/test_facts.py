@@ -146,9 +146,18 @@ def public(monkeypatch):
     monkeypatch.setattr(facts_mod.routes, "PUBLIC_MODE", True)
     monkeypatch.setattr(facts_mod, "_now", lambda: NOW)
     monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: _week_rows())
+    # `pre_kickoff` is what `_record()` reads, because the block it renders is labelled "Picks
+    # made before kickoff" and the headline now counts every recorded pick. Stubbed with BOTH
+    # figures and different numbers on purpose: a fixture that made them agree could not catch a
+    # call site that read the wrong one.
     monkeypatch.setattr(
         facts_mod.store, "get_track_record",
-        lambda: {"games": {"n_resolved": 66, "pct_moneyline_correct": 0.62, "n_rebuilt": 3}},
+        lambda: {"games": {
+            "n_resolved": 66, "pct_moneyline_correct": 0.62, "n_rebuilt": 3,
+            # 0.80 x 50 = 40 hits, so `hits` and `settled` both differ from what the headline
+            # would have produced (0.62 x 66 = 41 of 66) and a mix-up cannot pass unnoticed.
+            "pre_kickoff": {"n_resolved": 50, "pct_moneyline_correct": 0.80},
+        }},
     )
     return TestClient(app)
 
@@ -213,14 +222,17 @@ def test_players_are_the_top_three_by_projected_yards(public, monkeypatch):
 
 
 def test_record_reports_pre_kickoff_hits_over_settled(public, monkeypatch):
+    """The block is LABELLED "Picks made before kickoff", so its two numbers must be the
+    pre-kickoff figure's. The fixture offers a 66-pick headline at 62% and a 50-pick pre-kickoff
+    figure at 80%; reading the headline instead would render 41 of 66, and this asserts 40 of 50."""
     _install_snapshot(monkeypatch, _snapshot())
 
     body = public.get(f"/facts/{GAME_ID}").json()
 
     assert body["record"] == {
         "label": "Picks made before kickoff",
-        "hits": 41,
-        "settled": 66,
+        "hits": 40,
+        "settled": 50,
     }
 
 
@@ -429,7 +441,10 @@ def live(monkeypatch):
     )
     monkeypatch.setattr(
         facts_mod.store, "get_track_record",
-        lambda: {"games": {"n_resolved": 10, "pct_moneyline_correct": 0.5, "n_rebuilt": 0}},
+        lambda: {"games": {
+            "n_resolved": 10, "pct_moneyline_correct": 0.5, "n_rebuilt": 0,
+            "pre_kickoff": {"n_resolved": 10, "pct_moneyline_correct": 0.5},
+        }},
     )
     return TestClient(app)
 
