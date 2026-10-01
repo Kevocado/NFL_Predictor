@@ -582,15 +582,23 @@ def test_a_successful_rebuild_is_marked_ok(data_seams, monkeypatch):
         routes, "_get_game_prediction_live",
         lambda season, week, game_id: {"home_win_prob": 0.5, "away_win_prob": 0.5},
     )
-    monkeypatch.setattr(
-        routes, "_get_player_props_live",
-        lambda season, week: [{"player_id": "p1", "player_name": "A. Back",
-                               "recent_team": "BAL", "position": "RB", "anytime_td_prob": 0.42}],
-    )
+    def fake_props(season, week, out_players=None):
+        # `out_players` is the collector `_build_week` passes so the artifact
+        # stores the out entries beside the rows they were removed from.
+        # Accepting it is not optional: production is PUBLIC_MODE and serves this
+        # artifact, so an out list that only existed in the live path would never
+        # reach a page.
+        if out_players is not None:
+            out_players.append({"player_id": "p9", "player_name": "Gone Guy", "report_status": "Out"})
+        return [{"player_id": "p1", "player_name": "A. Back",
+                 "recent_team": "BAL", "position": "RB", "anytime_td_prob": 0.42}]
+
+    monkeypatch.setattr(routes, "_get_player_props_live", fake_props)
 
     week = public_snapshot._build_week(SEASON, WEEK, previous=None)
 
     assert week["player_props_status"] == "ok"
+    assert [e["player_name"] for e in week["player_props_out"]] == ["Gone Guy"]
 
 
 def test_the_committed_snapshot_never_serves_an_empty_200_for_a_week_with_games(monkeypatch):

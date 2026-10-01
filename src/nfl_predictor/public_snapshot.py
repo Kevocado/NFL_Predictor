@@ -55,11 +55,24 @@ def _build_week(season: int, week: int, previous: dict | None = None) -> dict:
             predictions[game_id] = routes._get_game_prediction_live(season, week, game_id)
         except Exception as exc:
             print(f"    ! skipped prediction for {game_id}: {exc}")
+    # Collected out of `_get_player_props_live` because production is PUBLIC_MODE
+    # (`Dockerfile`: ENV PUBLIC_MODE=true): the props a reader sees come from this
+    # artifact, so an out list that was not stored here would exist only in the
+    # live path and never reach a page. Gating still happens either way -- the
+    # rows below are already gated -- but the *reason* a player is missing from
+    # them has to be stored alongside them or the frontend cannot attribute it.
+    out_players: list[dict] = []
     try:
-        player_props = routes._get_player_props_live(season, week)
+        player_props = routes._get_player_props_live(season, week, out_players=out_players)
         props_status = "ok"
     except Exception as exc:
         carried = (previous or {}).get("player_props") or []
+        # The out entries of a carried-forward week are the PREVIOUS build's, and
+        # they describe a report that has since been superseded. Dropping them is
+        # the honest direction: the ranking they explain is still being served,
+        # and an out line dated to an earlier report would attribute that
+        # ranking's absences to facts we can no longer stand behind.
+        out_players = []
         if carried:
             print(f"    ! player props for week {week} failed ({exc}); keeping {len(carried)} from the previous snapshot")
             player_props, props_status = carried, "stale"
@@ -73,6 +86,7 @@ def _build_week(season: int, week: int, previous: dict | None = None) -> dict:
         "predictions": predictions,
         "player_props": player_props,
         "player_props_status": props_status,
+        "player_props_out": out_players,
     }
 
 

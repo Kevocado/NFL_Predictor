@@ -250,6 +250,37 @@ def pytest_terminal_summary(terminalreporter):
         terminalreporter.write_line(line)
 
 
+@pytest.fixture(autouse=True)
+def _no_live_injury_feed(monkeypatch, request):
+    """Stub the injury-report seam for every test that does not set its own.
+
+    The props path now reads `data/injuries.fetch_injuries`, which calls
+    `nfl_data_py.import_injuries` -> `pandas.read_parquet` on a github.com URL.
+    That is the same class of leak this file's guard was written to catch, and it
+    arrived the same way: a data seam was added to a path and every test that
+    drives that path inherited the network call. Wiring it in produced nine
+    blocked connects across three files, all swallowed by the gate's own
+    `except Exception`, so every one of those tests would still have passed --
+    exactly the failure mode the conftest docstring describes.
+
+    Stubbing it once here rather than in each file's fixture means a future test
+    that drives the props path cannot leak by omission. The default is an EMPTY
+    report, which is also the neutral default for the gate itself: absent feed,
+    nobody removed. `tests/test_injuries.py` opts out because it is the file that
+    tests this function rather than its callers.
+    """
+    if request.module.__name__ == "test_injuries":
+        return
+    import pandas as pd
+
+    from nfl_predictor.data import injuries
+
+    monkeypatch.setattr(
+        injuries, "fetch_injuries",
+        lambda seasons, force_refresh=False: pd.DataFrame(columns=injuries.KEEP_COLUMNS),
+    )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _no_blocked_connects_may_survive_the_session():
     """Fail the run if a connection was attempted with the guard up.
