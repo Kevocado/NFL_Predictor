@@ -204,10 +204,21 @@ def test_every_prose_reference_is_a_comment_and_only_one_is_stale():
     # it are doing so in prose.
     outside_tracking = {f: n for f, n in prose_hits.items()
                         if not f.startswith("src/nfl_predictor/tracking/")}
-    assert outside_tracking == {"src/nfl_predictor/models/qb_passing_td.py": 1}, (
-        f"the set of files naming the deleted report outside tracking/ changed: "
-        f"{outside_tracking}. A new one needs a look; the models/ one is stale and "
-        "should be fixed by whoever next has models/ in scope."
+    stale_file = "src/nfl_predictor/models/qb_passing_td.py"
+    # **ZERO references outside tracking/ is the goal, not a failure.** Someone fixing
+    # the stale comment is the outcome this test wants, so it must not fail when they do:
+    # an assertion keyed on the stale reference existing turns the fix into a red test
+    # and teaches the next person to leave the lie in place. What IS rejected is a
+    # reference in some *other* file, and more than one in the known stale file (a second
+    # would be a new one hiding in the same place).
+    assert outside_tracking.get(stale_file, 0) <= 1, (
+        f"{stale_file} now names the deleted report {outside_tracking[stale_file]} times; "
+        "more than one means a new reference was added alongside the stale one"
+    )
+    unexpected = {f: n for f, n in outside_tracking.items() if f != stale_file}
+    assert not unexpected, (
+        f"files outside tracking/ now name the deleted report: {unexpected}. A new one "
+        "needs a look before it lands."
     )
     assert "src/nfl_predictor/tracking/store.py" in prose_hits, (
         "store.py no longer explains why the passing-TD columns and the grader route "
@@ -239,14 +250,29 @@ def _prose_lines(source: str) -> set[int]:
 def test_serving_still_writes_no_passing_td_row_and_the_record_has_no_slot_for_one():
     """The two halves of "there is no consumer", asserted against the live paths.
 
-    `routes` is read, not executed: importing it and walking its AST for the
-    `market=` literals it snapshots would be a stronger claim than a text match,
-    but the claim that matters is narrow and this makes it exactly -- the serving
-    snapshot writes `anytime_td` and the position markets, and `get_track_record`
-    reports `anytime_td` plus the yardage markets. Between them there is no
-    `passing_tds` row and no `passing_tds` section, so the deleted report had
-    nowhere to put a result even if someone had written rows for it.
+    Three checks, and the second one exists because of a hole a reviewer found in an
+    earlier draft of this test. Reading `routes.py` for a `"passing_tds"` literal was
+    not enough on its own: the snapshot loop iterates
+    `player_props.POSITION_MARKETS`, so adding `"passing_tds"` to that dict would
+    make serving write the rows with no `"passing_tds"` string anywhere in `routes.py`
+    at all, and the text check would have gone on passing while the premise of the
+    whole deletion quietly stopped being true. So the configured markets are asserted
+    too, by value rather than by reading the source of the dict's owner.
+
+    The third check is the other half: `get_track_record` reports `anytime_td` plus the
+    five yardage markets, so even a written row had nowhere to be summarised. Between
+    them: no writer, and no slot for a result.
     """
+    from nfl_predictor.models import player_props
+
+    configured = {m for markets in player_props.POSITION_MARKETS.values() for m in markets}
+    assert "passing_tds" not in configured, (
+        f"`POSITION_MARKETS` now offers {sorted(configured)}, so serving writes "
+        "`passing_tds` rows through the position-market loop and the text check on "
+        "routes.py below cannot see it. If that is deliberate the report has a writer "
+        "and belongs in _prop_markets, not in a deleted module."
+    )
+
     routes = (REPO_ROOT / "src/nfl_predictor/api/routes.py").read_text(encoding="utf-8")
     snapshot_block = routes[routes.index("prop_rows.append"):routes.index(
         "store.record_player_prop_predictions(prop_rows)")]
