@@ -197,9 +197,15 @@ class TestMainRefusesToWrite:
     counts: `workflow_dispatch` and a hand-run `python -m
     nfl_predictor.public_snapshot` both land here, and neither can skip it."""
 
-    def _isolate(self, monkeypatch, tmp_path, *, on_disk: str, built_at: str, trained_at: str) -> Any:
+    def _isolate(self, monkeypatch, tmp_path, *, on_disk: str | None, built_at: str, trained_at: str | None) -> Any:
+        # `on_disk=None` writes a snapshot with no `generated_at` key at all,
+        # which is a different defect from an unparseable one and is exercised
+        # separately: the gate must refuse both.
         path = tmp_path / "public_snapshot.json"
-        path.write_text(json.dumps(_payload(on_disk)))
+        body = {"season": 2026, "weeks": {}}
+        if on_disk is not None:
+            body["generated_at"] = on_disk
+        path.write_text(json.dumps(body))
         monkeypatch.setattr(config, "PUBLIC_SNAPSHOT_PATH", path)
         monkeypatch.setattr(ps.model_manifest, "load_manifest", lambda: _manifest(trained_at))
         monkeypatch.setattr(ps, "build_snapshot", lambda *a, **k: _payload(built_at))
@@ -269,6 +275,67 @@ class TestMainRefusesToWrite:
 
         monkeypatch.setattr(ps, "build_snapshot", fake_build)
         ps.main()
+        assert seen["previous_predates_models"] is False
+
+    def test_an_existing_artifact_of_unknown_age_is_treated_as_superseded(self, monkeypatch, tmp_path):
+        """CodeRabbit's Major, and it is right.
+
+        `gap is None` is the case where freshness cannot be established at all.
+        Treating that as "not stale" lets the builder reuse weeks from an artifact
+        whose provenance is exactly what is unknown, re-stamp it, and pass the
+        write-time gate -- the same silence the gate exists to catch, one layer
+        down. So an existing-but-undecidable prior snapshot rebuilds.
+        """
+        for on_disk, trained_at in (
+            ("not-a-timestamp", MODELS_TRAINED_AT),   # unreadable generated_at
+            (None, MODELS_TRAINED_AT),                 # no generated_at at all
+            ("2026-10-02T06:00:00+00:00", None),      # manifest says nothing
+        ):
+            self._isolate(
+                monkeypatch, tmp_path,
+                on_disk=on_disk,
+                built_at="2026-10-02T09:35:41.062814+00:00", trained_at=trained_at,
+            )
+            seen: dict[str, Any] = {}
+
+            def fake_build(previous=None, *, previous_predates_models=False):
+                seen["previous_predates_models"] = previous_predates_models
+                return _payload("2026-10-02T09:35:41.062814+00:00")
+
+            monkeypatch.setattr(ps, "build_snapshot", fake_build)
+            # With no readable `trained_at` the WRITE gate refuses too, and the
+            # refusal is the point: what matters here is the reuse decision, which
+            # is made before the build.
+            if trained_at is None:
+                with pytest.raises(ps.StaleSnapshotError):
+                    ps.main()
+            else:
+                ps.main()
+            assert seen["previous_predates_models"] is True, (
+                f"an existing snapshot with on_disk={on_disk!r} and "
+                f"trained_at={trained_at!r} cannot be shown to match the models, "
+                "so its rows must not be reused"
+            )
+
+    def test_an_absent_artifact_is_not_treated_as_superseded(self, monkeypatch, tmp_path):
+        """The asymmetry, and the reason it is a separate case: there is nothing to
+        reuse, so freshness of nothing is not in question and the rebuild window
+        is all there is. Treating this as superseded would rebuild every one of
+        the 22 weeks on a first run, which is what `key not in previous_weeks`
+        already does on its own."""
+        path = tmp_path / "public_snapshot.json"
+        monkeypatch.setattr(config, "PUBLIC_SNAPSHOT_PATH", path)
+        monkeypatch.setattr(ps.model_manifest, "load_manifest", lambda: _manifest())
+        seen: dict[str, Any] = {}
+
+        def fake_build(previous=None, *, previous_predates_models=False):
+            seen["previous"] = previous
+            seen["previous_predates_models"] = previous_predates_models
+            return _payload("2026-10-02T09:35:41.062814+00:00")
+
+        monkeypatch.setattr(ps, "build_snapshot", fake_build)
+        ps.main()
+        assert seen["previous"] is None
         assert seen["previous_predates_models"] is False
 
 

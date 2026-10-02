@@ -245,6 +245,12 @@ def _prop_shape_mismatch(week: dict, required: frozenset[str]) -> bool:
 # the current code could produce, and the public surface published all of them
 # with a healthy-looking `generated_at`.
 #
+#   Note the second half does not fire only on `trained_at > generated_at`. An
+#   existing snapshot whose age cannot be established at all -- no readable
+#   `generated_at`, a manifest with no `trained_at` -- cannot be shown to come
+#   from the current models either, so it is treated the same way. An ABSENT
+#   snapshot is different again and is left alone: there is nothing to reuse.
+#
 # It takes TWO halves, and the first alone would have been theatre.
 #
 #   1. `assert_publishable` refuses to WRITE a payload older than the models. It
@@ -386,14 +392,24 @@ def assert_publishable(snapshot: dict, manifest: dict | None) -> None:
 def build_snapshot(previous: dict | None = None, *, previous_predates_models: bool = False) -> dict:
     """Every week 1-22 plus the season-level sections, in one snapshot.
 
-    `previous_predates_models` says the caller has established that
-    `previous["generated_at"]` is older than `models/manifest.json`'s
-    `trained_at`. When it is true, every week that carries props is rebuilt and
-    no prop row or standings projection is carried forward from `previous`,
-    because those numbers were produced by a model this repository no longer
-    contains -- see the staleness gate above. It is a keyword argument rather
-    than a manifest read from here so this stays a function of its arguments;
-    `main` is the only caller that has both files in hand.
+    `previous_predates_models` says the caller has established that an existing
+    prior snapshot cannot safely supply model-derived data, either because its
+    `generated_at` is older than `models/manifest.json`'s `trained_at` or because
+    that timestamp is missing or unparseable. When it is true, every week that
+    carries props is rebuilt and no prop row or standings projection is carried
+    forward from `previous`, because those numbers may have been produced by a
+    model this repository no longer contains -- see the staleness gate above.
+
+    An unreadable timestamp counts as "cannot safely supply" rather than "is
+    fine": it is not evidence that the rows came from the current models, and
+    the whole cost of this bug class was treating silence as agreement. Note the
+    asymmetry with an ABSENT prior snapshot, which is different: there is nothing
+    to reuse, so the rebuild window is all there is and every week outside it is
+    built from scratch as it already was.
+
+    It is a keyword argument rather than a manifest read from here so this stays
+    a function of its arguments; `main` is the only caller that has both files in
+    hand.
     """
     season, current_week = routes.current_season_and_week()
     previous = previous or {}
@@ -587,8 +603,8 @@ def main() -> None:
     write of the published artifact passes through it, whoever makes it.
 
     The order matters. The snapshot already on disk is checked and LOGGED first,
-    but a stale one does not abort the run -- that file is what this run exists to
-    replace, so refusing to start would leave it unrepairable without a human
+    but an unsafe one does not abort the run -- that file is what this run exists
+    to replace, so refusing to start would leave it unrepairable without a human
     deleting it. Instead its verdict goes to `build_snapshot`, which then rebuilds
     every week that carries props instead of reusing the copy. The payload is
     checked again immediately before the write, and that one raises.
@@ -597,11 +613,24 @@ def main() -> None:
     manifest = model_manifest.load_manifest()
     print(f"  {describe_staleness(previous, manifest)}")
     gap = staleness_gap(previous, manifest)
-    previous_predates_models = gap is not None and gap > timedelta(0)
+    # `previous is not None` is load-bearing in its own right, and it is what
+    # separates two different situations. An ABSENT snapshot has nothing to
+    # reuse, so it changes nothing. An EXISTING one whose freshness cannot be
+    # established -- a missing or unparseable `generated_at`, or a manifest with
+    # no `trained_at` -- is not safe to take model-derived rows from: its
+    # provenance is exactly what is unknown, so silence is not agreement and it
+    # is rebuilt like a stale one. Without this, an unreadable timestamp would
+    # re-stamp an unprovenanced artifact as fresh and sail past the write-time
+    # gate below.
+    previous_predates_models = previous is not None and (gap is None or gap > timedelta(0))
     if previous_predates_models:
+        why = (
+            f"is {_format_gap(gap)} older than the models" if gap is not None
+            else "carries no readable age, so it cannot be shown to match the models"
+        )
         print(
-            f"  ! the published snapshot is {_format_gap(gap)} older than the models; rebuilding "
-            "every week that carries props and carrying no prop row or projection forward"
+            f"  ! the published snapshot {why}; rebuilding every week that carries props "
+            "and carrying no prop row or projection forward"
         )
     snapshot = sanitize_floats(
         jsonable_encoder(
