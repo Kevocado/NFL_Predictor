@@ -703,20 +703,31 @@ def test_served_passing_tds_roll_equals_the_training_row_for_the_same_week():
 def test_the_fitted_feature_list_is_a_subset_of_what_serving_emits():
     """The whole class, for this model and the player models around it.
 
-    Cheap because it is set arithmetic against a module constant -- no fitting,
-    no network. `load_models` runs the same check for real on every model in the
-    payload (`manifest._assert_servable_columns`).
+    Cheap because it is set arithmetic plus one call to the builder -- no fitting,
+    no network. `load_models` runs the same check for real on every artefact in the
+    payload (`manifest._assert_artefact_columns_are_served`), and
+    `tests/test_fitted_vs_served_columns.py` is the generic test for it.
+
+    **The serving set here is read by CALLING `build_features_for_player`, not by
+    reading `player_usage.SERVING_FEATURE_COLUMNS`.** That is a change, and it is
+    the substance of this fix: the old version compared two hand-written lists --
+    the constant against `MU_FEATURE_COLUMNS`/`PLAYER_FEATURE_COLUMNS` -- and
+    `load_models` then compared a third hand-written list against the same
+    constant, which is defined as `PLAYER_FEATURE_COLUMNS` plus
+    `passing_tds_roll`. Every one of those comparisons was a tautology over the
+    same declared data and none of them consulted the builder or a pickle. Asking
+    the builder what it emits is the first version of this assertion that can
+    fail, and the constant is now only cross-checked against it for agreement.
 
     The audit this came out of: `passing_tds_roll` was the only QB-model column
     missing from the serving builder, and nothing else in the manifest was
-    missing or extra -- the game side is audited separately by
-    `tests/test_build_features.py`, which asserts `build_features_for_game`
-    emits every `FEATURE_COLUMNS` entry.
+    missing or extra -- the game side is audited the same way, by
+    `manifest._game_serving_columns`.
     """
     from nfl_predictor.features import player_usage
     from nfl_predictor.models import manifest
 
-    served = set(player_usage.SERVING_FEATURE_COLUMNS)
+    served = set(manifest._player_serving_columns())
     assert set(qbt.MU_FEATURE_COLUMNS) | {player_usage.PASSING_TDS_ROLL_COLUMN} <= served
     assert set(player_usage.PLAYER_FEATURE_COLUMNS) <= served
     # Nothing fitted is served, nothing served is unfitted-but-modelled: the
@@ -724,8 +735,16 @@ def test_the_fitted_feature_list_is_a_subset_of_what_serving_emits():
     assert served - set(player_usage.PLAYER_FEATURE_COLUMNS) == {
         player_usage.PASSING_TDS_ROLL_COLUMN}
 
+    # And the declared constant still agrees with what the builder emits. If this
+    # ever fails, `SERVING_FEATURE_COLUMNS` has drifted -- which is worth knowing,
+    # because it is a public name in `player_usage`, but it is no longer what the
+    # load-time audit trusts.
+    assert set(player_usage.SERVING_FEATURE_COLUMNS) == served
+
     with pytest.raises(ValueError, match="does not emit"):
-        manifest._assert_servable_columns(["passing_tds_roll", "not_a_real_column"], "a test model")
+        manifest._assert_servable_columns(
+            ["passing_tds_roll", "not_a_real_column"], "a test model", served,
+            "player_usage.build_features_for_player")
 
 
 def test_expected_passing_tds_refuses_a_row_missing_a_fitted_column():
@@ -818,7 +837,8 @@ def test_a_manifest_that_declares_a_passing_td_model_requires_the_artifact(monke
 
     with pytest.raises(FileNotFoundError, match="missing"):
         manifest_mod._load_passing_td_model(
-            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}})
+            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}},
+            manifest_mod._player_serving_columns())
 
 
 @pytest.mark.parametrize("manifest_dict", [
@@ -833,7 +853,8 @@ def test_a_manifest_with_no_passing_td_model_serves_without_it(monkeypatch, tmp_
     monkeypatch.setattr(manifest_mod, "_artifact_path", lambda name: tmp_path / name)
     monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: pytest.fail("must not load"))
 
-    assert manifest_mod._load_passing_td_model(manifest_dict) is None
+    assert manifest_mod._load_passing_td_model(
+        manifest_dict, manifest_mod._player_serving_columns()) is None
 
 
 def test_a_present_artifact_is_loaded_and_checked(monkeypatch, tmp_path):
@@ -846,12 +867,40 @@ def test_a_present_artifact_is_loaded_and_checked(monkeypatch, tmp_path):
     monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: {
         "feature_cols": ["passing_tds_roll", "passing_yards_roll"], "model": object()})
 
+    serving = manifest_mod._player_serving_columns()
     fitted = manifest_mod._load_passing_td_model(
-        {"qb_passing_td": {"distribution": "poisson", "n_train": 100}})
+        {"qb_passing_td": {"distribution": "poisson", "n_train": 100}}, serving)
     assert fitted["feature_cols"][0] == "passing_tds_roll"
 
     monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: {
         "feature_cols": ["passing_tds_roll", "a_column_serving_lacks"], "model": object()})
     with pytest.raises(ValueError, match="does not emit"):
         manifest_mod._load_passing_td_model(
-            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}})
+            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}}, serving)
+
+
+@pytest.mark.parametrize("record", [
+    pytest.param({}, id="no_feature_cols_key"),
+    pytest.param({"feature_cols": []}, id="empty_feature_cols"),
+])
+def test_a_passing_td_payload_that_records_no_fitted_columns_is_refused(
+    monkeypatch, tmp_path, record
+):
+    """A payload whose fitted-column record is missing or empty must not serve.
+
+    The previous line here was `list(fitted.get("feature_cols") or [])`, which turns
+    both of these into an empty fitted list -- and an empty list is a subset of
+    anything, so the one artefact that actually CARRIES its own fitted columns was
+    exempted exactly when its record was unreadable. That is the same vacuous shape
+    the player-side guard had, and it is now a refusal.
+    """
+    from nfl_predictor.models import manifest as manifest_mod
+
+    (tmp_path / "qb_passing_td_model.pkl").write_bytes(b"stub")
+    monkeypatch.setattr(manifest_mod, "_artifact_path", lambda name: tmp_path / name)
+    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: dict(record))
+
+    with pytest.raises(ValueError, match="records no fitted feature columns"):
+        manifest_mod._load_passing_td_model(
+            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}},
+            manifest_mod._player_serving_columns())

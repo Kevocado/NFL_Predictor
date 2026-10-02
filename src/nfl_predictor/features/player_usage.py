@@ -24,10 +24,24 @@ DEFAULT_ROLL_WINDOW = 5
 #: :func:`with_passing_tds_roll` rather than rolling it a second time by hand.
 PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
 
-#: Every column `build_features_for_player` emits -- the fitted player features
-#: plus `passing_tds_roll`. Serving asserts each model's fitted feature list is a
-#: subset of this, so a column the training frame grows and the serving builder
-#: does not fails at load time instead of being served as `fillna(0)`.
+#: A DECLARATION of every column `build_features_for_player` emits -- the fitted
+#: player features plus `passing_tds_roll`.
+#:
+#: **This constant is no longer what the load-time audit compares against**, and
+#: that is the fix. It was: `models/manifest._assert_servable_columns` read it from
+#: inside its body while its one caller passed `PLAYER_FEATURE_COLUMNS`, and since
+#: this constant is DEFINED as `[*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]`
+#: the guard evaluated `X ⊆ X + 1` -- a tautology over the same declared data,
+#: reading neither `build_features_for_player` nor any pickle. It could not fail.
+#:
+#: `models/manifest._player_serving_columns` now CALLS `build_features_for_player`
+#: on a probe frame and uses what it returns. `build_features_for_player` is the
+#: thing serving actually calls, so it is the thing the audit has to ask.
+#:
+#: It is kept because it is a public name that documents the shape of a served row,
+#: and because a declared list that silently drifts is worth being able to compare
+#: against. `tests/test_qb_passing_td.py` asserts the two agree, so drift here is
+#: caught -- but it is a documentation constant now, not the guard.
 SERVING_FEATURE_COLUMNS = [*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
 
 #: Version of the `anytime_td` DEFINITION (not of the code -- of the label).
@@ -201,10 +215,41 @@ def build_features_for_player(
             # the target row in training (`with_passing_tds_roll`). It was fitted
             # on but never emitted here, so every QB was projected from
             # `fillna(0)` on this column -- a constant-zero feature against a
-            # fitted coefficient. See `SERVING_FEATURE_COLUMNS` and
-            # `models/manifest.py::load_models`, which now asserts the model's
-            # fitted columns are a subset of what this function emits.
+            # fitted coefficient.
+            #
+            # `models/manifest.py::_assert_artefact_columns_are_served`, reached
+            # from `load_models`, now audits this model's OWN fitted columns against
+            # what THIS FUNCTION returns -- read by calling it, not by reading
+            # `SERVING_FEATURE_COLUMNS`. Note that a subset rule alone would not
+            # have caught the original bug's inverse: the model records a column
+            # the builder does not emit, which is the subset direction, but a
+            # model missing a column is the direction that needs the exact
+            # comparison the audit also makes.
             PASSING_TDS_ROLL_COLUMN: float(prior["passing_tds"].mean())
             if not prior.empty else float("nan")
         }
     )
+
+
+# --- the load-time audit, and why it asks this function and not a constant ----
+#
+# `models/manifest.py` has two guards, and they check two different things. Both
+# are needed, and neither subsumes the other:
+#
+#   * `_verify_artifact_fingerprint` pins the manifest's DECLARED feature lists
+#     against the CODE's, and the `anytime_td` label version against the code's.
+#     It never opens a pickle, so it catches the code having moved on.
+#   * `_assert_artefact_columns_are_served` opens every artefact the payload ships
+#     and reads that artefact's OWN fitted columns -- `feature_names_in_`, or
+#     `feature_cols` for the mapping payloads -- and holds them against the columns
+#     THIS FUNCTION emits. It is the only check that can see a pickle which
+#     disagrees with its own manifest, which is exactly the case proven against
+#     `origin/main`: refit `anytime_td_model.pkl` on 3 of its 6 columns, leave the
+#     manifest and the fingerprint untouched, and `load_models()` returned
+#     normally.
+#
+# So the serving side of the second guard is `build_features_for_player`'s actual
+# output, read by calling it (`manifest._player_serving_columns`). It was the
+# `SERVING_FEATURE_COLUMNS` constant above, and comparing that to
+# `PLAYER_FEATURE_COLUMNS` -- its own first element -- is what made the old guard
+# vacuous.

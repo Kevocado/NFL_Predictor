@@ -6,6 +6,8 @@ import pytest
 
 from nfl_predictor.models import manifest
 
+from fitted_stand_ins import load_pickle as _servable_load_pickle
+
 
 def _code_game_features():
     """The code's game-level feature list, from `features.build.FEATURE_COLUMNS`.
@@ -123,15 +125,26 @@ def test_load_models_refuses_a_player_model_fitted_on_an_unservable_column(monke
 
     The fingerprint pins the manifest's list to `PLAYER_FEATURE_COLUMNS` before
     this check runs, so the surviving way to reach it is the code's own list
-    naming a column the serving builder does not emit. That is simulated by
-    narrowing `SERVING_FEATURE_COLUMNS`, which is precisely the shape of the
-    original bug: a column the training frame grew and the serving builder did
-    not. (Asserting the manifest's copy of the list instead would only re-prove
-    the fingerprint check.)
+    naming a column the serving builder does not emit. That is simulated by making
+    the builder stop emitting it, which is precisely the shape of the original
+    bug: a column the training frame grew and the serving builder did not.
+    (Asserting the manifest's copy of the list instead would only re-prove the
+    fingerprint check.)
+
+    **Narrowing the builder rather than `SERVING_FEATURE_COLUMNS` is the whole
+    point of the change, and it is why this test had to be rewritten rather than
+    left alone.** The old version monkeypatched that constant, because the old
+    guard read it -- and it passed, which looked like evidence the guard worked.
+    It was not: the guard compared `PLAYER_FEATURE_COLUMNS` against a constant
+    DEFINED as that same list plus one column, so the test was exercising a
+    hand-written list against a hand-written list and the real builder was never
+    consulted. `manifest._player_serving_columns` now CALLS
+    `build_features_for_player` instead, so this test narrows the builder and the
+    audit responds to the thing serving actually calls.
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     good = {"chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
@@ -142,11 +155,19 @@ def test_load_models_refuses_a_player_model_fitted_on_an_unservable_column(monke
     monkeypatch.setattr(manifest, "load_manifest", lambda: good)
     assert "anytime_td" in manifest.load_models()["player_models"]
 
-    # Serving stops emitting the last feature the code trains on.
+    # Serving stops emitting a column the code trains on. Named explicitly rather
+    # than sliced off the end, because the builder emits `passing_tds_roll` LAST
+    # and that column belongs only to the QB passing-TD model -- dropping it would
+    # not exercise the player-model path this test is about, and `iloc[:-1]` did
+    # exactly that.
+    dropped = cols[-1]
+    real_builder = manifest.player_usage.build_features_for_player
     monkeypatch.setattr(
-        manifest.player_usage, "SERVING_FEATURE_COLUMNS", cols[:-1])
-    with pytest.raises(ValueError, match="does not emit"):
+        manifest.player_usage, "build_features_for_player",
+        lambda *a, **k: real_builder(*a, **k).drop(labels=[dropped]))
+    with pytest.raises(ValueError, match="does not emit") as excinfo:
         manifest.load_models()
+    assert dropped in str(excinfo.value)
 
 
 # --- the artefact fingerprint: a stale model must not serve quietly ---------
@@ -177,7 +198,7 @@ def test_load_models_refuses_a_manifest_with_no_fingerprint(monkeypatch, tmp_pat
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     legacy = {"chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
               "sigma": 12.0, "total_sigma": 10.0, "feature_cols": _code_game_features(),
@@ -208,7 +229,7 @@ def test_load_models_refuses_an_artefact_fitted_before_a_feature_was_added(monke
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     stale_cols = code_cols[:-1]
@@ -246,7 +267,7 @@ def test_the_feature_mismatch_error_names_both_sides_and_the_fix(monkeypatch, tm
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     stale_cols = code_cols[:-1]
@@ -278,7 +299,7 @@ def test_load_models_accepts_a_fingerprint_that_matches_the_code(monkeypatch, tm
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
@@ -308,7 +329,7 @@ def test_load_models_refuses_a_manifest_whose_fingerprint_contradicts_its_own_fe
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     narrowed = code_cols[:1]
@@ -333,7 +354,7 @@ def test_load_models_refuses_an_artefact_fitted_on_a_different_feature_list(monk
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     stale_cols = ["passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll",
                   "targets_roll", "carries_roll"]
@@ -363,7 +384,7 @@ def test_load_models_refuses_an_artefact_fitted_on_the_old_anytime_td_label(monk
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     old_label = {
@@ -408,7 +429,7 @@ def test_bumping_the_label_version_invalidates_every_committed_artefact(monkeypa
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     payload = {
@@ -479,7 +500,7 @@ def test_load_models_accepts_a_game_feature_list_that_matches_the_code(monkeypat
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     game_cols = _code_game_features()
     player_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
@@ -520,7 +541,7 @@ def test_load_models_refuses_an_artefact_fitted_before_a_game_feature_was_added(
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     fitted_game_cols = _code_game_features()[:-1]  # the artefact is one short
     added = "playoff_flag"
@@ -573,7 +594,7 @@ def test_load_models_refuses_a_fingerprint_with_no_game_feature_list(monkeypatch
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     player_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     fingerprint = manifest.artifact_fingerprint(player_cols, _code_game_features())
@@ -608,7 +629,7 @@ def test_load_models_refuses_a_null_game_feature_list_rather_than_skipping_it(mo
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     player_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
@@ -640,7 +661,7 @@ def test_load_models_refuses_a_manifest_whose_game_fingerprint_contradicts_its_o
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     game_cols = _code_game_features()
     player_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
@@ -669,7 +690,7 @@ def test_adding_a_game_feature_to_the_code_stops_a_committed_artefact_serving(mo
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
 
     fitted_game_cols = _code_game_features()
     player_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)

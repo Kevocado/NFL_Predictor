@@ -17,6 +17,8 @@ import pandas as pd
 from nfl_predictor.api import routes
 from nfl_predictor.models import manifest
 
+from fitted_stand_ins import load_pickle as _servable_load_pickle
+
 NOW = datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc)
 
 
@@ -132,7 +134,7 @@ def test_model_version_combines_candidate_and_training_time():
     ) == "xgb@2026-09-04T22:12:49.750941+00:00"
 
 
-def test_load_models_exposes_the_version(monkeypatch):
+def test_load_models_exposes_the_version(monkeypatch, tmp_path):
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
         "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00", "sigma": 12.0,
         "total_sigma": 10.0, "feature_cols": list(manifest.feature_build.FEATURE_COLUMNS),
@@ -153,8 +155,18 @@ def test_load_models_exposes_the_version(monkeypatch):
             list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
             list(manifest.feature_build.FEATURE_COLUMNS)),
     })
-    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
-    monkeypatch.setattr(manifest, "_artifact_path", lambda name: object())
+    # Real estimators carrying the feature lists the committed artefacts carry, not
+    # `object()`. `load_models` now reads each artefact's own fitted columns, so a
+    # stand-in that records none is refused -- correctly, and this test is about
+    # `model_version`, not about the audit. See `tests/fitted_stand_ins.py`.
+    #
+    # `_artifact_path` is pointed at real paths, as it is in production, so the
+    # stand-in can tell a game artefact from a player one by filename. Left as a
+    # bare `object()` it could not, and every artefact came back player-shaped.
+    tmp_models = tmp_path / "models"
+    tmp_models.mkdir()
+    monkeypatch.setattr(manifest, "_load_pickle", _servable_load_pickle)
+    monkeypatch.setattr(manifest, "_artifact_path", lambda name: tmp_models / name)
 
     models = manifest.load_models()
 
