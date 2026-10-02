@@ -19,6 +19,7 @@ count distribution is chosen by fitting BOTH on history and comparing log loss.
 import numpy as np
 import pandas as pd
 import pytest
+from sklearn.linear_model import PoissonRegressor
 
 from nfl_predictor.models import qb_passing_td as qbt
 from nfl_predictor.tracking import qb_passing_td_record as record
@@ -815,17 +816,43 @@ def test_a_present_artifact_is_loaded_and_checked(monkeypatch, tmp_path):
 
     (tmp_path / "qb_passing_td_model.pkl").write_bytes(b"stub")
     monkeypatch.setattr(manifest_mod, "_artifact_path", lambda name: tmp_path / name)
-    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: {
-        "feature_cols": ["passing_tds_roll", "passing_yards_roll"], "model": object()})
 
+    # A real Poisson regresser fitted on two columns, which is what the audit now
+    # requires of a mapping payload. `"model": object()` was enough before, because
+    # nothing read the inner estimator: the audit corroborated a self-reported
+    # `feature_cols` against nothing and accepted it. It now corroborates against
+    # the estimator inside the same pickle -- by column names where the inner
+    # estimator has them, and otherwise by `n_features_in_`, which sklearn records
+    # even on a NumPy fit -- so the inner model has to be a model.
     serving = manifest_mod._player_serving_columns()
+
+    def _payload(cols, model):
+        return {"feature_cols": list(cols), "model": model}
+
+    def _poisson(n_cols):
+        return PoissonRegressor(alpha=1e-8, max_iter=1000).fit(
+            np.ones((8, n_cols)), np.ones(8))
+
+    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: _payload(
+        ["passing_tds_roll", "passing_yards_roll"], _poisson(2)))
+
     fitted = manifest_mod._load_passing_td_model(
         {"qb_passing_td": {"distribution": "poisson", "n_train": 100}}, serving)
     assert fitted["feature_cols"][0] == "passing_tds_roll"
 
-    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: {
-        "feature_cols": ["passing_tds_roll", "a_column_serving_lacks"], "model": object()})
+    # A fitted column serving cannot produce.
+    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: _payload(
+        ["passing_tds_roll", "a_column_serving_lacks"], _poisson(2)))
     with pytest.raises(ValueError, match="does not emit"):
+        manifest_mod._load_passing_td_model(
+            {"qb_passing_td": {"distribution": "poisson", "n_train": 100}}, serving)
+
+    # And a claim the wrapped model cannot corroborate -- here by COUNT, since a
+    # NumPy fit records no names. This is the case that used to reach
+    # `expected_passing_tds` and raise once per QB per request instead.
+    monkeypatch.setattr(manifest_mod, "_load_pickle", lambda path: _payload(
+        ["passing_tds_roll"], _poisson(2)))
+    with pytest.raises(ValueError, match="n_features_in_"):
         manifest_mod._load_passing_td_model(
             {"qb_passing_td": {"distribution": "poisson", "n_train": 100}}, serving)
 

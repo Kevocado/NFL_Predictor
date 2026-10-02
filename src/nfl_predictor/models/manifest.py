@@ -627,12 +627,17 @@ def _assert_artefact_columns_are_served(
     **What this does NOT claim.** `expected_cols` is `None` for the QB passing-TD
     artefact, because its fitted list is the payload's own free choice --
     `fit_qb_passing_td_model` takes its columns from `X` as given -- and nothing
-    outside that pickle states what it ought to be. So the QB artefact is audited
-    for recording something and for every recorded column being emitted, and NOT
-    for matching any particular list. A QB payload that is self-consistently
-    fitted on fewer columns than the committed one is not detectable here; it
-    fails later, inside scikit-learn, on the feature count. No guarantee is being
-    stated about that case.
+    outside that pickle states what it ought to be. So no particular list is
+    required of it. It is still held to three things: that it records something,
+    that every recorded column is emitted, and that the record agrees with the
+    estimator inside the same pickle -- by column names where the inner estimator
+    has them, and otherwise by `n_features_in_`, which is recorded even on a NumPy
+    fit. So a `feature_cols` list shorter than the wrapped model was actually
+    fitted on IS caught, and would otherwise have reached `expected_passing_tds`
+    and raised once per QB per request. What is genuinely not checkable is WHICH
+    columns: a NumPy-fitted inner model records a count and no names, so a payload
+    whose four names are the wrong four is indistinguishable from a correct one.
+    No guarantee is stated about that.
 
     `allow_unfitted` is set only for the Elo candidate, and only
     `_is_elo_candidate` can satisfy it.
@@ -679,9 +684,23 @@ def _assert_artefact_columns_are_served(
     # and differ, the payload was assembled from two different fits and neither
     # list can be taken at face value.
     #
-    # The inner read is guarded too, and `None` from it is NOT treated as
-    # agreement: an inner estimator with no readable record leaves the payload's
-    # own claim uncorroborated, and this is the only place it could be corroborated.
+    # The inner read is guarded too. Two fallbacks, because a mapping payload's own
+    # `feature_cols` is SELF-REPORTED and is the list `expected_passing_tds`
+    # reindexes the live row by -- so it is the record that governs serving, and
+    # accepting it uncorroborated is how a payload that was assembled from two
+    # different fits would slip through:
+    #
+    #   * the inner estimator's own column NAMES, when it has any. It does not in
+    #     the committed payload: `fit_qb_passing_td_model` fits its Poisson
+    #     regressor from a NumPy array, so `feature_names_in_` is absent.
+    #   * failing that, its `n_features_in_`, which IS recorded on a NumPy fit and
+    #     does not depend on names. It cannot corroborate WHICH columns, but it can
+    #     corroborate HOW MANY -- and a `feature_cols` list shorter than the model
+    #     was actually fitted on is exactly the case that no name comparison could
+    #     see, because there are no names. Before this fallback that case reached
+    #     `expected_passing_tds`, which reindexes to the short list and hands a
+    #     narrow matrix to a wider model: one `ValueError` per QB per request,
+    #     forever, instead of once at load.
     if isinstance(artefact, Mapping) and "feature_cols" in artefact:
         inner = artefact.get("model")
         inner_fitted = None
@@ -695,14 +714,46 @@ def _assert_artefact_columns_are_served(
                     f"'feature_cols' claims {list(fitted)}. Re-run training "
                     "(`python -m nfl_predictor.models.manifest`)."
                 ) from exc
-        if inner_fitted and list(inner_fitted) != list(fitted):
-            raise ValueError(
-                f"{model_name} disagrees with itself: the payload's 'feature_cols' is "
-                f"{list(fitted)} but the model inside it was fitted on {list(inner_fitted)}. "
-                "Serving reindexes by the payload's list, so the two disagreeing means the "
-                "model would be scored on columns it was not fitted on. Re-run training "
-                "(`python -m nfl_predictor.models.manifest`)."
-            )
+
+        # `inner_fitted` being `None` means the inner estimator recorded no column
+        # names, which is the NORMAL state for the committed QB payload -- its
+        # Poisson regressor is fitted from a NumPy array. That is why the
+        # corroboration is the two-branch form rather than one unconditional
+        # comparison: with names, compare them; without, fall back to the count.
+        # An earlier version of this branch skipped corroboration entirely when
+        # `inner_fitted` was `None`, while the comment beside it claimed `None` was
+        # not treated as agreement. The comment was wrong, and so was the code: it
+        # accepted a self-reported `feature_cols` of any length, including one
+        # shorter than the wrapped model was fitted on.
+        if inner is not None and inner_fitted:
+            if list(inner_fitted) != list(fitted):
+                raise ValueError(
+                    f"{model_name} disagrees with itself: the payload's 'feature_cols' is "
+                    f"{list(fitted)} but the model inside it was fitted on {list(inner_fitted)}. "
+                    "Serving reindexes by the payload's list, so the two disagreeing means the "
+                    "model would be scored on columns it was not fitted on. Re-run training "
+                    "(`python -m nfl_predictor.models.manifest`)."
+                )
+        else:
+            # No names on the inner estimator, so the COUNT is all that is left --
+            # and `n_features_in_` is recorded even on a NumPy fit, so it is
+            # available in exactly the case names are not. A missing
+            # `n_features_in_` means the artefact predates sklearn recording it,
+            # which is a reason to refuse rather than to skip: the claim cannot be
+            # corroborated at all, and this audit exists because an uncorroborated
+            # claim is what let `anytime_td_model.pkl` ship fitted on 3 of its 6
+            # columns.
+            n_features_in = getattr(inner, "n_features_in_", None)
+            if n_features_in is None or int(n_features_in) != len(fitted):
+                raise ValueError(
+                    f"{model_name}'s 'feature_cols' claims {len(fitted)} columns "
+                    f"({list(fitted)}) but the model inside it reports "
+                    f"n_features_in_={n_features_in!r}, so the payload's own record "
+                    "cannot be corroborated against the artefact it wraps. Serving "
+                    "reindexes every live row by 'feature_cols', so an uncorroborated "
+                    "list is scored on features the model was never fitted on. Re-run "
+                    "training (`python -m nfl_predictor.models.manifest`)."
+                )
 
     if expected_cols is not None and list(fitted) != list(expected_cols):
         raise ValueError(
