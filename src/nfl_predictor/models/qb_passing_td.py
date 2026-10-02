@@ -218,27 +218,51 @@ def _nb_alpha_nll(log_alpha: float, y: np.ndarray, mu: np.ndarray) -> float:
 def fit_qb_passing_td_model(X: pd.DataFrame, y: pd.Series) -> dict:
     """Fit BOTH count distributions on QB history and choose by log loss.
 
-    **Measured outcome on the real 2018-2024 QB history (4,501 usable
+    **Measured outcome on the real 2018-2025 QB history (5,179 usable
     player-weeks): POISSON WINS, and the reason is worth recording.**
 
-    Raw QB passing TDs are mildly overdispersed -- mean 1.2868, variance
-    1.3950, a variance-to-mean ratio of **1.084** -- which on its own argues for
+    Every number quoted here is read back out of the committed artefact
+    (`models/manifest.json` -> `qb_passing_td`), and
+    `tests/test_qb_passing_td.py::test_the_fit_docstring_quotes_only_the_committed_artefact`
+    fails if this docstring and that file disagree. It is checked rather than
+    trusted because this paragraph is exactly where the numbers went stale: it
+    described the artefact as it was BEFORE the 2026-10-02 retrain onto the
+    anytime-TD label v2 features, and nothing in the repository noticed, because
+    prose is not asserted by default. A comment that lies about the artefact it
+    describes is worse than no comment, because it is the one a reader trusts.
+
+    That test also asserts the pre-retrain numbers are GONE rather than merely
+    corrected, which is why they are not named here: a paragraph that quotes a
+    superseded figure in order to say it is superseded still puts that figure in
+    front of every reader who skims, and it is a number this file cannot keep
+    honest.
+
+    Raw QB passing TDs are mildly overdispersed -- a variance-to-mean ratio of
+    **1.0888** (`variance_ratio` in the manifest) -- which on its own argues for
     negative binomial. But that ratio is unconditional. Once the mean is
     conditioned on the usage features (rolling passing TDs, passing yards,
-    rushing yards, receiving yards) the Pearson dispersion falls to **0.950**:
-    *underdispersed*. There is no extra spread left over for a dispersion
-    parameter to explain, so the NB2 fit correctly drives alpha to the top of
-    its range and converges onto Poisson.
+    rushing yards, receiving yards) the conditional Pearson dispersion falls
+    *below* 1: underdispersed. There is no extra spread left over for a
+    dispersion parameter to explain, so the NB2 fit correctly drives alpha to the
+    top of its range and converges onto Poisson. The artefact records `alpha:
+    null` for exactly that reason.
 
-        in-sample    Poisson 1.390881   negative binomial 1.390881
-        2024 holdout Poisson 1.367863   negative binomial 1.367863
-        (n = 686)     delta = -1.6e-07 in Poisson's favour
+        in-sample    Poisson 1.392621   negative binomial 1.392621
+                     delta = 2.4e-07 in Poisson's favour
 
     Both are fitted, both numbers are returned, and the lower one wins -- which
-    here is Poisson by a margin of 1.6e-07. That is a real tie for practical
+    here is Poisson by a margin of 2.4e-07. That is a real tie for practical
     purposes, and it is reported as the tie it is rather than dressed up as a
     decisive result. Poisson is also the simpler of the two, so a tie going to
     it is the right default rather than an arbitrary one.
+
+    What is NOT quoted: the unconditional mean and variance, the conditional
+    Pearson dispersion, and any holdout score. The artefact records the
+    variance-to-mean ratio and the two in-sample log losses and nothing else,
+    and a number this function does not write to `models/manifest.json` cannot be
+    kept honest by any test -- so it is not stated as one here. The holdout block
+    this paragraph used to carry was left over from the superseded pre-retrain
+    fit and has gone with the rest.
 
     Poisson first (it is the mean model and the NB mean is held at it), then the
     NB2 dispersion fitted by MLE on the same rows. Both are scored as mean
