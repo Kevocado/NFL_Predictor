@@ -435,9 +435,34 @@ def live(monkeypatch):
         facts_mod.routes, "_load_game_history",
         lambda season: pd.DataFrame([{"game_id": "other", "rating_diff": 0.0, "home_rest_days": 6, "away_rest_days": 6}]),
     )
+    # Not stubbed: `routes._load_models_cached` runs the real `manifest.load_models`
+    # against the committed artefacts. That is deliberate -- this fixture stubs the
+    # feature builder because a live facts request would otherwise need a schedule
+    # fetch, but the model load itself is local and cheap, and stubbing it would
+    # have hidden the fact that `manifest.load_models` calls
+    # `build_features_for_game` too.
+    #
+    # It is also why a `X does not have valid feature names` UserWarning appears
+    # under this fixture: `_predict_game_from_models` scores the committed Ridge on
+    # `X.to_numpy()`, which drops the column names scikit-learn was fitted with.
+    # That is pre-existing production behaviour -- serving has always gone through
+    # `.to_numpy()` -- and not something this change introduced.
+    # Emits EVERY `features.build.FEATURE_COLUMNS` entry, not just the four the
+    # assertions below happen to read.
+    #
+    # `manifest.load_models` calls `build_features_for_game` to learn what serving
+    # actually emits, so this stub is not a private detail of the facts route -- it
+    # IS the serving builder as far as the fitted-vs-served audit is concerned. A
+    # four-column stub is a builder that genuinely stopped emitting six columns the
+    # committed game models are fitted on, and the audit correctly refuses to serve
+    # under it. The real builder emits all ten.
     monkeypatch.setattr(
         facts_mod.routes.feature_build, "build_features_for_game",
-        lambda home, away, history: pd.Series({"rating_diff": 7.0, "home_rest_days": 6, "away_rest_days": 6, "div_game": False}),
+        lambda home, away, history: pd.Series(
+            {c: float(i + 1) for i, c in enumerate(facts_mod.routes.feature_build.FEATURE_COLUMNS)}
+            | {"rating_diff": 7.0, "home_rest_days": 6, "away_rest_days": 6},
+            dtype=float,
+        ),
     )
     monkeypatch.setattr(
         facts_mod.store, "get_track_record",
