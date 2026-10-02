@@ -10,18 +10,39 @@ Named coverage, one test per claim the reviewer made:
 * the line is a half point >= 0.5 and is the nearest half point to mu
 * P(over) + P(under) == 1
 * the side is the side with the higher probability
-* over/under grading against a known stat line
-* the pick record round-trips line and side
+* push cannot occur on a half-point line
+* the pick record round-trips line and side through SQLite
 
-Plus the two structural claims: push cannot occur on a half-point line, and the
-count distribution is chosen by fitting BOTH on history and comparing log loss.
+Plus the count distribution chosen by fitting BOTH on history and comparing log
+loss, and the train/serve feature parity.
+
+**What is deliberately absent.** The report that graded these picks into a track
+record, `nfl_predictor.tracking.qb_passing_td_record`, was deleted: nothing
+wrote a `market="passing_tds"` row and nothing read the report, so it was a
+feature-shaped module with no feature behind it. Its grading and counting tests
+went with it. `tests/test_passing_td_record_absence.py` pins that the module is
+gone and unreferenced, so putting it back has to be a decision rather than an
+accident. What is left here is only what the model and `store` really do.
 """
 import numpy as np
 import pandas as pd
 import pytest
 
 from nfl_predictor.models import qb_passing_td as qbt
-from nfl_predictor.tracking import qb_passing_td_record as record
+
+
+def _is_half_point(line) -> bool:
+    """Whether `line` ends in .5, spelled out locally.
+
+    This used to be `qb_passing_td_record.line_is_half_point`, imported from the
+    module that recorded the picks. It is four lines of arithmetic about the line
+    grid, and the claim it supports is `model_line` landing on that grid -- so it
+    belongs beside the test. It also keeps the deleted module's push-impossibility
+    argument alive: see `test_a_whole_number_line_would_be_a_push` below.
+    """
+    value = float(line)
+    doubled = value * 2
+    return abs(doubled - round(doubled)) < 1e-9 and abs(value - round(value)) == 0.5
 
 
 # --- helpers ---------------------------------------------------------------
@@ -78,7 +99,7 @@ def test_model_line_is_the_nearest_half_point_to_mu_and_never_below_half(mu, exp
 def test_model_line_is_always_on_the_half_point_grid_at_or_above_half(mu):
     line = qbt.model_line(mu)
     assert line >= 0.5
-    assert record.line_is_half_point(line), f"{line} is not a half point"
+    assert _is_half_point(line), f"{line} is not a half point"
     # And it really is the NEAREST half point, not merely some half point: no
     # other point on the grid is closer to mu. The 0.5 floor is the one
     # documented exception, so it is excluded from the comparison rather than
@@ -163,12 +184,49 @@ def test_a_half_point_line_can_never_be_push():
         for kind, alpha in (("poisson", None), ("negative_binomial", 1.0)):
             call = qbt.passing_td_call(mu, qbt.DistributionSpec(kind, alpha=alpha))
             line = call["line"]
-            assert record.line_is_half_point(line), "line must end in .5"
+            assert _is_half_point(line), "line must end in .5"
             assert line != int(line)
             assert call["over_prob"] + call["under_prob"] == pytest.approx(1.0, abs=1e-12)
 
 
-# --- 4. grading over/under against a known stat line -----------------------
+def test_a_whole_number_line_would_be_a_push():
+    """The counterpart to the test above, and the reason it is structural.
+
+    A whole-number line has an integer sitting on it. On a line of 1.0, a
+    quarterback who throws exactly one passing TD makes `actual == line`, so
+    neither `actual > line` nor `actual < line` holds and the pick has no verdict:
+    a real push, and a record that cannot grade it. `model_line`'s whole job is to
+    make that unreachable, so this asserts the grid it lands on is the one that
+    excludes the case -- not that the grid is merely nearby. Spelled out because
+    the deleted record module used to assert this at grade time, and that
+    assertion went with it; the property has to outlive the module.
+    """
+    whole = 1.0
+    exact = 1.0
+    assert not _is_half_point(whole)
+    assert not (exact > whole or exact < whole), (
+        "a whole-number line admits the tie that makes a pick ungradeable"
+    )
+
+    # And every line the model can produce excludes it: all of them end in .5, and
+    # no integer equals a number ending in .5.
+    for mu in (0.2, 1.0, 1.8, 2.3, 4.0, 7.0, 9.9):
+        line = qbt.model_line(mu)
+        assert _is_half_point(line), f"model_line({mu}) = {line} is gradeable only by luck"
+        assert all(count != line for count in range(0, 30)), (
+            f"an integer count equals the line {line}, so a push is reachable"
+        )
+
+
+# --- 4. the pick record round-trips line and side -----------------------------
+#
+# These two moved here from the deleted module's section and are kept, because
+# what they assert is `store.record_player_prop_predictions` -- real, reachable
+# code that round-trips the optional `line`/`line_source`/`side`/`mu`/`call_prob`
+# columns. What they do NOT assert is that anything in serving fills those
+# columns: `routes.background_tracking_tick` writes no `passing_tds` row, so on
+# the live database all five are NULL. The columns are a format, ready for a
+# writer; see the note on `_PASSING_TD_PROP_COLUMNS` in `tracking/store.py`.
 
 
 def _record_call(player_id="q1", line=2.5, side="under", mu=2.3, prob=0.6):
@@ -177,91 +235,6 @@ def _record_call(player_id="q1", line=2.5, side="under", mu=2.3, prob=0.6):
         "position": "QB", "market": qbt.PASSING_TD_MARKET, "predicted_value": mu,
         "line": line, "side": side, "mu": mu, "call_prob": prob,
     }
-
-
-def test_over_call_hits_when_actual_passing_tds_clear_the_line():
-    summary = record.summarize_passing_td_calls(pd.DataFrame([
-        {**_record_call("q1", line=2.5, side="over"),
-         "resolved": 1, "actual_value": 3.0, "snapshotted_at": "2025-01-01T00:00:00"},
-    ]))
-    row = summary["per_pick"][0]
-    assert row["hit"] is True
-    assert row["actual_passing_tds"] == 3.0
-    assert summary["hit_rate_when_called"] == 1.0
-
-
-def test_over_call_misses_when_actual_passing_tds_fall_under_the_line():
-    summary = record.summarize_passing_td_calls(pd.DataFrame([
-        {**_record_call("q1", line=2.5, side="over"),
-         "resolved": 1, "actual_value": 2.0, "snapshotted_at": "2025-01-01T00:00:00"},
-    ]))
-    assert summary["per_pick"][0]["hit"] is False
-    assert summary["hit_rate_when_called"] == 0.0
-
-
-def test_under_call_hits_when_actual_passing_tds_fall_under_the_line():
-    summary = record.summarize_passing_td_calls(pd.DataFrame([
-        {**_record_call("q1", line=2.5, side="under"),
-         "resolved": 1, "actual_value": 2.0, "snapshotted_at": "2025-01-01T00:00:00"},
-    ]))
-    assert summary["per_pick"][0]["hit"] is True
-
-
-def test_under_call_misses_when_actual_passing_tds_clear_the_line():
-    summary = record.summarize_passing_td_calls(pd.DataFrame([
-        {**_record_call("q1", line=2.5, side="under"),
-         "resolved": 1, "actual_value": 3.0, "snapshotted_at": "2025-01-01T00:00:00"},
-    ]))
-    assert summary["per_pick"][0]["hit"] is False
-
-
-def test_a_line_of_two_and_a_half_grades_two_as_under_and_three_as_over():
-    """The boundary itself, spelled out, because a half-point line is the only
-    reason push is impossible and that is worth pinning on real numbers."""
-    for actual, expected_hit in ((2, True), (3, False)):
-        summary = record.summarize_passing_td_calls(pd.DataFrame([
-            {**_record_call("q1", line=2.5, side="under"),
-             "resolved": 1, "actual_value": float(actual),
-             "snapshotted_at": "2025-01-01T00:00:00"},
-        ]))
-        assert summary["per_pick"][0]["hit"] is expected_hit
-        assert summary["per_pick"][0]["actual_passing_tds"] == actual
-
-
-def test_grading_counts_only_the_earliest_pick_per_game_player_and_market():
-    """The NFL #25 rule: one counted prop pick per (game, player_id, market),
-    the earliest recorded. player_id is in the key -- two players in one game on
-    one market are two picks, not one."""
-    frame = pd.DataFrame([
-        {**_record_call("q1", line=2.5, side="under"),
-         "resolved": 1, "actual_value": 3.0, "snapshotted_at": "2025-01-02T00:00:00"},
-        {**_record_call("q1", line=1.5, side="over"),
-         "resolved": 1, "actual_value": 3.0, "snapshotted_at": "2025-01-01T00:00:00"},
-        {**_record_call("q2", line=2.5, side="under"),
-         "resolved": 1, "actual_value": 1.0, "snapshotted_at": "2025-01-01T06:00:00"},
-    ])
-    summary = record.summarize_passing_td_calls(frame)
-
-    assert summary["n_resolved"] == 2, "two players in one game are two picks"
-    assert len(summary["per_pick"]) == 2
-    counted = {r["player_id"]: r for r in summary["per_pick"]}
-    # q1's EARLIEST pick is the 01-01 over at line 1.5, not the later under.
-    assert counted["q1"]["line"] == 1.5
-    assert counted["q1"]["side"] == "over"
-    assert counted["q1"]["hit"] is True
-    assert counted["q2"]["hit"] is True
-
-
-def test_an_empty_frame_is_an_empty_record_not_a_crash():
-    summary = record.summarize_passing_td_calls(
-        pd.DataFrame(columns=["game_id", "player_id", "market", "line", "side", "mu",
-                              "call_prob", "resolved", "actual_value", "snapshotted_at"]))
-    assert summary["n_resolved"] == 0
-    assert summary["hit_rate_when_called"] is None
-    assert summary["per_pick"] == []
-
-
-# --- 5. the pick record round-trips line and side --------------------------
 
 
 def test_pick_record_round_trips_line_and_side_through_sqlite(tmp_path, monkeypatch):

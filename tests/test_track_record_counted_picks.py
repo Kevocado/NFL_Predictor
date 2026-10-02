@@ -474,14 +474,24 @@ def test_the_all_picks_key_survives_and_still_means_every_counted_pick():
 
 
 def _insert_prop(*, game_id, player_id, market, predicted_value, actual_value, snapshotted_at,
-                 commence_time, position="RB"):
+                 commence_time, position="RB", label_version=None):
     """A resolved prop row, plus the unresolved game row that carries its kickoff.
 
     The prop table has no `commence_time`, so the store joins it to `game_predictions` on
     `game_id` to derive `made_before_kickoff`. The game row is `resolved = 0` deliberately: this
     fixture is about the prop record, and a resolved game row would also land in the games
     headline.
+
+    `label_version` defaults to the CURRENT `anytime_td` definition, read from the constant so
+    the fixture cannot rot when the definition is bumped -- a row resolved today carries it.
+    These tests are about the COUNTING rule; the rows-graded-before-the-column-existed path
+    lands in the `label_version: null` bucket and is covered in
+    `tests/test_anytime_td_label_version.py`.
     """
+    from nfl_predictor.features import player_usage
+
+    if label_version is None and market == "anytime_td":
+        label_version = player_usage.ANYTIME_TD_LABEL_VERSION
     with contextlib.closing(store._connect()) as conn, conn:
         conn.execute(
             "INSERT OR IGNORE INTO game_predictions (game_id, home_team, away_team, commence_time, "
@@ -490,13 +500,14 @@ def _insert_prop(*, game_id, player_id, market, predicted_value, actual_value, s
             (game_id, commence_time, commence_time),
         )
         conn.execute(
-            """
+            f"""
             INSERT OR IGNORE INTO player_prop_predictions
                 (game_id, player_id, player_name, market, predicted_value, snapshotted_at,
-                 resolved, actual_value, position)
-            VALUES (?, ?, 'Player', ?, ?, ?, 1, ?, ?)
+                 resolved, actual_value, position, {store.LABEL_VERSION_COLUMN})
+            VALUES (?, ?, 'Player', ?, ?, ?, 1, ?, ?, ?)
             """,
-            (game_id, player_id, market, predicted_value, snapshotted_at, actual_value, position),
+            (game_id, player_id, market, predicted_value, snapshotted_at, actual_value, position,
+             label_version),
         )
 
 
@@ -563,15 +574,18 @@ def test_a_prop_row_whose_game_is_absent_is_counted_and_labelled_not_pre_kickoff
     """A prop row with no game_predictions row to compare against cannot be proven pre-kickoff,
     so it is not labelled pre-kickoff -- and it is still counted, because it is a recorded pick.
     The fail-closed label must not become an exclusion the reversal removed."""
+    from nfl_predictor.features import player_usage
+
     with contextlib.closing(store._connect()) as conn, conn:
         conn.execute(
-            """
+            f"""
             INSERT INTO player_prop_predictions
                 (game_id, player_id, player_name, market, predicted_value, snapshotted_at,
-                 resolved, actual_value, position)
+                 resolved, actual_value, position, {store.LABEL_VERSION_COLUMN})
             VALUES ('orphan', 'p1', 'Player', 'anytime_td', 0.7, '2099-09-01T00:00:00+00:00',
-                    1, 1.0, 'WR')
-            """
+                    1, 1.0, 'WR', ?)
+            """,
+            (player_usage.ANYTIME_TD_LABEL_VERSION,),
         )
 
     props = store.get_track_record(current_week=3, season=2026)["player_props"]

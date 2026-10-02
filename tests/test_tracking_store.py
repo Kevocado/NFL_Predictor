@@ -971,17 +971,30 @@ def _insert_game(game_id, commence_time):
 
 
 def _insert_prop(game_id, player_id, snapshotted_at, market="rushing_yards",
-                 predicted=85.0, resolved=False, actual=None):
+                 predicted=85.0, resolved=False, actual=None, label_version=None):
+    """A prop row, stamped the way the grader stamps one.
+
+    `label_version` defaults to the CURRENT `anytime_td` definition, which is what a row
+    resolved today carries. It is passed explicitly rather than hardcoded so the fixture
+    does not rot when the definition is bumped. Rows graded before the column existed
+    carry NULL and are reported in the `label_version: null` bucket instead -- that path
+    is covered by `tests/test_anytime_td_label_version.py`, not here, because these tests
+    are about the counting rule and the null bucket would put every one of them in it.
+    """
+    from nfl_predictor.features import player_usage
+
+    if label_version is None and market == "anytime_td":
+        label_version = player_usage.ANYTIME_TD_LABEL_VERSION
     with contextlib.closing(store._connect()) as conn, conn:
         conn.execute(
-            """
+            f"""
             INSERT OR IGNORE INTO player_prop_predictions
                 (game_id, player_id, player_name, market, predicted_value, snapshotted_at,
-                 resolved, actual_value)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 resolved, actual_value, {store.LABEL_VERSION_COLUMN})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (game_id, player_id, f"Player {player_id}", market, predicted,
-             snapshotted_at, 1 if resolved else 0, actual),
+             snapshotted_at, 1 if resolved else 0, actual, label_version),
         )
 
 
@@ -1094,6 +1107,12 @@ def test_the_prop_summary_counts_post_kickoff_rows_and_reports_the_pre_kickoff_s
     assert props["pre_kickoff"]["anytime_td"]["brier_score"] is None
     # One post-kickoff row per family, so each market's headline is its pre-kickoff figure plus
     # one -- and n_rebuilt is the sum of those, never per-market.
+    #
+    # For `anytime_td` this holds only because every row in this fixture carries the same label
+    # version. It is not a general identity for that market: a row graded under an older
+    # `anytime_td` definition is still counted, but it lands in `by_label_version` rather than the
+    # headline, so the identity can be false. See `_summarize_player_props`. What is general, and
+    # what these tests are for, is the counting rule.
     for market in ("rushing_yards", "anytime_td"):
         assert props[market]["n_resolved"] == props["pre_kickoff"][market]["n_resolved"] + 1
     assert props["n_rebuilt"] == 2
