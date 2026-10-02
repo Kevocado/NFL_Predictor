@@ -237,6 +237,27 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
     The error names both sides, because "your model is stale" is not actionable
     on its own and the whole cost of this bug class was that nothing said
     anything at all.
+
+    **The feature half is compared against the CODE, not against the manifest.**
+    The first version built its expectation as
+    `artifact_fingerprint(manifest.get("player_feature_cols") or [])`, so
+    `expected_features` was a copy of the manifest's own
+    `player_feature_cols` while `fitted_features` came out of the manifest's
+    `artifact_fingerprint`: the manifest was compared with itself. It passed for
+    exactly the artefact it exists to catch -- add a column to `ROLL_STATS`
+    (hence to `PLAYER_FEATURE_COLUMNS`), do not retrain, and the committed
+    manifest and its fingerprint still agree with each other on the old shorter
+    list, so `load_models` served models fitted on features the code has moved
+    past. It read green only because the committed artefact happened to be up to
+    date; a guard that is right by coincidence is not a guard.
+
+    `player_usage.PLAYER_FEATURE_COLUMNS` is the authority instead, because it is
+    the one thing training and serving both derive from: `train_all` fits the
+    player models on the list `build_player_training_frame` returns (that
+    constant) and `player_props.predict_props` reindexes a live row by
+    `manifest["player_feature_cols"]`, which the fingerprint check below now
+    pins to it. The label-version half below was always read from the code and is
+    left exactly as it was.
     """
     recorded = manifest.get("artifact_fingerprint")
     if recorded is None:
@@ -248,15 +269,40 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
             "(`python -m nfl_predictor.models.manifest`) to write one."
         )
 
-    current = artifact_fingerprint(manifest.get("player_feature_cols") or [])
+    # The code's own fingerprint: `PLAYER_FEATURE_COLUMNS` from the source, and
+    # the label version from the source. Nothing here is read out of the
+    # manifest, because a check whose expectation comes from the artefact it is
+    # checking cannot detect the artefact drifting from the code -- see the
+    # docstring.
+    current = artifact_fingerprint(player_usage.PLAYER_FEATURE_COLUMNS)
     expected_features = current["player_feature_cols"]
-    fitted_features = recorded.get("player_feature_cols")
-    if list(fitted_features or []) != expected_features:
+    fitted_features = list(recorded.get("player_feature_cols") or [])
+    if fitted_features != expected_features:
         raise ValueError(
             f"{MANIFEST_PATH} records models fitted on {fitted_features} but the "
-            f"code's player features are now {expected_features}. The committed "
+            f"code's player features are now {expected_features} "
+            f"({player_usage.__name__}.PLAYER_FEATURE_COLUMNS). The committed "
             "pickles were fitted on a different feature set, so every prediction "
             "would come from a stale model. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`)."
+        )
+
+    # The fingerprint and the manifest's own `player_feature_cols` are written
+    # from one value at fit time, so they must still agree -- and this is not
+    # belt-and-braces. `load_models` hands `player_models["feature_cols"]` to
+    # `player_props.predict_props`, which reindexes every live row by the
+    # manifest's list, not by the fingerprint's. A manifest whose top-level list
+    # had drifted would therefore score a 6-column model on a narrower feature
+    # set while the check above stayed green, which is the same silent
+    # degradation from the other direction.
+    manifest_features = list(manifest.get("player_feature_cols") or [])
+    if manifest_features != fitted_features:
+        raise ValueError(
+            f"{MANIFEST_PATH} records an artefact fingerprint fitted on "
+            f"{fitted_features} but its own 'player_feature_cols' is "
+            f"{manifest_features}. Serving reindexes every player row by the "
+            "manifest's list, so the two disagreeing means the models would be "
+            "scored on features they were not fitted on. Re-run training "
             "(`python -m nfl_predictor.models.manifest`)."
         )
 
@@ -369,7 +415,17 @@ def load_models() -> dict:
     # Before anything is unpickled: a stale artefact is cheaper to refuse here
     # than to serve. See `_verify_artifact_fingerprint`.
     _verify_artifact_fingerprint(manifest)
-    _assert_servable_columns(manifest["player_feature_cols"], "the player models (anytime_td, yardage)")
+    # Against the CODE's list, not the manifest's. `_verify_artifact_fingerprint`
+    # has just pinned `manifest["player_feature_cols"]` to
+    # `player_usage.PLAYER_FEATURE_COLUMNS`, so re-asserting the manifest's copy
+    # would only re-prove that. Asserting the constant states the thing that is
+    # still open: every column the player models are trained on has to be one
+    # `build_features_for_player` emits. The QB passing-TD model cannot be
+    # covered from here and is asserted in `_load_passing_td_model` against its
+    # own `feature_cols` -- it is fitted on `passing_tds_roll`, which is
+    # deliberately NOT in `PLAYER_FEATURE_COLUMNS`, and that is precisely how it
+    # shipped fitted-but-unserved.
+    _assert_servable_columns(player_usage.PLAYER_FEATURE_COLUMNS, "the player models (anytime_td, yardage)")
     player_models = {
         "feature_cols": manifest["player_feature_cols"],
         "anytime_td": _load_pickle(_artifact_path(ANYTIME_TD_MODEL_FILENAME)),

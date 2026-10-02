@@ -136,17 +136,17 @@ def test_load_models_exposes_the_version(monkeypatch):
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
         "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00", "sigma": 12.0,
         "total_sigma": 10.0, "feature_cols": ["rating_diff"],
-        # A real serving column, not a placeholder: `load_models` asserts every
-        # fitted player column is one `build_features_for_player` emits, and "p"
-        # is not one.
-        "player_feature_cols": ["passing_yards_roll"],
+        # The CODE's player features, not a placeholder and not an arbitrary one:
+        # `load_models` refuses a payload whose artefact fingerprint disagrees
+        # with `player_usage.PLAYER_FEATURE_COLUMNS` (see
+        # `manifest._verify_artifact_fingerprint`), so a hand-built manifest has
+        # to carry the real list to get past that guard -- and with it,
+        # `assert every fitted player column is one build_features_for_player
+        # emits`, which "p" is not.
+        "player_feature_cols": list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
         "yardage_metrics": [],
-        # This hand-built manifest has to carry a matching fingerprint, because
-        # `load_models` now refuses a payload it cannot verify against the code
-        # serving it (see `manifest._verify_artifact_fingerprint`). Taken over the
-        # same column list so that guard passes and this test still measures the
-        # version string it is about.
-        "artifact_fingerprint": manifest.artifact_fingerprint(["passing_yards_roll"]),
+        "artifact_fingerprint": manifest.artifact_fingerprint(
+            list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)),
     })
     monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
     monkeypatch.setattr(manifest, "_artifact_path", lambda name: object())
