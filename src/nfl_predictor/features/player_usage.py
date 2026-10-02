@@ -9,8 +9,48 @@ import pandas as pd
 ROLL_STATS = ["passing_yards", "rushing_yards", "receiving_yards", "targets", "carries", "receptions"]
 PLAYER_FEATURE_COLUMNS = [f"{stat}_roll" for stat in ROLL_STATS]
 
+#: The window every rolling feature uses, in training and at serving alike.
+DEFAULT_ROLL_WINDOW = 5
 
-def _add_rolling(df: pd.DataFrame, window: int = 5) -> pd.DataFrame:
+#: `passing_tds_roll` -- the rolling passing-TD count the QB passing-TD model
+#: (`models/qb_passing_td.py`) is fitted on.
+#:
+#: It is deliberately NOT in `ROLL_STATS`, so it is not in
+#: `PLAYER_FEATURE_COLUMNS`: that list is what the anytime-TD classifier and
+#: every yardage regressor are fitted on and what `predict_props` indexes by
+#: name, so adding a column to it would change the feature count of every
+#: already-committed model. It is computed and served as its own column
+#: instead, and `models/manifest.py` reads it through
+#: :func:`with_passing_tds_roll` rather than rolling it a second time by hand.
+PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
+
+#: Every column `build_features_for_player` emits -- the fitted player features
+#: plus `passing_tds_roll`. Serving asserts each model's fitted feature list is a
+#: subset of this, so a column the training frame grows and the serving builder
+#: does not fails at load time instead of being served as `fillna(0)`.
+SERVING_FEATURE_COLUMNS = [*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
+
+
+def with_passing_tds_roll(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.DataFrame:
+    """`df` plus `passing_tds_roll`, on `_add_rolling`'s exact discipline.
+
+    Same `shift(1).rolling(window, min_periods=1).mean()` per player, for the same
+    reason the other rolled stats use it: a pregame feature cannot know the game
+    being predicted. It exists as one function so the training column and the
+    column `build_features_for_player` emits cannot drift apart -- which is
+    precisely how `passing_tds_roll` came to be fitted on and served as a
+    constant zero.
+
+    Returns a copy sorted by `["player_id", "season", "week"]` with a fresh index,
+    like `_add_rolling`. `df` must have a unique index.
+    """
+    df = df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
+    df[PASSING_TDS_ROLL_COLUMN] = df.groupby("player_id")["passing_tds"].transform(
+        lambda s: s.shift(1).rolling(window, min_periods=1).mean())
+    return df
+
+
+def _add_rolling(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.DataFrame:
     df = df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
     grouped = df.groupby("player_id")
     for stat in ROLL_STATS:
@@ -31,7 +71,7 @@ def build_features_for_player(
     player_stats_df: pd.DataFrame,
     season: int | None = None,
     week: int | None = None,
-    window: int = 5,
+    window: int = DEFAULT_ROLL_WINDOW,
 ) -> pd.Series | None:
     """Pregame rolling features for one player, matching the training discipline.
 
@@ -98,5 +138,19 @@ def build_features_for_player(
         {
             f"{stat}_roll": float(prior[stat].mean()) if not prior.empty else float("nan")
             for stat in ROLL_STATS
+        }
+        | {
+            # `passing_tds_roll`, the QB passing-TD model's own rolling feature,
+            # on the same discipline as every neighbour above: the mean of the
+            # `window` games strictly before the target week, which is exactly
+            # what `shift(1).rolling(window, min_periods=1).mean()` produces for
+            # the target row in training (`with_passing_tds_roll`). It was fitted
+            # on but never emitted here, so every QB was projected from
+            # `fillna(0)` on this column -- a constant-zero feature against a
+            # fitted coefficient. See `SERVING_FEATURE_COLUMNS` and
+            # `models/manifest.py::load_models`, which now asserts the model's
+            # fitted columns are a subset of what this function emits.
+            PASSING_TDS_ROLL_COLUMN: float(prior["passing_tds"].mean())
+            if not prior.empty else float("nan")
         }
     )

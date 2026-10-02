@@ -22,6 +22,15 @@ So nothing here invents a target column: it projects the existing `passing_tds`
 column, using a rolling feature built from the same pregame discipline the rest
 of the player features use.
 
+`passing_tds_roll` is deliberately kept out of `PLAYER_FEATURE_COLUMNS` -- that
+list is what the anytime-TD classifier and every yardage regressor are fitted on,
+so widening it would change the feature count of every already-committed model --
+and is emitted by `build_features_for_player` as its own column instead. It is
+the model's first fitted column, and `models/manifest.py` asserts at fit and at
+load that the whole fitted list is a subset of what the serving builder emits. An
+earlier version of this branch fitted on it and emitted nothing, so every QB was
+projected from `fillna(0)` on it.
+
 The "model line", and what it is not
 ------------------------------------
 `model_line(mu)` is the nearest half point to the model's own expectation. It is
@@ -60,11 +69,7 @@ MODEL_LINE_SOURCE = "model_line"
 #: expressible as an over/under, and 0.0 is not a bettable line.
 MIN_MODEL_LINE = 0.5
 
-#: Rolling stats the mu model reads. `passing_tds` is deliberately NOT here as a
-#: feature of itself at serving time: the pregame row is built by
-#: `player_usage.build_features_for_player`, which does not emit it. The model
-#: takes the yardage/usage features that row already carries and learns the TD
-#: rate from them.
+#: Rolling usage stats the mu model reads, on top of `passing_tds_roll` itself.
 MU_FEATURE_COLUMNS = ["passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll"]
 
 
@@ -288,8 +293,24 @@ def expected_passing_tds(fitted: dict, feature_row: pd.Series) -> float:
 
     Reindexes onto the columns the model was fitted on, so a row missing a
     feature cannot silently shift every column by one.
+
+    A fitted column **absent** from the row raises rather than being filled. The
+    reindex cannot tell a missing column from a null value, so `fillna(0)` used to
+    cover both, and the missing-column half is what served every QB from a
+    constant-zero `passing_tds_roll`. A null *value* on a present column is a
+    different case -- a player with no prior games in scope -- and still fills,
+    because `routes` already skips those players before they reach here.
+    `load_models` asserts the same subset property for the whole payload at load
+    time; this is the per-row backstop.
     """
-    cols = fitted["feature_cols"]
+    cols = list(fitted["feature_cols"])
+    missing = [c for c in cols if c not in feature_row.index]
+    if missing:
+        raise KeyError(
+            f"the QB passing-TD model was fitted on {cols}, which the served feature row does "
+            f"not carry: {missing}. Scoring it anyway would fill {missing} with 0.0 -- the "
+            "fitted-a-feature-served-as-constant-zero defect, per player."
+        )
     X = feature_row.reindex(cols).fillna(0).to_numpy(dtype=float).reshape(1, -1)
     return max(float(fitted["model"].predict(X)[0]), 0.0)
 

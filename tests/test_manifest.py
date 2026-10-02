@@ -96,6 +96,31 @@ def test_train_all_rejects_training_data_without_walk_forward_fold(monkeypatch, 
         manifest.train_all(seasons=[2024])
 
 
+def test_load_models_refuses_a_player_model_fitted_on_an_unservable_column(monkeypatch, tmp_path):
+    """The general guard, at the entry point that matters.
+
+    `predict_props` scores a live row with `reindex(feature_cols).fillna(0)`, so a
+    fitted column the serving builder cannot emit is served as a constant zero for
+    every player and every week -- which is exactly how `passing_tds_roll` shipped
+    fitted-but-unserved. `load_models` now refuses the payload instead.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+
+    good = {"chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
+            "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+            "player_feature_cols": ["passing_yards_roll"], "yardage_metrics": [],
+            "qb_passing_td": None}
+    monkeypatch.setattr(manifest, "load_manifest", lambda: good)
+    assert "anytime_td" in manifest.load_models()["player_models"]
+
+    bad = {**good, "player_feature_cols": ["passing_yards_roll", "passing_tds_roll_not_emitted"]}
+    monkeypatch.setattr(manifest, "load_manifest", lambda: bad)
+    with pytest.raises(ValueError, match="does not emit"):
+        manifest.load_models()
+
+
 def test_load_models_ignores_stale_yardage_artifacts_after_retrain(monkeypatch, tmp_path):
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")

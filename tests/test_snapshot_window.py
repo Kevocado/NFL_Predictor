@@ -135,7 +135,11 @@ def test_model_version_combines_candidate_and_training_time():
 def test_load_models_exposes_the_version(monkeypatch):
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
         "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00", "sigma": 12.0,
-        "total_sigma": 10.0, "feature_cols": ["rating_diff"], "player_feature_cols": ["p"],
+        "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        # A real serving column, not a placeholder: `load_models` asserts every
+        # fitted player column is one `build_features_for_player` emits, and "p"
+        # is not one.
+        "player_feature_cols": ["passing_yards_roll"],
         "yardage_metrics": [],
     })
     monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
