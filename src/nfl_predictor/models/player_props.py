@@ -9,6 +9,8 @@ from __future__ import annotations
 import pandas as pd
 from xgboost import XGBClassifier, XGBRegressor
 
+from . import qb_passing_td
+
 YARDAGE_TARGETS = {
     "passing_yards": "passing_yards",
     "rushing_yards": "rushing_yards",
@@ -53,5 +55,27 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
     for market in POSITION_MARKETS.get(position, []):
         if market in models:
             result[market] = float(models[market].predict(X)[0])
+
+    # QB passing TDs: a count, so an over/under call rather than a yardage point
+    # estimate, and QB-only. Every field is flattened onto the same props row the
+    # yardage markets use, because that is the shape the payload already has --
+    # see `qb_passing_td.py` for the field meanings and the frontend contract.
+    #
+    # Omitted entirely when the model is absent (an artifact directory trained
+    # before this existed), exactly as a yardage market with no model is.
+    if position == "QB" and qb_passing_td.PASSING_TD_MARKET in models:
+        call = qb_passing_td.qb_passing_td_call(
+            models[qb_passing_td.PASSING_TD_MARKET], feature_row)
+        if call is not None:
+            result.update({
+                "passing_td_line": call["line"],
+                "passing_td_line_source": call["line_source"],
+                "passing_td_side": call["side"],
+                "passing_td_mu": call["mu"],
+                "passing_td_over_prob": call["over_prob"],
+                "passing_td_under_prob": call["under_prob"],
+                "passing_td_prob": call["call_prob"],
+                "passing_td_distribution": call["distribution"],
+            })
 
     return result

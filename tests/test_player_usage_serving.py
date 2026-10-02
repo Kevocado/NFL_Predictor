@@ -36,6 +36,7 @@ import pytest
 
 from nfl_predictor.features.player_usage import (
     PLAYER_FEATURE_COLUMNS,
+    SERVING_FEATURE_COLUMNS,
     build_features_for_player,
     build_player_training_frame,
 )
@@ -167,7 +168,13 @@ def test_serving_without_a_season_filter_keeps_the_old_behaviour():
     history = _history([(2024, 1, 100.0), (2024, 2, 200.0)])
     served = build_features_for_player("p1", history)
     assert served is not None
-    assert set(served.index) == set(PLAYER_FEATURE_COLUMNS)
+    # Superset, not equality: the builder also emits `passing_tds_roll`, which the
+    # QB passing-TD model is fitted on. `PLAYER_FEATURE_COLUMNS` itself is
+    # unchanged -- it is what the anytime-TD classifier and the yardage
+    # regressors are fitted on, so widening it would change their feature count.
+    assert set(served.index) == set(SERVING_FEATURE_COLUMNS)
+    assert set(PLAYER_FEATURE_COLUMNS) < set(served.index)
+    assert "passing_tds_roll" not in PLAYER_FEATURE_COLUMNS
 
 
 def test_roster_fallback_row_is_not_a_fabricated_zero_vector():

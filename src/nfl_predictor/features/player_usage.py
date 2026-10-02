@@ -9,8 +9,58 @@ import pandas as pd
 ROLL_STATS = ["passing_yards", "rushing_yards", "receiving_yards", "targets", "carries", "receptions"]
 PLAYER_FEATURE_COLUMNS = [f"{stat}_roll" for stat in ROLL_STATS]
 
+#: The window every rolling feature uses, in training and at serving alike.
+DEFAULT_ROLL_WINDOW = 5
 
-def _add_rolling(df: pd.DataFrame, window: int = 5) -> pd.DataFrame:
+#: `passing_tds_roll` -- the rolling passing-TD count the QB passing-TD model
+#: (`models/qb_passing_td.py`) is fitted on.
+#:
+#: It is deliberately NOT in `ROLL_STATS`, so it is not in
+#: `PLAYER_FEATURE_COLUMNS`: that list is what the anytime-TD classifier and
+#: every yardage regressor are fitted on and what `predict_props` indexes by
+#: name, so adding a column to it would change the feature count of every
+#: already-committed model. It is computed and served as its own column
+#: instead, and `models/manifest.py` reads it through
+#: :func:`with_passing_tds_roll` rather than rolling it a second time by hand.
+PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
+
+#: Every column `build_features_for_player` emits -- the fitted player features
+#: plus `passing_tds_roll`. Serving asserts each model's fitted feature list is a
+#: subset of this, so a column the training frame grows and the serving builder
+#: does not fails at load time instead of being served as `fillna(0)`.
+SERVING_FEATURE_COLUMNS = [*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
+
+#: Version of the `anytime_td` DEFINITION (not of the code -- of the label).
+#: Bump this whenever `anytime_td_actual`'s arithmetic changes. It is recorded in
+#: the manifest at fit time and checked at load time by
+#: `models/manifest._verify_artifact_fingerprint`, so an artefact fitted against
+#: a different definition raises instead of serving quietly.
+#:
+#: 1 = `rushing_tds + receiving_tds + passing_tds > 0` (superseded).
+#: 2 = `rushing_tds + receiving_tds > 0` (2026-10-01; passing TDs excluded).
+ANYTIME_TD_LABEL_VERSION = 2
+
+
+def with_passing_tds_roll(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.DataFrame:
+    """`df` plus `passing_tds_roll`, on `_add_rolling`'s exact discipline.
+
+    Same `shift(1).rolling(window, min_periods=1).mean()` per player, for the same
+    reason the other rolled stats use it: a pregame feature cannot know the game
+    being predicted. It exists as one function so the training column and the
+    column `build_features_for_player` emits cannot drift apart -- which is
+    precisely how `passing_tds_roll` came to be fitted on and served as a
+    constant zero.
+
+    Returns a copy sorted by `["player_id", "season", "week"]` with a fresh index,
+    like `_add_rolling`. `df` must have a unique index.
+    """
+    df = df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
+    df[PASSING_TDS_ROLL_COLUMN] = df.groupby("player_id")["passing_tds"].transform(
+        lambda s: s.shift(1).rolling(window, min_periods=1).mean())
+    return df
+
+
+def _add_rolling(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.DataFrame:
     df = df.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
     grouped = df.groupby("player_id")
     for stat in ROLL_STATS:
@@ -18,11 +68,55 @@ def _add_rolling(df: pd.DataFrame, window: int = 5) -> pd.DataFrame:
     return df
 
 
+def anytime_td_actual(rushing_tds, receiving_tds) -> float:
+    """Ground truth for the `anytime_td` market, as 0.0 or 1.0.
+
+    THE definition, in one function, because this quantity has to be computed in
+    two places that must never disagree:
+
+    * `build_player_training_frame` below, to produce the classifier's target;
+    * `tracking/store.reconcile_player_prop_predictions`, to grade a stored
+      prediction. The grader used to carry its own inline copy of the sum, so
+      changing the label here alone would have left the grader resolving the
+      market against the OLD definition -- every QB's pick scored against a truth
+      the model was not fitted on. A grader that disagrees with the model is
+      worse than either definition on its own.
+
+    `anytime_td` = **rushing TDs + receiving TDs, and nothing else.** Passing TDs
+    are deliberately EXCLUDED (decided 2026-10-01; both call sites previously
+    summed `passing_tds` in as well).
+
+    The reason is that the two are not the same market. "Anytime TD" reads to a
+    user as a rushing-or-receiving score, but with passing included it fired on
+    passing alone, so a quarterback's anytime-TD was dominated by his arm and
+    quarterbacks sorted to the top of a category whose name never mentions
+    passing. Passing TDs are a separate market with their own per-player model
+    line: `models/qb_passing_td.py`, served as `passing_td_*` fields on QB rows
+    by `player_props.predict_props` and graded through the same store under the
+    `"passing_tds"` market. Nothing is lost by dropping it here -- the same
+    `passing_tds` column still feeds `with_passing_tds_roll` for that model.
+
+    Scalars or a Series; missing values read as 0, matching the `fillna(0)` the
+    training frame applies and the `(x or 0)` the grader used. Returns a float
+    for scalars and a float Series for a Series, so the grader's per-row call and
+    the frame-level call share one arithmetic expression.
+    """
+    if isinstance(rushing_tds, pd.Series):
+        rushing, receiving = rushing_tds.fillna(0), receiving_tds.fillna(0)
+    else:
+        rushing = 0 if rushing_tds is None or pd.isna(rushing_tds) else rushing_tds
+        receiving = 0 if receiving_tds is None or pd.isna(receiving_tds) else receiving_tds
+    scored = (rushing + receiving) > 0
+    return scored.astype(float) if isinstance(rushing_tds, pd.Series) else float(scored)
+
+
 def build_player_training_frame(player_stats_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     df = _add_rolling(player_stats_df)
-    df["anytime_td"] = (
-        (df["rushing_tds"].fillna(0) + df["receiving_tds"].fillna(0) + df["passing_tds"].fillna(0)) > 0
-    ).astype(int)
+
+    # The LABEL only. `PLAYER_FEATURE_COLUMNS` is untouched, so no model changes
+    # shape; and `predict_props` scores a live row from features alone, so the
+    # only artefact affected is one refitted against this label.
+    df["anytime_td"] = anytime_td_actual(df["rushing_tds"], df["receiving_tds"]).astype(int)
     return df, PLAYER_FEATURE_COLUMNS
 
 
@@ -31,7 +125,7 @@ def build_features_for_player(
     player_stats_df: pd.DataFrame,
     season: int | None = None,
     week: int | None = None,
-    window: int = 5,
+    window: int = DEFAULT_ROLL_WINDOW,
 ) -> pd.Series | None:
     """Pregame rolling features for one player, matching the training discipline.
 
@@ -98,5 +192,19 @@ def build_features_for_player(
         {
             f"{stat}_roll": float(prior[stat].mean()) if not prior.empty else float("nan")
             for stat in ROLL_STATS
+        }
+        | {
+            # `passing_tds_roll`, the QB passing-TD model's own rolling feature,
+            # on the same discipline as every neighbour above: the mean of the
+            # `window` games strictly before the target week, which is exactly
+            # what `shift(1).rolling(window, min_periods=1).mean()` produces for
+            # the target row in training (`with_passing_tds_roll`). It was fitted
+            # on but never emitted here, so every QB was projected from
+            # `fillna(0)` on this column -- a constant-zero feature against a
+            # fitted coefficient. See `SERVING_FEATURE_COLUMNS` and
+            # `models/manifest.py::load_models`, which now asserts the model's
+            # fitted columns are a subset of what this function emits.
+            PASSING_TDS_ROLL_COLUMN: float(prior["passing_tds"].mean())
+            if not prior.empty else float("nan")
         }
     )

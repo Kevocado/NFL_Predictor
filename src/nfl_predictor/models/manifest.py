@@ -13,12 +13,13 @@ from ..data import player_stats, schedules
 from ..evaluate import walk_forward
 from ..features import build as feature_build
 from ..features import player_usage
-from . import game_outcome, player_props
+from . import game_outcome, player_props, qb_passing_td
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
 GAME_MODEL_FILENAME = "game_outcome_model.pkl"
 TOTAL_MODEL_FILENAME = "total_points_model.pkl"
 ANYTIME_TD_MODEL_FILENAME = "anytime_td_model.pkl"
+PASSING_TD_MODEL_FILENAME = "qb_passing_td_model.pkl"
 
 DEFAULT_TRAIN_SEASONS = 8
 
@@ -40,6 +41,59 @@ def _artifact_path(filename: str):
 
 def _yardage_model_path(market: str):
     return _artifact_path(f"{market}_model.pkl")
+
+
+def _fit_qb_passing_td(player_train_df: pd.DataFrame) -> dict | None:
+    """Fit the QB passing-TD count model, or None when there is no QB history.
+
+    The rolling TD column is built by `player_usage.with_passing_tds_roll`, not by
+    a second hand-rolled transform here. The reason it is not simply appended to
+    `PLAYER_FEATURE_COLUMNS` is unchanged -- that list is what the anytime-TD
+    classifier and every yardage regressor are fitted on and what `predict_props`
+    indexes by name, so widening it would silently change the feature count of
+    every model already committed -- but the column itself now has exactly one
+    implementation, shared with `build_features_for_player`. It previously had
+    two: one here, and none at serving, so every QB was projected from
+    `fillna(0)` on a feature the model had a fitted coefficient for.
+    """
+    qb = player_train_df[player_train_df["position"] == "QB"].copy()
+    if qb.empty:
+        return None
+    # Same shift(1)-then-rolling discipline as `_add_rolling`, for the same
+    # reason: a pregame feature cannot know the game being predicted. Built
+    # through `player_usage` so it cannot drift from the column
+    # `build_features_for_player` emits at serving time.
+    qb = player_usage.with_passing_tds_roll(qb)
+
+    cols = [player_usage.PASSING_TDS_ROLL_COLUMN, *qb_passing_td.MU_FEATURE_COLUMNS]
+    # Asserted at fit time as well as at load time: a model that cannot be served
+    # should not be written to disk in the first place.
+    _assert_servable_columns(cols, "the QB passing-TD model")
+    usable = qb.dropna(subset=cols, how="all")
+    if usable.empty:
+        return None
+    fitted = qb_passing_td.fit_qb_passing_td_model(
+        usable[cols].fillna(0), usable["passing_tds"])
+    return fitted
+
+
+def _passing_td_manifest_entry(fitted: dict | None) -> dict | None:
+    """The passing-TD model's provenance for the manifest, or None.
+
+    Both log losses are written, not just the winner's: the choice between
+    Poisson and negative binomial is only meaningful if the losing number is
+    inspectable, and a manifest that records one number cannot be re-checked
+    against the history later.
+    """
+    if fitted is None:
+        return None
+    return {
+        "distribution": fitted["distribution"],
+        "log_loss": fitted["log_loss"],
+        "alpha": fitted["alpha"],
+        "n_train": fitted["n_train"],
+        "variance_ratio": fitted["variance_ratio"],
+    }
 
 
 def train_all(seasons: list[int] | None = None) -> dict:
@@ -107,6 +161,21 @@ def train_all(seasons: list[int] | None = None) -> dict:
         _save_pickle(model, path)
         yardage_metrics[market] = {"n_train": int(len(subset))}
 
+    # QB passing-TD projection. QBs only, on the rolling features a pregame
+    # feature row carries. `passing_tds_roll` IS in the model: it is emitted by
+    # `player_usage.build_features_for_player` on the same shift(1)-then-rolling
+    # discipline it is trained on here, and `_assert_servable_columns` below
+    # refuses to save a model whose fitted columns the serving builder cannot
+    # produce. This comment previously said the opposite -- that the column was
+    # "deliberately absent" from the model because serving did not emit it -- and
+    # the code beside it fitted on it anyway, so every QB was served a zero for a
+    # column the model had a fitted coefficient for.
+    passing_td = _fit_qb_passing_td(player_train_df)
+    if passing_td is None:
+        _artifact_path(PASSING_TD_MODEL_FILENAME).unlink(missing_ok=True)
+    else:
+        _save_pickle(passing_td, _artifact_path(PASSING_TD_MODEL_FILENAME))
+
     manifest = {
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "seasons": sorted(int(s) for s in seasons),
@@ -118,9 +187,92 @@ def train_all(seasons: list[int] | None = None) -> dict:
         "sigma": sigma,
         "total_sigma": total_sigma,
         "yardage_metrics": yardage_metrics,
+        "qb_passing_td": _passing_td_manifest_entry(passing_td),
+        "artifact_fingerprint": artifact_fingerprint(player_feature_cols),
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
     return manifest
+
+
+def artifact_fingerprint(player_feature_cols: list[str]) -> dict:
+    """What an artefact must agree with to be servable, recorded at fit time.
+
+    The silent-degradation case this exists to close, measured on the artefact
+    this branch started from: `models/manifest.json` listed 5
+    `player_feature_cols` while the code had 6 (the 6th, `receptions_roll`, had
+    been added), and `anytime_td_model.pkl` was fitted on 5. `load_models()`
+    returned that payload without complaint and every prediction came out of a
+    model that no longer matched the code.
+
+    Two reasons that was invisible, and this checks both:
+
+    * `_assert_servable_columns` tests `fitted ⊆ SERVING`. The stale 5 columns
+      ARE a subset of the 7 servable columns, so the one guard that existed
+      passed. A subset test cannot see an artefact that is missing a feature.
+    * The label is never recomputed at serving. `predict_props` scores the
+      committed pickle from features alone, so an artefact fitted against the
+      OLD `anytime_td` definition serves exactly like one fitted against the
+      new one -- right shape, wrong meaning, no error anywhere.
+
+    So the fingerprint pins the *meaning*, not just the shape:
+    `player_feature_cols` (exact list, not a subset), and
+    `anytime_td_label_version` from `player_usage`. Bump the version whenever the
+    definition changes, and every artefact fitted before that bump stops loading
+    loudly instead of quietly.
+    """
+    return {
+        "player_feature_cols": list(player_feature_cols),
+        "anytime_td_label_version": player_usage.ANYTIME_TD_LABEL_VERSION,
+    }
+
+
+def _verify_artifact_fingerprint(manifest: dict) -> None:
+    """Raise when the committed artefacts disagree with the code they serve under.
+
+    Called from `load_models`. A manifest written before this check existed has
+    no `artifact_fingerprint` key at all, and that is treated as a FAILURE, not a
+    pass -- the absence of a fingerprint is exactly the state this is detecting,
+    so skipping the check when it is missing would defeat it.
+
+    The error names both sides, because "your model is stale" is not actionable
+    on its own and the whole cost of this bug class was that nothing said
+    anything at all.
+    """
+    recorded = manifest.get("artifact_fingerprint")
+    if recorded is None:
+        raise ValueError(
+            f"{MANIFEST_PATH} has no 'artifact_fingerprint' key, so the committed "
+            "models cannot be verified against the code that serves them. It was "
+            "written before fingerprinting existed, and an unverified artefact is "
+            "the case this check exists to catch. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`) to write one."
+        )
+
+    current = artifact_fingerprint(manifest.get("player_feature_cols") or [])
+    expected_features = current["player_feature_cols"]
+    fitted_features = recorded.get("player_feature_cols")
+    if list(fitted_features or []) != expected_features:
+        raise ValueError(
+            f"{MANIFEST_PATH} records models fitted on {fitted_features} but the "
+            f"code's player features are now {expected_features}. The committed "
+            "pickles were fitted on a different feature set, so every prediction "
+            "would come from a stale model. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`)."
+        )
+
+    expected_version = current["anytime_td_label_version"]
+    fitted_version = recorded.get("anytime_td_label_version")
+    if fitted_version != expected_version:
+        raise ValueError(
+            f"{MANIFEST_PATH} records the anytime-TD model fitted against label "
+            f"definition v{fitted_version}, but the code now defines v{expected_version} "
+            f"({player_usage.__name__}.ANYTIME_TD_LABEL_VERSION). The committed model "
+            "predicts a different market than the one being served or graded: "
+            "`anytime_td` is now rushing + receiving TDs only, excluding passing "
+            "TDs. Serving it would score every prediction against a definition it "
+            "was never fitted on. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`)."
+        )
 
 
 def load_manifest() -> dict:
@@ -140,15 +292,96 @@ def model_version(manifest: dict) -> str:
     return f"{manifest['chosen_candidate']}@{manifest['trained_at']}"
 
 
+def _assert_servable_columns(fitted_cols: list[str], model_name: str) -> None:
+    """Refuse to serve a model whose fitted features the serving builder lacks.
+
+    `player_props.predict_props` and `qb_passing_td.expected_passing_tds` both
+    score a live row with `reindex(cols).fillna(0)`, so a column the model was
+    fitted on and the pregame builder does not emit is served as a **constant
+    zero** -- every prediction from that model is then wrong, and nothing in the
+    payload says so. That is not hypothetical: `passing_tds_roll` was fitted on
+    (see `_fit_qb_passing_td`) and never emitted by
+    `player_usage.build_features_for_player`, so every QB was projected from a
+    zero rolling TD rate. `fillna(0)` is still right for a genuinely absent
+    *value* on a present column, which is what it was written for.
+
+    Checked for every player model in the payload here -- `anytime_td`, each
+    yardage market (all fitted on `player_feature_cols`) and the passing-TD
+    model (fitted on its own `feature_cols`) -- so the whole class fails at load
+    time rather than one model at a time.
+    """
+    missing = [c for c in fitted_cols if c not in player_usage.SERVING_FEATURE_COLUMNS]
+    if missing:
+        raise ValueError(
+            f"{model_name} was fitted on columns the serving feature builder does not emit: "
+            f"{missing}. `player_usage.build_features_for_player` emits "
+            f"{player_usage.SERVING_FEATURE_COLUMNS}. A model fitted on a column serving "
+            "cannot produce is scored on fillna(0) for every prediction."
+        )
+
+
+def _load_passing_td_model(manifest: dict) -> dict | None:
+    """The passing-TD artifact, or None when the manifest says there is none.
+
+    **Gated on the manifest, not on the file being present**, which is the change
+    from probing the filesystem. The rule now:
+
+    * manifest records a fitted model -> the artifact is REQUIRED. A manifest
+      that says it trained one and a directory without the file is a corrupt or
+      half-copied deployment, and serving a payload with the market silently
+      missing turns that into "this week the app has no QB passing-TD picks",
+      which is indistinguishable from the model declining to project anyone.
+    * manifest records `null` (no QB history at the time of training) or has no
+      `qb_passing_td` key at all (a manifest written before this model existed)
+      -> the market is genuinely absent and `predict_props` omits it, exactly as
+      it omits a yardage market with no model.
+
+    The old version asked only "does the file exist", so a manifest that promised
+    a model and a directory that had lost one read as "no model this time" --
+    which is how the feature stayed dormant after a retrain without anyone being
+    told.
+    """
+    declared = manifest.get("qb_passing_td")
+    path = _artifact_path(PASSING_TD_MODEL_FILENAME)
+    if declared is None:
+        return None
+    try:
+        exists = path.exists()
+    except AttributeError:
+        # `_artifact_path` is stubbed to a bare object in a few tests; the load
+        # below is stubbed with it, so treat the path as present.
+        return _load_pickle(path)
+    if not exists:
+        raise FileNotFoundError(
+            f"{MANIFEST_PATH} records a fitted {qb_passing_td.PASSING_TD_MARKET} model "
+            f"(distribution={declared.get('distribution')!r}, n_train={declared.get('n_train')!r}) "
+            f"but {path} is missing. Re-run training to restore the artifact; serving without "
+            "it would silently drop the market from every QB prop row."
+        )
+    fitted = _load_pickle(path)
+    _assert_servable_columns(list(fitted.get("feature_cols") or []), qb_passing_td.PASSING_TD_MARKET)
+    return fitted
+
+
 def load_models() -> dict:
     """Load all saved artifacts and their feature metadata."""
     manifest = load_manifest()
+    # Before anything is unpickled: a stale artefact is cheaper to refuse here
+    # than to serve. See `_verify_artifact_fingerprint`.
+    _verify_artifact_fingerprint(manifest)
+    _assert_servable_columns(manifest["player_feature_cols"], "the player models (anytime_td, yardage)")
     player_models = {
         "feature_cols": manifest["player_feature_cols"],
         "anytime_td": _load_pickle(_artifact_path(ANYTIME_TD_MODEL_FILENAME)),
     }
     for market in manifest["yardage_metrics"]:
         player_models[market] = _load_pickle(_yardage_model_path(market))
+
+    # Optional exactly as the comment below the model says: absent from the
+    # manifest means not served, present in the manifest means required.
+    passing_td = _load_passing_td_model(manifest)
+    if passing_td is not None:
+        player_models[qb_passing_td.PASSING_TD_MARKET] = passing_td
 
     return {
         "game_outcome_model": _load_pickle(_artifact_path(GAME_MODEL_FILENAME)),

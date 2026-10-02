@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..config import CACHE_DIR, TRACKING_DB_PATH
+from ..features import player_usage
 
 
 def _connect() -> sqlite3.Connection:
@@ -93,7 +94,34 @@ def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
     if "position" not in prop_cols:
         conn.execute("ALTER TABLE player_prop_predictions ADD COLUMN position TEXT")
         added.append("player_prop_predictions.position")
+
+    # The QB passing-TD call is an over/under on a line, so a bare
+    # `predicted_value` cannot express it: the value is the projection (mu),
+    # and the call is the line plus the side. All four are recorded so the track
+    # record grades against the line that was actually called rather than
+    # re-deriving one from a mu that may since have moved.
+    #
+    # `line_source` is stored rather than assumed: the line is derived from the
+    # projection, so it is a MODEL line and not an edge claim. If a real book
+    # line is ever wired in it replaces `line` and sets this to something else,
+    # with no change to any other part of the record.
+    for column, sql_type in _PASSING_TD_PROP_COLUMNS:
+        if column not in prop_cols:
+            conn.execute(f"ALTER TABLE player_prop_predictions ADD COLUMN {column} {sql_type}")
+            added.append(f"player_prop_predictions.{column}")
     return added
+
+
+#: Columns the passing-TD call adds to `player_prop_predictions`, in the order
+#: they are migrated. Declared once, beside the game-side list, so the migration
+#: and the writer cannot grow a column in one place and forget it in the other.
+_PASSING_TD_PROP_COLUMNS = (
+    ("line", "REAL"),
+    ("line_source", "TEXT"),
+    ("side", "TEXT"),
+    ("mu", "REAL"),
+    ("call_prob", "REAL"),
+)
 
 
 # Every column added to `game_predictions` after the original CREATE TABLE, as
@@ -1525,15 +1553,18 @@ def record_player_prop_predictions(props: list[dict]) -> int:
     now = datetime.now(timezone.utc).isoformat()
     rows = [
         (prop["game_id"], prop["player_id"], prop["player_name"], prop.get("position"),
-         prop["market"], float(prop["predicted_value"]), now)
+         prop["market"], float(prop["predicted_value"]), now,
+         _optional_float(prop.get("line")), prop.get("line_source"),
+         prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")))
         for prop in props
     ]
     with contextlib.closing(_connect()) as conn, conn:
         cursor = conn.executemany(
             """
             INSERT OR IGNORE INTO player_prop_predictions
-                (game_id, player_id, player_name, position, market, predicted_value, snapshotted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (game_id, player_id, player_name, position, market, predicted_value,
+                 snapshotted_at, line, line_source, side, mu, call_prob)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -1547,6 +1578,13 @@ _MARKET_TO_STAT_COLUMN = {
     "receiving_yards": "receiving_yards",
     "receptions": "receptions",
     "carries": "carries",
+    # The QB passing-TD call grades over/under against the ACTUAL passing TDs,
+    # which is this column directly -- not the anytime-TD roll-up, which also
+    # counts rushing and receiving touchdowns. So this market deliberately
+    # routes through the ordinary stat-column path: `actual_value` becomes the
+    # real passing TD count, and `qb_passing_td_record.grade_pick` compares it
+    # against the recorded line.
+    "passing_tds": "passing_tds",
 }
 
 
@@ -1576,11 +1614,15 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
             if _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
                 continue
             if row["market"] == "anytime_td":
-                actual = float(
-                    (row.get("rushing_tds", 0) or 0)
-                    + (row.get("receiving_tds", 0) or 0)
-                    + (row.get("passing_tds", 0) or 0)
-                    > 0
+                # Rushing + receiving only; `passing_tds` was dropped from the
+                # definition on 2026-10-01. The grader used to carry its own
+                # inline sum of all three, so it would have kept resolving the
+                # market against the OLD truth after the classifier's label
+                # changed -- scoring every QB pick against a definition the model
+                # was never fitted on. One definition, one function:
+                # `player_usage.anytime_td_actual`.
+                actual = player_usage.anytime_td_actual(
+                    row.get("rushing_tds", 0), row.get("receiving_tds", 0)
                 )
             else:
                 stat_col = _MARKET_TO_STAT_COLUMN[row["market"]]
