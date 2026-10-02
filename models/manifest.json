@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-10-02T05:05:04.816068+00:00",
+  "trained_at": "2026-10-02T09:30:15.298431+00:00",
   "seasons": [
     2018,
     2019,
@@ -74,6 +74,18 @@
       "targets_roll",
       "carries_roll",
       "receptions_roll"
+    ],
+    "feature_cols": [
+      "home_pregame_rating",
+      "away_pregame_rating",
+      "rating_diff",
+      "home_points_scored_roll",
+      "home_points_allowed_roll",
+      "away_points_scored_roll",
+      "away_points_allowed_roll",
+      "home_rest_days",
+      "away_rest_days",
+      "div_game"
     ],
     "anytime_td_label_version": 2
   }

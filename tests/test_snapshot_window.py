@@ -135,7 +135,7 @@ def test_model_version_combines_candidate_and_training_time():
 def test_load_models_exposes_the_version(monkeypatch):
     monkeypatch.setattr(manifest, "load_manifest", lambda: {
         "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00", "sigma": 12.0,
-        "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        "total_sigma": 10.0, "feature_cols": list(manifest.feature_build.FEATURE_COLUMNS),
         # The CODE's player features, not a placeholder and not an arbitrary one:
         # `load_models` refuses a payload whose artefact fingerprint disagrees
         # with `player_usage.PLAYER_FEATURE_COLUMNS` (see
@@ -143,10 +143,15 @@ def test_load_models_exposes_the_version(monkeypatch):
         # to carry the real list to get past that guard -- and with it,
         # `assert every fitted player column is one build_features_for_player
         # emits`, which "p" is not.
+        #
+        # Same story for the top-level `feature_cols` and the game-level half of
+        # the fingerprint above it: both must be the CODE's
+        # `features.build.FEATURE_COLUMNS`, for the same reason.
         "player_feature_cols": list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
         "yardage_metrics": [],
         "artifact_fingerprint": manifest.artifact_fingerprint(
-            list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)),
+            list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
+            list(manifest.feature_build.FEATURE_COLUMNS)),
     })
     monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
     monkeypatch.setattr(manifest, "_artifact_path", lambda name: object())
