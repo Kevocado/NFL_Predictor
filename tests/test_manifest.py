@@ -103,27 +103,31 @@ def test_load_models_refuses_a_player_model_fitted_on_an_unservable_column(monke
     fitted column the serving builder cannot emit is served as a constant zero for
     every player and every week -- which is exactly how `passing_tds_roll` shipped
     fitted-but-unserved. `load_models` now refuses the payload instead.
+
+    The fingerprint pins the manifest's list to `PLAYER_FEATURE_COLUMNS` before
+    this check runs, so the surviving way to reach it is the code's own list
+    naming a column the serving builder does not emit. That is simulated by
+    narrowing `SERVING_FEATURE_COLUMNS`, which is precisely the shape of the
+    original bug: a column the training frame grew and the serving builder did
+    not. (Asserting the manifest's copy of the list instead would only re-prove
+    the fingerprint check.)
     """
     monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
     monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
     monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
 
+    cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
     good = {"chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
             "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
-            "player_feature_cols": ["passing_yards_roll"], "yardage_metrics": [],
+            "player_feature_cols": cols, "yardage_metrics": [],
             "qb_passing_td": None,
-            "artifact_fingerprint": manifest.artifact_fingerprint(["passing_yards_roll"])}
+            "artifact_fingerprint": manifest.artifact_fingerprint(cols)}
     monkeypatch.setattr(manifest, "load_manifest", lambda: good)
     assert "anytime_td" in manifest.load_models()["player_models"]
 
-    # This test is about the *unservable column* guard, so the fingerprint is
-    # re-taken over the same bad list. Otherwise the newer fingerprint check
-    # fires first (manifest vs fingerprint) and this guard is never reached --
-    # which is correct behaviour, just not what this test is measuring.
-    bad_cols = ["passing_yards_roll", "passing_tds_roll_not_emitted"]
-    bad = {**good, "player_feature_cols": bad_cols,
-           "artifact_fingerprint": manifest.artifact_fingerprint(bad_cols)}
-    monkeypatch.setattr(manifest, "load_manifest", lambda: bad)
+    # Serving stops emitting the last feature the code trains on.
+    monkeypatch.setattr(
+        manifest.player_usage, "SERVING_FEATURE_COLUMNS", cols[:-1])
     with pytest.raises(ValueError, match="does not emit"):
         manifest.load_models()
 
@@ -166,6 +170,140 @@ def test_load_models_refuses_a_manifest_with_no_fingerprint(monkeypatch, tmp_pat
     monkeypatch.setattr(manifest, "load_manifest", lambda: legacy)
 
     with pytest.raises(ValueError, match="no 'artifact_fingerprint' key"):
+        manifest.load_models()
+
+
+def test_load_models_refuses_an_artefact_fitted_before_a_feature_was_added(monkeypatch, tmp_path):
+    """The self-referential version, and the one that shipped.
+
+    Every artefact this branch started from had 5 `player_feature_cols` and 6 in
+    the code, and the guard passed them. Not a slip in the fixture: the manifest's
+    `player_feature_cols` AND its `artifact_fingerprint` both carried the old
+    shorter list, so the check that compared them compared the manifest with
+    itself and agreed with itself. Add a column to `PLAYER_FEATURE_COLUMNS`,
+    retrain nothing, and that is the whole defect -- `load_models` served a model
+    fitted on features the code has moved past, silently, which is the case the
+    fingerprint was merged to make loud.
+
+    `_assert_servable_columns` cannot see it: the stale list is a *subset* of the
+    serving columns, so the subset test is happy. The fingerprint has to compare
+    against `player_usage.PLAYER_FEATURE_COLUMNS` -- the code -- for this to fail.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+
+    code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
+    stale_cols = code_cols[:-1]
+    # The pre-fix state, asserted rather than assumed: the artefact's list is a
+    # strict SUBSET of the code's, and still servable, so `_assert_servable_columns`
+    # has nothing to say and the fingerprint is the only guard that can.
+    assert set(stale_cols) < set(code_cols)
+    assert set(stale_cols) < set(manifest.player_usage.SERVING_FEATURE_COLUMNS)
+
+    stale_but_self_consistent = {
+        "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
+        "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        "player_feature_cols": stale_cols, "yardage_metrics": [], "qb_passing_td": None,
+        # Fingerprint taken over the same stale list -- the manifest agreeing
+        # with itself, which is all it ever did.
+        "artifact_fingerprint": manifest.artifact_fingerprint(stale_cols),
+    }
+    monkeypatch.setattr(manifest, "load_manifest", lambda: stale_but_self_consistent)
+    # The two halves of this manifest agree, which is the entire reason the old
+    # check passed it: nothing in the artefact contradicts anything else in it.
+    assert (stale_but_self_consistent["player_feature_cols"]
+            == stale_but_self_consistent["artifact_fingerprint"]["player_feature_cols"])
+
+    with pytest.raises(ValueError, match="records models fitted on"):
+        manifest.load_models()
+
+
+def test_the_feature_mismatch_error_names_both_sides_and_the_fix(monkeypatch, tmp_path):
+    """The error has to be actionable on its own.
+
+    "your model is stale" is what this whole bug class looked like from the
+    outside. All three facts a reader needs are in the message: the list the
+    manifest recorded, the list the code now expects, and the command that
+    resolves it.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+
+    code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
+    stale_cols = code_cols[:-1]
+    monkeypatch.setattr(manifest, "load_manifest", lambda: {
+        "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
+        "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        "player_feature_cols": stale_cols, "yardage_metrics": [], "qb_passing_td": None,
+        "artifact_fingerprint": manifest.artifact_fingerprint(stale_cols),
+    })
+
+    with pytest.raises(ValueError) as excinfo:
+        manifest.load_models()
+    message = str(excinfo.value)
+
+    assert str(stale_cols) in message                  # what the manifest recorded
+    assert str(code_cols) in message                   # what the code now expects
+    assert "PLAYER_FEATURE_COLUMNS" in message         # where that list lives
+    assert "python -m nfl_predictor.models.manifest" in message  # the retrain command
+
+
+def test_load_models_accepts_a_fingerprint_that_matches_the_code(monkeypatch, tmp_path):
+    """The positive control for the new comparison, hand-built rather than trained.
+
+    `test_a_fingerprint_written_by_train_all_verifies_against_its_own_load` proves
+    a just-fitted payload loads; this one proves a payload whose fingerprint was
+    written by hand against the code's list loads too. Without it, a check that
+    raised unconditionally would satisfy every test above -- including this fix's
+    own new ones.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+
+    code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
+    monkeypatch.setattr(manifest, "load_manifest", lambda: {
+        "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
+        "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        "player_feature_cols": code_cols, "yardage_metrics": {}, "qb_passing_td": None,
+        "artifact_fingerprint": manifest.artifact_fingerprint(code_cols),
+    })
+
+    models = manifest.load_models()
+
+    assert models["player_feature_cols"] == code_cols
+    assert models["player_models"]["feature_cols"] == code_cols
+    assert "anytime_td" in models["player_models"]
+
+
+def test_load_models_refuses_a_manifest_whose_fingerprint_contradicts_its_own_feature_list(
+    monkeypatch, tmp_path
+):
+    """The other direction: a self-consistent fingerprint on a manifest that is not.
+
+    `player_props.predict_props` reindexes a live row by
+    `manifest["player_feature_cols"]`, not by the fingerprint's copy, so a
+    manifest that kept a current fingerprint but a narrowed list would score a
+    6-column model on 1 feature and pass a fingerprint check that only looked at
+    the fingerprint.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
+
+    code_cols = list(manifest.player_usage.PLAYER_FEATURE_COLUMNS)
+    narrowed = code_cols[:1]
+    monkeypatch.setattr(manifest, "load_manifest", lambda: {
+        "chosen_candidate": "ridge", "trained_at": "2026-09-04T22:12:49+00:00",
+        "sigma": 12.0, "total_sigma": 10.0, "feature_cols": ["rating_diff"],
+        "player_feature_cols": narrowed, "yardage_metrics": {}, "qb_passing_td": None,
+        # Fingerprint is CURRENT -- the code's list, untouched.
+        "artifact_fingerprint": manifest.artifact_fingerprint(code_cols),
+    })
+
+    with pytest.raises(ValueError, match="its own 'player_feature_cols'"):
         manifest.load_models()
 
 
