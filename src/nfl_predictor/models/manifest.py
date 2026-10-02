@@ -188,13 +188,13 @@ def train_all(seasons: list[int] | None = None) -> dict:
         "total_sigma": total_sigma,
         "yardage_metrics": yardage_metrics,
         "qb_passing_td": _passing_td_manifest_entry(passing_td),
-        "artifact_fingerprint": artifact_fingerprint(player_feature_cols),
+        "artifact_fingerprint": artifact_fingerprint(player_feature_cols, feature_cols),
     }
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
     return manifest
 
 
-def artifact_fingerprint(player_feature_cols: list[str]) -> dict:
+def artifact_fingerprint(player_feature_cols: list[str], feature_cols: list[str]) -> dict:
     """What an artefact must agree with to be servable, recorded at fit time.
 
     The silent-degradation case this exists to close, measured on the artefact
@@ -215,13 +215,32 @@ def artifact_fingerprint(player_feature_cols: list[str]) -> dict:
       new one -- right shape, wrong meaning, no error anywhere.
 
     So the fingerprint pins the *meaning*, not just the shape:
-    `player_feature_cols` (exact list, not a subset), and
+    `player_feature_cols` (exact list, not a subset),
+    `feature_cols` -- the GAME-level list from `features.build.FEATURE_COLUMNS`,
+    the same exact-list-not-a-subset rule for the same reason -- and
     `anytime_td_label_version` from `player_usage`. Bump the version whenever the
     definition changes, and every artefact fitted before that bump stops loading
     loudly instead of quietly.
+
+    Both feature lists are recorded, because they feed two disjoint sets of
+    models and drift in either is equally silent: `player_feature_cols` covers
+    `anytime_td_model.pkl` and every `*_yards`/`carries`/`receptions` regressor,
+    and `feature_cols` covers `game_outcome_model.pkl` (when the chosen candidate
+    is ridge or xgb) and `total_points_model.pkl` plus both residual sigmas.
+    Fingerprinting only the player half left the game half to the subset test,
+    which cannot see a missing feature -- add a column to `FEATURE_COLUMNS`,
+    retrain nothing, and the committed total-points model keeps serving fitted
+    against the old list while nothing complains.
+
+    `feature_cols` is a REQUIRED argument rather than defaulting to
+    `feature_build.FEATURE_COLUMNS`. A default would let a caller record the
+    code's current list for a fit that used a different one -- reintroducing the
+    manifest-compared-with-itself defect that `_verify_artifact_fingerprint`'s
+    docstring describes, one level down.
     """
     return {
         "player_feature_cols": list(player_feature_cols),
+        "feature_cols": list(feature_cols),
         "anytime_td_label_version": player_usage.ANYTIME_TD_LABEL_VERSION,
     }
 
@@ -258,6 +277,27 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
     `manifest["player_feature_cols"]`, which the fingerprint check below now
     pins to it. The label-version half below was always read from the code and is
     left exactly as it was.
+
+    **The same defect existed on the GAME-level list and was not fixed by that.**
+    The manifest records a second, unrelated feature list as `feature_cols` --
+    `features.build.FEATURE_COLUMNS`: the per-game columns
+    `home_pregame_rating`, `away_pregame_rating`, `rating_diff`, the four rolling
+    scoring/conceding averages, both rest-day counts and `div_game`. It is built
+    by `build_training_frame` and emitted by `build_features_for_game`, so it is
+    game-level and not a restatement of the player list. It feeds a disjoint set
+    of models: `total_points_model.pkl` always, `game_outcome_model.pkl` whenever
+    the chosen candidate is ridge or xgb, and both residual sigmas. Nothing
+    pinned it. Add a column to `FEATURE_COLUMNS`, retrain nothing, and
+    `routes._predict_game_from_models` keeps reindexing the live row by the
+    manifest's old list and scoring the committed models on it: the new feature
+    is silently never used, and `_assert_servable_columns` cannot see it either
+    because it only knows about the PLAYER side
+    (`player_usage.SERVING_FEATURE_COLUMNS`) and its verdict would be about the
+    wrong models. So the check below is the exact same comparison against the
+    exact same kind of authority -- `feature_build.FEATURE_COLUMNS`, the constant
+    `build_training_frame` returns to `train_all` -- by the same exact-list-not-
+    subset rule, for the same reason a subset cannot detect a missing feature.
+    The player-side checks above are untouched by this.
     """
     recorded = manifest.get("artifact_fingerprint")
     if recorded is None:
@@ -269,12 +309,13 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
             "(`python -m nfl_predictor.models.manifest`) to write one."
         )
 
-    # The code's own fingerprint: `PLAYER_FEATURE_COLUMNS` from the source, and
-    # the label version from the source. Nothing here is read out of the
-    # manifest, because a check whose expectation comes from the artefact it is
-    # checking cannot detect the artefact drifting from the code -- see the
-    # docstring.
-    current = artifact_fingerprint(player_usage.PLAYER_FEATURE_COLUMNS)
+    # The code's own fingerprint: `PLAYER_FEATURE_COLUMNS` and
+    # `feature_build.FEATURE_COLUMNS` from the source, and the label version from
+    # the source. Nothing here is read out of the manifest, because a check whose
+    # expectation comes from the artefact it is checking cannot detect the
+    # artefact drifting from the code -- see the docstring.
+    current = artifact_fingerprint(
+        player_usage.PLAYER_FEATURE_COLUMNS, feature_build.FEATURE_COLUMNS)
     expected_features = current["player_feature_cols"]
     fitted_features = list(recorded.get("player_feature_cols") or [])
     if fitted_features != expected_features:
@@ -301,6 +342,59 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
             f"{MANIFEST_PATH} records an artefact fingerprint fitted on "
             f"{fitted_features} but its own 'player_feature_cols' is "
             f"{manifest_features}. Serving reindexes every player row by the "
+            "manifest's list, so the two disagreeing means the models would be "
+            "scored on features they were not fitted on. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`)."
+        )
+
+    # --- the game-level half, same rule, same fail-closed posture -------------
+    #
+    # `recorded.get("feature_cols")` is checked for presence SEPARATELY rather
+    # than folded into the comparison below, because a fingerprint written before
+    # this half existed has no such key, and `list(None or [])` would then report
+    # it as "fitted on []" -- technically a mismatch, but an error message naming
+    # an empty list nobody fitted on. Absence is the state being detected here
+    # (it is every artefact in the wild right now), so it is refused in its own
+    # words and never skipped.
+    if recorded.get("feature_cols") is None:
+        raise ValueError(
+            f"{MANIFEST_PATH} has no game-level 'feature_cols' in its "
+            "'artifact_fingerprint', so the committed game models cannot be "
+            "verified against the code that serves them. A fingerprint written "
+            "before the game-level list was fingerprinted cannot vouch for "
+            "`total_points_model.pkl` or a ridge/xgb `game_outcome_model.pkl`, "
+            "and an unverified artefact is exactly the case this check exists to "
+            "catch. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`) to write one."
+        )
+
+    expected_game_features = current["feature_cols"]
+    fitted_game_features = list(recorded["feature_cols"])
+    if fitted_game_features != expected_game_features:
+        raise ValueError(
+            f"{MANIFEST_PATH} records the game models fitted on "
+            f"{fitted_game_features} but the code's game features are now "
+            f"{expected_game_features} "
+            f"({feature_build.__name__}.FEATURE_COLUMNS). The committed pickles "
+            "were fitted on a different feature set, so every game prediction "
+            "would come from a stale model. Re-run training "
+            "(`python -m nfl_predictor.models.manifest`)."
+        )
+
+    # The fingerprint and the manifest's own top-level `feature_cols` are written
+    # from one value at fit time, so they must still agree -- the exact reason the
+    # player half has this check, and it transfers unchanged. `load_models`
+    # returns `manifest["feature_cols"]` and
+    # `routes._predict_game_from_models` reindexes the live feature row by it, so
+    # a manifest with a current fingerprint but a narrowed top-level list would
+    # score a full-width total-points model on a single column while the check
+    # above stayed green.
+    manifest_game_features = manifest.get("feature_cols")
+    if manifest_game_features is None or list(manifest_game_features) != fitted_game_features:
+        raise ValueError(
+            f"{MANIFEST_PATH} records an artefact fingerprint fitted on "
+            f"{fitted_game_features} but its own 'feature_cols' is "
+            f"{manifest_game_features}. Serving reindexes every game row by the "
             "manifest's list, so the two disagreeing means the models would be "
             "scored on features they were not fitted on. Re-run training "
             "(`python -m nfl_predictor.models.manifest`)."
