@@ -710,6 +710,59 @@ def test_an_elo_candidate_under_an_elo_manifest_does_load(payload):
     assert manifest._is_elo_candidate(models["game_outcome_model"])
 
 
+def test_a_mapping_payload_whose_feature_cols_is_shorter_than_its_model_is_refused(payload):
+    """The case CodeRabbit caught, and the one this file had claimed was undetectable.
+
+    A mapping payload's `feature_cols` is self-reported, so the only corroboration
+    available is the estimator inside the same pickle. The committed QB artefact's
+    inner Poisson regressor is fitted from a NumPy array and therefore records NO
+    column names -- so there is no name comparison to make, and an earlier version
+    of this audit skipped corroboration entirely in that state while the comment
+    beside it claimed `None` was not treated as agreement.
+
+    The consequence was concrete: a `feature_cols` list SHORTER than the wrapped
+    model was fitted on passed the audit, then reached `expected_passing_tds`,
+    which reindexes to the short list and hands a narrow matrix to a wider model.
+    One `ValueError` per QB per request, forever, instead of once at load. The
+    count is corroborated instead, via `n_features_in_`, which sklearn records
+    even on a NumPy fit.
+    """
+    fitted = _committed_fitted_columns(manifest.PASSING_TD_MODEL_FILENAME)
+    assert len(fitted) >= 2
+    refit = _refit("passing_tds", "qb_passing_td", fitted)
+
+    # Confirmed to be the shape in question: names absent, count present.
+    assert getattr(refit["model"], "feature_names_in_", None) is None
+    assert int(refit["model"].n_features_in_) == len(fitted)
+
+    for short in (list(fitted)[:-1], [], list(fitted) + ["phantom_column"]):
+        payload_copy = copy.deepcopy(refit)
+        payload_copy["feature_cols"] = list(short)
+        _rewrite(payload, manifest.PASSING_TD_MODEL_FILENAME, payload_copy)
+
+        with pytest.raises(ValueError) as excinfo:
+            manifest.load_models()
+        assert manifest.PASSING_TD_MODEL_FILENAME in str(excinfo.value)
+
+
+def test_a_mapping_payload_with_no_corroborable_inner_model_is_refused(payload):
+    """A `feature_cols` with no inner estimator to check it against is refused.
+
+    `allow_unfitted` cannot reach this: the payload does record columns, so it is
+    the corroboration branch, not the empty-record one. Refusing is the fail-closed
+    posture everywhere else in this audit -- an unverifiable claim is not a verified
+    one -- and `expected_passing_tds` reads `fitted["feature_cols"]` unguarded, so
+    a payload whose list cannot be checked is served on faith.
+    """
+    fitted = _committed_fitted_columns(manifest.PASSING_TD_MODEL_FILENAME)
+    _rewrite(payload, manifest.PASSING_TD_MODEL_FILENAME,
+             {"feature_cols": list(fitted)})
+
+    with pytest.raises(ValueError) as excinfo:
+        manifest.load_models()
+    assert "n_features_in_" in str(excinfo.value)
+
+
 def test_a_pickle_that_disagrees_with_its_own_record_is_refused(payload):
     """The mapping payload's `feature_cols` is self-reported, so it is cross-checked.
 
