@@ -7,7 +7,7 @@ the tests, not a pass.
     .venv/bin/python tests/mutation_check.py            # all
     .venv/bin/python tests/mutation_check.py M4 M9      # named only
 
-Three things this harness is built around, each of which broke a previous
+Four things this harness is built around, each of which broke a previous
 version of it:
 
 **It never writes to a tracked file.** The first version applied mutations to
@@ -34,6 +34,19 @@ reports CAUGHT, the harness itself has stopped detecting and every other verdict
 in the run is suspect, so that fails the whole harness. This is what makes a
 broken harness loud instead of green.
 
+**The copy has to be whole, and it says so.** A copy missing one file is not a
+smaller copy, it is a different tree: a test module that resolves a repo path at
+import time raises during collection, the runner reports no failures, and every
+verdict that arm can produce is INCONCLUSIVE. That is the "exit codes are not
+verdicts" failure one level up -- the harness was loud about it, but only about
+a symptom, and only once somebody actually ran it. `build_tree` now raises on a
+missing required path instead of skipping it, and `_check_the_copy_is_whole` runs
+on every copy it builds.
+
+Note that this file is not named `test_*.py`, so `pytest tests/` does not collect
+it -- it is a harness, not a test module. What checks the harness is
+`tests/test_mutation_check.py`, which is collected, and which also says why.
+
 Verdicts: CAUGHT / SURVIVED / INCONCLUSIVE / SKIPPED.
 
 Known rough edge, not fixed: this block-buffers, so a redirected run shows nothing
@@ -42,6 +55,7 @@ until it exits. Not a defect in any verdict, only in watching one.
 """
 from __future__ import annotations
 
+import ast
 import atexit
 import os
 import re
@@ -61,10 +75,30 @@ PYTHON = ROOT / ".venv/bin/python"
 # drags in .git and a 400MB node_modules. `data/cache` is excluded for a second
 # reason: it is gitignored, so a stale local parquet cache would make a network
 # leak pass locally and fail on CI.
+#
+# Every entry here is REQUIRED and `build_tree` refuses to build a tree that is
+# missing one. `if src.exists()` was the silent-skip: a path absent from the repo
+# produced a copy that simply lacked it, the copied suite then died during
+# collection, and the baseline gate reported the harness as red without ever
+# saying which file was gone. That is how `scripts/` went missing for months --
+# `scripts/null_fabricated_market_hits.py` is loaded by
+# `tests/test_null_fabricated_market_hits.py` at MODULE scope via
+# `spec_from_file_location`, so its absence raised FileNotFoundError while
+# collecting, `run_python` scored that INCONCLUSIVE, and `main` printed
+# "BASELINE IS RED" and exited 2. Every one of the 32 mutations was unjudged and
+# the run looked like a broken baseline rather than a missing directory.
+#
 # `.github` is here because tests/test_deploy_workflow.py reads the real workflow
 # files, and a copy without them turns the baseline red. That is the baseline
 # gate doing its job on its first run.
-COPY_DIRS = ["src", "tests", "models", ".github"]
+# `scripts` is the fifth entry this manifest needed. a03b1d9 introduced the list
+# as ["src", "tests", "models", ".github"]; 0393f52 (2026-09-28) then added
+# tests/test_null_fabricated_market_hits.py, which loads a repo path at import
+# time, and the list was never updated. It is also read by
+# `test_passing_td_record_absence.py`, which scans it and skips a scan root that
+# is not there. `_check_the_copy_is_whole` below is what keeps the next one
+# honest.
+COPY_DIRS = ["src", "tests", "models", ".github", "scripts"]
 COPY_FILES = ["pyproject.toml"]
 DATA_GLOBS = ["data/*.json"]
 FRONTEND_FILES = [
@@ -334,8 +368,33 @@ def _cleanup(*_args) -> None:
         shutil.rmtree(_TMP, ignore_errors=True)
 
 
+def _require(path: Path, rel: str) -> Path:
+    """Return `path`, or refuse -- never silently return without copying.
+
+    `rel` is the repo-relative spelling, quoted into the message so the reader is
+    told which entry of which list to edit rather than being handed a traceback
+    from `shutil`.
+    """
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{rel} is in COPY_DIRS/COPY_FILES but is not in the tree, so a copy of "
+            f"the repo cannot be built. The copied suite resolves repo-relative "
+            f"paths at import time; a copy that quietly omits one dies during "
+            f"collection and every verdict from it is INCONCLUSIVE. Add the path "
+            f"back to the repo, or -- if it is genuinely not needed -- remove it "
+            f"from the copy list. Not skipping it."
+        )
+    return path
+
+
 def build_tree() -> Path:
-    """A writable copy of everything the targets read, and nothing else."""
+    """A writable copy of everything the targets read, and nothing else.
+
+    Raises `FileNotFoundError` naming the path if a required entry of
+    `COPY_DIRS`/`COPY_FILES` is not in the repo. It used to skip whatever was
+    absent, which is how a whole directory went missing from the copy without a
+    word -- see the note on `COPY_DIRS`.
+    """
     global _TMP
     _TMP = Path(tempfile.mkdtemp(prefix="props-mutation-"))
     atexit.register(_cleanup)
@@ -353,11 +412,12 @@ def build_tree() -> Path:
 
     for d in COPY_DIRS:
         src, dst = ROOT / d, _TMP / d
-        if src.exists():
-            shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        _require(src, f"{d}/")
+        shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for f in COPY_FILES:
-        if (ROOT / f).exists():
-            shutil.copy2(ROOT / f, _TMP / f)
+        src = ROOT / f
+        _require(src, f)
+        shutil.copy2(src, _TMP / f)
     for pattern in DATA_GLOBS:
         for src in ROOT.glob(pattern):
             dst = _TMP / src.relative_to(ROOT)
@@ -380,7 +440,101 @@ def build_tree() -> Path:
         if src.exists() and not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             os.symlink(src, dst)
+    # The copy is finished; now ask whether it is whole. Cheap (an AST walk of
+    # tests/test_*.py) and it turns "the baseline went red for a reason nobody
+    # could see" into a sentence naming the file, before a single mutation runs.
+    _check_the_copy_is_whole(_TMP)
     return _TMP
+
+
+# --- is the copy whole? ----------------------------------------------------
+# The copy manifest above is a hand-written list, and a hand-written list rots:
+# the fifth entry the copy manifest ever needed was `scripts/`, and nobody
+# updated the list, so the copy quietly stopped being the repo. The evidence was
+# an INCONCLUSIVE baseline, which is loud but anonymous -- it does not say
+# `scripts/null_fabricated_market_hits.py` is not there, and it reads as a broken
+# suite rather than a missing directory.
+#
+# So the invariant is checked instead of being trusted. Every path a test module
+# builds off `Path(__file__).resolve().parents[1]` at MODULE level is resolved at
+# import time, which is exactly the set that can abort collection. Function-level
+# ones are deliberately not here: a missing file inside a test body is an ordinary
+# loud failure, not an anonymous collection error.
+
+def _is_repo_root(node: ast.AST) -> bool:
+    """True for the `Path(__file__).resolve().parents[1]` spelling."""
+    return (
+        isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Attribute)
+        and node.value.attr == "parents"
+        and isinstance(node.slice, ast.Constant)
+        and node.slice.value == 1
+    )
+
+
+def _resolve_repo_path(node: ast.expr, env: dict[str, tuple[str, ...]]):
+    """Repo-relative components for `node`, or None if it is not a repo path."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        head = _resolve_repo_path(node.left, env)
+        tail = node.right
+        if head is not None and isinstance(tail, ast.Constant) and isinstance(tail.value, str):
+            return head + (tail.value,)
+        return None
+    if isinstance(node, ast.Name):
+        return env.get(node.id)
+    if _is_repo_root(node):
+        return ()
+    return None
+
+
+def _module_level_repo_paths(module_path: Path) -> list[tuple[str, tuple[str, ...]]]:
+    """`[(name, components)]` for the module-level repo paths in one test module."""
+    tree = ast.parse(module_path.read_text(encoding="utf-8"), filename=str(module_path))
+    env: dict[str, tuple[str, ...]] = {}
+    found: list[tuple[str, tuple[str, ...]]] = []
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        components = _resolve_repo_path(node.value, env)
+        if components is None:
+            continue
+        target = node.targets[0]
+        if isinstance(target, ast.Name):
+            env[target.id] = components
+        if components:
+            found.append((target.id if isinstance(target, ast.Name) else "?", components))
+    return found
+
+
+def _suite_modules(tree: Path) -> list[Path]:
+    """The files pytest imports while collecting, so the ones that can abort it."""
+    tests = tree / "tests"
+    if not tests.is_dir():
+        return []
+    return sorted(p for p in tests.iterdir() if p.name == "conftest.py" or p.name.startswith("test_"))
+
+
+def _check_the_copy_is_whole(tree: Path) -> None:
+    """Raise unless every import-time repo path in the suite exists in `tree`.
+
+    Raises `AssertionError` listing every offender, not the first: one missing
+    file has a habit of arriving with three more.
+    """
+    offenders = []
+    for module in _suite_modules(tree):
+        for name, components in _module_level_repo_paths(module):
+            rel = Path(*components)
+            if not (tree / rel).exists():
+                offenders.append(f"{module.name}: {name} -> {rel}")
+    if offenders:
+        raise AssertionError(
+            f"the copy at {tree} is missing {len(offenders)} path(s) that the "
+            f"suite resolves at import time, so it would abort collection:\n  "
+            + "\n  ".join(offenders)
+            + "\n  Add the containing path to COPY_DIRS/COPY_FILES in "
+              "tests/mutation_check.py, or stop reading it from a module-level "
+              "constant."
+        )
 
 
 def write_mutation(tree: Path, mutation: Mutation) -> Path:
