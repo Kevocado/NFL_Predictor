@@ -109,12 +109,31 @@ def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
         if column not in prop_cols:
             conn.execute(f"ALTER TABLE player_prop_predictions ADD COLUMN {column} {sql_type}")
             added.append(f"player_prop_predictions.{column}")
+
+    # Which DEFINITION of `anytime_td` produced this row's `actual_value`. See
+    # `LABEL_VERSION_COLUMN` for why the column exists and why it is NOT backfilled.
+    if LABEL_VERSION_COLUMN not in prop_cols:
+        conn.execute(
+            f"ALTER TABLE player_prop_predictions ADD COLUMN {LABEL_VERSION_COLUMN} INTEGER"
+        )
+        added.append(f"player_prop_predictions.{LABEL_VERSION_COLUMN}")
     return added
 
 
 #: Columns the passing-TD call adds to `player_prop_predictions`, in the order
 #: they are migrated. Declared once, beside the game-side list, so the migration
 #: and the writer cannot grow a column in one place and forget it in the other.
+#:
+#: **These are the only columns the writer accepts from the caller for a market
+#: this build never writes.** `routes.background_tracking_tick` snapshots
+#: `market="anytime_td"` plus `POSITION_MARKETS`; it writes no `passing_tds` row
+#: and fills none of these five, so on the live database they are all NULL. The
+#: writer still round-trips them and the grader still routes `passing_tds`
+#: through `passing_tds` -- that behaviour is real and tested -- but nothing in
+#: serving reaches it today. `tracking/qb_passing_td_record.py`, the report that
+#: read them, was deleted for having no consumer; see that module's removal note
+#: in the PR. They stay because a future writer in `api/routes.py` needs no
+#: migration, not because anything currently fills them.
 _PASSING_TD_PROP_COLUMNS = (
     ("line", "REAL"),
     ("line_source", "TEXT"),
@@ -122,6 +141,38 @@ _PASSING_TD_PROP_COLUMNS = (
     ("mu", "REAL"),
     ("call_prob", "REAL"),
 )
+
+#: The `anytime_td` DEFINITION that graded a row, stamped at resolve time from
+#: `player_usage.ANYTIME_TD_LABEL_VERSION`.
+#:
+#: `anytime_td_actual` changed on 2026-10-01 (v1 `rushing + receiving + passing
+#: > 0`, v2 `rushing + receiving > 0`), and the grader changed with it. Every row
+#: resolved before that change was scored against v1 and every row resolved after
+#: it against v2 -- and because a recorded pick is immutable, no re-resolution can
+#: ever move the old rows across. Without this column the two definitions were
+#: folded into one hit rate and one Brier score, silently, with nothing in the
+#: payload to say so. `_prop_markets` reads it and never mixes versions.
+#:
+#: **Named for the label it versions, not `label_version`,** because the prop table
+#: carries several markets and only `anytime_td`'s truth has ever changed
+#: definition. A yardage market's `actual_value` is a raw nflverse stat column and
+#: carries no version; stamping a generic column on every row would put a number
+#: on rows it says nothing about.
+#:
+#: **NULL is a real, third value and means "resolved before this column existed".**
+#: It is never read as the current version. It cannot be backfilled from first
+#: principles: the table records `snapshotted_at` (when the pick was MADE) but
+#: never when it was GRADED, and grading happens at or after kickoff -- so a pick
+#: snapshotted on 2026-09-28 may well have been resolved after the definition
+#: changed on 2026-10-01. `snapshotted_at` is not a sound proxy for it, and
+#: guessing would be the same silent misattribution in a different direction.
+#: Rows that migrate in with NULL are reported in their own `by_label_version`
+#: bucket under `label_version: null`, counted and visible, and excluded from the
+#: current-version headline. Defaulting them to 1 was rejected: the definition
+#: changed *after* this column was added, so the pre-existing rows are not
+#: uniformly v1, and saying so would understate v2 by exactly the number of rows
+#: graded since 2026-10-01.
+LABEL_VERSION_COLUMN = "anytime_td_label_version"
 
 
 # Every column added to `game_predictions` after the original CREATE TABLE, as
@@ -494,7 +545,10 @@ def get_track_record(current_week: int | None = None, season: int | None = None)
 
     `n_rebuilt` is RETAINED and still counts counted picks made at or after their own kickoff. It
     used to mean "excluded from the headline"; it no longer does, and
-    `n_resolved == pre_kickoff.n_resolved + n_rebuilt` holds on the counted frame.
+    `n_resolved == pre_kickoff.n_resolved + n_rebuilt` holds on the counted frame. **That identity
+    is about `games`, and about it only.** It does not transfer to `player_props`: `anytime_td`'s
+    `n_resolved` there is one label version's rows out of the counted set, so for that market
+    headline == pre_kickoff + n_rebuilt is false by design. See `_summarize_player_props`.
 
     `all_picks` is retained under its published name and still means "every counted pick" -- which
     is now the same population as the headline. It is not a rename to `pre_kickoff`; nothing a
@@ -1413,7 +1467,7 @@ def _counted_prop_picks(resolved: pd.DataFrame) -> pd.DataFrame:
 def _summarize_player_props(resolved: pd.DataFrame) -> dict:
     """Per-market metrics over graded props, in two figures.
 
-    **The headline counts every recorded pick**, whenever it was made, and `pre_kickoff` beside it
+    **The counted set is every recorded pick**, whenever it was made, and `pre_kickoff` beside it
     is the subset whose own timestamps prove they were made before kickoff. That is the reversal
     Kevin decided (see the 2026-10-01 spec): a re-run model must not make a past game stop
     counting, or the record empties out on every model change. `n_rebuilt` is kept, and still
@@ -1425,6 +1479,16 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
     be proven pre-kickoff, so it is counted and reported under `n_rebuilt` rather than excluded:
     the label fails closed, but rule 1 (recorded stays recorded) has no exception for a missing
     join.
+
+    **The counted set is not the same thing as a market's `n_resolved`, and the difference is
+    deliberate.** Nothing here drops a pick from the counted set, and `n_rebuilt` reconciles
+    against `pre_kickoff` exactly as before. But `anytime_td`'s `n_resolved` counts only the rows
+    graded under the CURRENT definition -- `_prop_markets` puts the rest into `by_label_version`
+    rather than averaging them in, because their `actual_value` was computed from a different
+    definition of the market. So `anytime_td.n_resolved + sum(non-current buckets)` is the counted
+    set, while `anytime_td.n_resolved` on its own is a single-definition figure. This is the one
+    market where the two differ: a yardage market's truth is a raw stat column with one definition
+    and its `n_resolved` IS the counted set.
     """
     if resolved.empty:
         return {**_prop_markets(resolved), "n_rebuilt": 0, "pre_kickoff": _prop_markets(resolved)}
@@ -1442,6 +1506,102 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
 
 
 
+def _anytime_td_metrics(anytime_td: pd.DataFrame) -> dict:
+    """n, hit rate, Brier and confidence buckets for exactly the rows handed in.
+
+    One block of arithmetic, called once for the current-version headline and once per bucket in
+    `_anytime_td_by_label_version`. A bucket is therefore literally the same computation over a
+    subset, and cannot drift from the headline's -- which is what makes the reconciliation
+    `sum(bucket n_resolved) == all counted anytime_td rows` true by construction.
+    """
+    if anytime_td.empty:
+        return {"n_resolved": 0, "n_called": 0, "hit_rate_when_called": None,
+                "brier_score": None, "confidence_buckets": []}
+    called = anytime_td[anytime_td["predicted_value"] >= 0.5]
+    buckets = []
+    for label, lo, hi in _TD_CONFIDENCE_BUCKETS:
+        in_bucket = anytime_td[(anytime_td["predicted_value"] >= lo) & (anytime_td["predicted_value"] < hi)]
+        buckets.append({
+            "label": label,
+            "n": int(len(in_bucket)),
+            # actual_value is 1.0/0.0 for anytime_td, so the mean is the hit rate,
+            # same convention as hit_rate_when_called below.
+            "hit_rate": float(in_bucket["actual_value"].mean()) if not in_bucket.empty else None,
+        })
+    return {
+        "n_resolved": int(len(anytime_td)),
+        "n_called": int(len(called)),
+        "hit_rate_when_called": float(called["actual_value"].mean()) if not called.empty else None,
+        "brier_score": float(((anytime_td["predicted_value"] - anytime_td["actual_value"]) ** 2).mean()),
+        "confidence_buckets": buckets,
+    }
+
+
+def _label_version_sort_key(value):
+    """Numeric versions first and ascending, anything else after, by text.
+
+    `LABEL_VERSION_COLUMN` is `INTEGER`, so this only ever matters for a row nothing in
+    `src/` wrote -- which is exactly when it must not raise. Grouping by whether the
+    value is a real number and only then comparing means the two groups never compare
+    across types, so a `2` and a `'v2'` on the same table cannot raise inside
+    `get_track_record`.
+    """
+    if isinstance(value, bool):
+        return (1, str(value))
+    if isinstance(value, (int, float)):
+        return (0, float(value))
+    return (1, str(value))
+
+
+def _anytime_td_by_label_version(anytime_td_all: pd.DataFrame, current_version: int) -> list[dict]:
+    """One bucket per distinct `LABEL_VERSION_COLUMN` value present, versions first, null last.
+
+    Every counted `anytime_td` row appears in exactly one bucket, including the current version's
+    -- so the buckets are a partition of the whole market rather than a list of leftovers, and
+    their `n_resolved` values sum to the total number of counted `anytime_td` rows. That is what
+    lets a consumer who wants the old record go and get it, without the headline having to claim
+    to be it.
+
+    The null bucket is real and is not folded into any version. A null means "graded before the
+    column existed", which is genuinely unknown -- see `LABEL_VERSION_COLUMN` for why it cannot be
+    backfilled -- and reading it as the current version is exactly the silent mixing this exists to
+    stop. It is sorted last and reported with `label_version: null` so it is visible in JSON and
+    cannot be mistaken for a version number.
+
+    **Sorting is type-safe, and has to be.** The column is declared `INTEGER` and the grader writes
+    an `int`, but SQLite does not enforce that: a hand-edited row or a future writer could put a
+    string in it, and a plain `sorted()` over a mixed `{2, "v2"}` raises `TypeError: '<' not
+    supported between instances of 'int' and 'str'` -- which would take down `get_track_record` for
+    the whole site, not just this market. Numeric versions sort ascending first and anything else
+    follows by its text, so a row this reader cannot interpret is still counted and still reported
+    rather than crashing the summary or, worse, comparing loosely enough to fall into the current
+    headline.
+    """
+    present = anytime_td_all[LABEL_VERSION_COLUMN].dropna().tolist()
+    ordered = sorted(set(present), key=_label_version_sort_key)
+    buckets = []
+    for version in ordered:
+        rows = anytime_td_all[anytime_td_all[LABEL_VERSION_COLUMN] == version]
+        buckets.append({
+            "label_version": version,
+            "is_current": version == current_version,
+            **_anytime_td_metrics(rows),
+        })
+    unlabelled = anytime_td_all[anytime_td_all[LABEL_VERSION_COLUMN].isna()]
+    if not unlabelled.empty:
+        buckets.append({
+            "label_version": None,
+            "is_current": False,
+            "unknown_reason": (
+                "resolved before the label version was stamped; the row carries no way to tell "
+                "which anytime_td definition graded it, so it is reported apart rather than "
+                "folded into a version"
+            ),
+            **_anytime_td_metrics(unlabelled),
+        })
+    return buckets
+
+
 def _prop_markets(resolved: pd.DataFrame) -> dict:
     """Every prop market's own metrics over exactly the rows handed in, and nothing else.
 
@@ -1450,32 +1610,43 @@ def _prop_markets(resolved: pd.DataFrame) -> dict:
     two blocks of arithmetic that can drift apart. The secondary's `n` is then equal to the count
     of counted picks whose own timestamps prove they were made before kickoff, by construction
     rather than by agreement.
+
+    **`anytime_td` is summarised per label version and never across versions.** The market's truth
+    changed on 2026-10-01 (v1 included passing TDs, v2 does not), so a row's `actual_value` means
+    one of two things depending on when it was graded, and recorded picks are immutable so the old
+    rows can never be moved. The headline figures here are therefore the CURRENT definition's rows
+    and only those, and they say so: `label_version` names the definition, `n_resolved` counts
+    that definition's rows alone. Nothing is discarded -- `by_label_version` carries every other
+    row in its own bucket, including the `label_version: null` bucket for rows resolved before the
+    column existed -- so the buckets reconcile to the full counted set and a consumer can always
+    get at a version it did not get as a headline.
+
+    The yardage markets are untouched and carry no `label_version`: their `actual_value` is a raw
+    nflverse stat column read straight off the box score, so there is no definition to have moved.
     """
     result: dict[str, dict] = {}
 
-    anytime_td = resolved[resolved["market"] == "anytime_td"] if not resolved.empty else resolved
-    if anytime_td.empty:
-        result["anytime_td"] = {"n_resolved": 0, "n_called": 0, "hit_rate_when_called": None,
-                                "brier_score": None, "confidence_buckets": []}
+    current_version = player_usage.ANYTIME_TD_LABEL_VERSION
+    anytime_td_all = resolved[resolved["market"] == "anytime_td"] if not resolved.empty else resolved
+    # A frame with no `LABEL_VERSION_COLUMN` at all -- an empty frame, or a caller
+    # handing in columns the table no longer has -- is treated as "every row is
+    # unlabelled", which puts them all in the null bucket and leaves the headline
+    # empty. Reading a missing column as the current version would be the one
+    # answer that could silently mix definitions.
+    if anytime_td_all.empty or LABEL_VERSION_COLUMN not in anytime_td_all.columns:
+        anytime_td = anytime_td_all.iloc[0:0]
+        by_version = []
     else:
-        called = anytime_td[anytime_td["predicted_value"] >= 0.5]
-        buckets = []
-        for label, lo, hi in _TD_CONFIDENCE_BUCKETS:
-            in_bucket = anytime_td[(anytime_td["predicted_value"] >= lo) & (anytime_td["predicted_value"] < hi)]
-            buckets.append({
-                "label": label,
-                "n": int(len(in_bucket)),
-                # actual_value is 1.0/0.0 for anytime_td, so the mean is the hit rate,
-                # same convention as hit_rate_when_called above.
-                "hit_rate": float(in_bucket["actual_value"].mean()) if not in_bucket.empty else None,
-            })
-        result["anytime_td"] = {
-            "n_resolved": int(len(anytime_td)),
-            "n_called": int(len(called)),
-            "hit_rate_when_called": float(called["actual_value"].mean()) if not called.empty else None,
-            "brier_score": float(((anytime_td["predicted_value"] - anytime_td["actual_value"]) ** 2).mean()),
-            "confidence_buckets": buckets,
-        }
+        anytime_td = anytime_td_all[anytime_td_all[LABEL_VERSION_COLUMN] == current_version]
+        by_version = _anytime_td_by_label_version(anytime_td_all, current_version)
+
+    result["anytime_td"] = {
+        # Which definition these figures are about. A consumer must be able to
+        # tell without inferring it from the code that produced them.
+        "label_version": current_version,
+        **_anytime_td_metrics(anytime_td),
+        "by_label_version": by_version,
+    }
 
     for market in _YARDAGE_MARKETS:
         rows = resolved[resolved["market"] == market] if not resolved.empty else resolved
@@ -1580,10 +1751,21 @@ _MARKET_TO_STAT_COLUMN = {
     "carries": "carries",
     # The QB passing-TD call grades over/under against the ACTUAL passing TDs,
     # which is this column directly -- not the anytime-TD roll-up, which also
-    # counts rushing and receiving touchdowns. So this market deliberately
-    # routes through the ordinary stat-column path: `actual_value` becomes the
-    # real passing TD count, and `qb_passing_td_record.grade_pick` compares it
-    # against the recorded line.
+    # counts rushing and receiving touchdowns. So this market routes through the
+    # ordinary stat-column path: `actual_value` becomes the real passing TD count,
+    # ready for a line-and-side comparison against the recorded `line`.
+    #
+    # **Nothing in serving writes this market.** `routes.background_tracking_tick`
+    # snapshots `market="anytime_td"` plus `player_props.POSITION_MARKETS`, and
+    # `"passing_tds"` is in neither, so no `passing_tds` row exists on the live
+    # database and this entry is currently unreachable from serving. It is kept
+    # because the grader is real code with real behaviour, and because removing it
+    # would silently drop any such row if a writer were ever added -- but it is
+    # not a claim that the market is tracked today. The report that used to read
+    # those rows, `tracking/qb_passing_td_record.py`, was DELETED for exactly
+    # that reason: it read rows nothing wrote, and wrapped the read in a bare
+    # `except Exception` that would have reported a permanently empty record.
+    # `tests/test_passing_td_record_absence.py` pins that the module is gone.
     "passing_tds": "passing_tds",
 }
 
@@ -1598,6 +1780,14 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
     table's primary key, so the join is many-to-one and safe). An unparseable
     timestamp fails closed, and a prop row whose game is absent from
     game_predictions drops out of the inner join -- also fail closed.
+
+    **The only columns written here are `resolved`, `actual_value` and
+    `LABEL_VERSION_COLUMN`, and only on rows that are still `resolved = 0`.**
+    That is the immutability rule: a recorded pick's prediction, line and side
+    are never rewritten, and a row already graded is never re-graded -- which is
+    precisely why the label version has to be stamped here, in the same UPDATE
+    that writes the verdict, instead of being backfilled over the history
+    afterwards.
     """
     if player_stats_df.empty:
         return 0
@@ -1624,18 +1814,27 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
                 actual = player_usage.anytime_td_actual(
                     row.get("rushing_tds", 0), row.get("receiving_tds", 0)
                 )
+                # Stamp WHICH definition produced `actual_value`, in the same
+                # UPDATE that writes it, so the two can never disagree. Read from
+                # the constant at resolve time rather than written at record time:
+                # the version that matters is the one the grader used, and a pick
+                # recorded before the definition changed and graded after it was
+                # still graded under the new one. Stamped only for `anytime_td`,
+                # because no other prop market's truth is a definition that moves.
+                label_version = player_usage.ANYTIME_TD_LABEL_VERSION
             else:
                 stat_col = _MARKET_TO_STAT_COLUMN[row["market"]]
                 if stat_col not in row or pd.isna(row[stat_col]):
                     continue
                 actual = float(row[stat_col])
+                label_version = None
             cursor = conn.execute(
-                """
+                f"""
                 UPDATE player_prop_predictions
-                SET resolved = 1, actual_value = ?
+                SET resolved = 1, actual_value = ?, {LABEL_VERSION_COLUMN} = ?
                 WHERE game_id = ? AND player_id = ? AND market = ? AND resolved = 0
                 """,
-                (actual, row["game_id"], row["player_id"], row["market"]),
+                (actual, label_version, row["game_id"], row["player_id"], row["market"]),
             )
             resolved_count += cursor.rowcount
         return resolved_count
