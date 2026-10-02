@@ -30,6 +30,16 @@ PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
 #: does not fails at load time instead of being served as `fillna(0)`.
 SERVING_FEATURE_COLUMNS = [*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
 
+#: Version of the `anytime_td` DEFINITION (not of the code -- of the label).
+#: Bump this whenever `anytime_td_actual`'s arithmetic changes. It is recorded in
+#: the manifest at fit time and checked at load time by
+#: `models/manifest._verify_artifact_fingerprint`, so an artefact fitted against
+#: a different definition raises instead of serving quietly.
+#:
+#: 1 = `rushing_tds + receiving_tds + passing_tds > 0` (superseded).
+#: 2 = `rushing_tds + receiving_tds > 0` (2026-10-01; passing TDs excluded).
+ANYTIME_TD_LABEL_VERSION = 2
+
 
 def with_passing_tds_roll(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.DataFrame:
     """`df` plus `passing_tds_roll`, on `_add_rolling`'s exact discipline.

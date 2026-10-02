@@ -141,6 +141,12 @@ def test_load_models_exposes_the_version(monkeypatch):
         # is not one.
         "player_feature_cols": ["passing_yards_roll"],
         "yardage_metrics": [],
+        # This hand-built manifest has to carry a matching fingerprint, because
+        # `load_models` now refuses a payload it cannot verify against the code
+        # serving it (see `manifest._verify_artifact_fingerprint`). Taken over the
+        # same column list so that guard passes and this test still measures the
+        # version string it is about.
+        "artifact_fingerprint": manifest.artifact_fingerprint(["passing_yards_roll"]),
     })
     monkeypatch.setattr(manifest, "_load_pickle", lambda path: object())
     monkeypatch.setattr(manifest, "_artifact_path", lambda name: object())

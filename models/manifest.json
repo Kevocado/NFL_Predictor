@@ -1,16 +1,16 @@
 {
-  "trained_at": "2026-09-04T22:12:49.750941+00:00",
+  "trained_at": "2026-10-02T05:05:04.816068+00:00",
   "seasons": [
-    2017,
     2018,
     2019,
     2020,
     2021,
     2022,
     2023,
-    2024
+    2024,
+    2025
   ],
-  "n_train": 2209,
+  "n_train": 2227,
   "feature_cols": [
     "home_pregame_rating",
     "away_pregame_rating",
@@ -28,25 +28,53 @@
     "rushing_yards_roll",
     "receiving_yards_roll",
     "targets_roll",
-    "carries_roll"
+    "carries_roll",
+    "receptions_roll"
   ],
   "chosen_candidate": "ridge",
   "candidate_scores": {
-    "elo": 0.6422615055470224,
-    "ridge": 0.6334735511086274,
-    "xgb": 0.647698676049967
+    "elo": 0.6342441017383941,
+    "ridge": 0.6227239422730868,
+    "xgb": 0.6229480050605635
   },
-  "sigma": 13.223153618916728,
-  "total_sigma": 12.486688413234214,
+  "sigma": 13.12453702446608,
+  "total_sigma": 12.289435755669302,
   "yardage_metrics": {
     "passing_yards": {
-      "n_train": 4956
+      "n_train": 5020
     },
     "rushing_yards": {
-      "n_train": 15870
+      "n_train": 16106
     },
     "receiving_yards": {
-      "n_train": 30193
+      "n_train": 30372
+    },
+    "carries": {
+      "n_train": 17854
+    },
+    "receptions": {
+      "n_train": 31095
     }
+  },
+  "qb_passing_td": {
+    "distribution": "poisson",
+    "log_loss": {
+      "poisson": 1.392620795857514,
+      "negative_binomial": 1.3926210389591862
+    },
+    "alpha": null,
+    "n_train": 5179,
+    "variance_ratio": 1.088774029584166
+  },
+  "artifact_fingerprint": {
+    "player_feature_cols": [
+      "passing_yards_roll",
+      "rushing_yards_roll",
+      "receiving_yards_roll",
+      "targets_roll",
+      "carries_roll",
+      "receptions_roll"
+    ],
+    "anytime_td_label_version": 2
   }
 }
