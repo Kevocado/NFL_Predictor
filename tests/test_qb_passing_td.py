@@ -16,12 +16,61 @@ Named coverage, one test per claim the reviewer made:
 Plus the two structural claims: push cannot occur on a half-point line, and the
 count distribution is chosen by fitting BOTH on history and comparing log loss.
 """
+import math
+
 import numpy as np
 import pandas as pd
 import pytest
 
+from nfl_predictor.models import manifest as model_manifest
 from nfl_predictor.models import qb_passing_td as qbt
 from nfl_predictor.tracking import qb_passing_td_record as record
+
+
+def test_the_fit_docstring_quotes_only_the_committed_artefact():
+    """A docstring that lies about the artefact it describes is a defect.
+
+    `fit_qb_passing_td_model`'s docstring claimed 4,501 player-weeks over 2018-2024
+    at a variance-to-mean ratio of 1.084. The committed artefact is 5,179
+    player-weeks over 2018-2025 at 1.0888, so the paragraph described the model
+    *before* the 2026-10-02 retrain onto the anytime-TD label v2 features -- and
+    nothing in the repository noticed, because prose is not asserted by default.
+
+    Every number this docstring states about the fit is read back out of
+    `models/manifest.json` here. A number the manifest does not record is a
+    number no test can keep honest, which is why the docstring no longer states
+    one: the unconditional mean and variance, the conditional Pearson dispersion
+    and the 2024 holdout block are all gone rather than left to rot.
+    """
+    recorded = model_manifest.load_manifest()
+    entry = recorded["qb_passing_td"]
+    doc = qbt.fit_qb_passing_td_model.__doc__
+
+    # Seasons: the manifest's own list, as the range the docstring states it.
+    seasons = [int(s) for s in recorded["seasons"]]
+    assert seasons == list(range(min(seasons), max(seasons) + 1)), (
+        "the docstring states a season RANGE, so a non-contiguous training window "
+        f"would make its range string wrong: {seasons}"
+    )
+    assert f"{min(seasons)}-{max(seasons)}" in doc
+
+    # Size, overdispersion and the chosen distribution, all verbatim.
+    assert f"{entry['n_train']:,}" in doc, f"n_train={entry['n_train']} is not quoted in the docstring"
+    assert f"{entry['variance_ratio']:.4f}" in doc
+    assert entry["distribution"] in doc.lower()
+
+    # Both log losses are quoted, because the choice between the two is only
+    # meaningful if the loser is inspectable. An infinite score is the "this one
+    # broke" sentinel and is deliberately not quoted as a number.
+    finite = {name: v for name, v in entry["log_loss"].items() if math.isfinite(v)}
+    assert len(finite) >= 2, f"expected two finite log losses to check, got {entry['log_loss']}"
+    for name, score in finite.items():
+        assert f"{score:.6f}" in doc, f"log_loss[{name}]={score!r} is not quoted in the docstring"
+
+    # And the superseded numbers, named, so a revert fails here rather than
+    # passing quietly. These are exactly what the docstring used to claim.
+    for stale in ("4,501", "2018-2024", "1.084"):
+        assert stale not in doc, f"the docstring still quotes the pre-retrain value {stale!r}"
 
 
 # --- helpers ---------------------------------------------------------------

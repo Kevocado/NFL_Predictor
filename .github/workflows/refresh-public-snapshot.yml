@@ -48,6 +48,34 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python -m nfl_predictor.public_snapshot
 
+      # A second, independent check on the file as it now sits in the working
+      # tree, so a `main` that is already stale is caught here rather than only
+      # being repaired by a build that happens to run. `main` refuses to write a
+      # stale payload, so this can only fire if something upstream of it went
+      # wrong -- which is the point of having it: it is a different check on a
+      # different artifact (the file on disk) than the one inside the writer.
+      #
+      # This is NOT the enforcement point and is deliberately not treated as one.
+      # It runs only on this workflow, and this workflow is bypassable: anyone
+      # running `python -m nfl_predictor.public_snapshot` locally never reaches
+      # it, and neither does a future writer added by another path. The check that
+      # cannot be bypassed is in `public_snapshot.main`, immediately before the
+      # `write_text`. Both are here so the failure is loud in the workflow log
+      # (with both timestamps and the gap) as well as at the writer.
+      - name: Refuse to publish a snapshot older than the models
+        run: |
+          python -c "
+          import json
+          from nfl_predictor import config
+          from nfl_predictor import public_snapshot as ps
+          from nfl_predictor.models import manifest
+
+          snapshot = json.loads(config.PUBLIC_SNAPSHOT_PATH.read_text())
+          recorded = manifest.load_manifest()
+          print(ps.describe_staleness(snapshot, recorded))
+          ps.assert_publishable(snapshot, recorded)
+          "
+
       - name: Commit and push if changed
         run: |
           if git diff --quiet -- data/public_snapshot.json; then

@@ -11,17 +11,22 @@ Then commit + push data/public_snapshot.json -- the running deployment
 picks it up within PUBLIC_SNAPSHOT_POLL_SECONDS via
 api/routes.py::refresh_public_snapshot_from_remote, no redeploy needed.
 See config.py's PUBLIC_SNAPSHOT_PATH for the rest of that mechanism.
+
+Publishing is gated on the models, and the gate lives in THIS file rather than
+in the workflow: see "the staleness gate" below.
 """
 
 from __future__ import annotations
 
 import json
 import math
+from datetime import datetime, timedelta, timezone
 
 from fastapi.encoders import jsonable_encoder
 
 from . import config
 from .api import routes
+from .models import manifest as model_manifest
 from .models import player_props
 
 # How many weeks past the current one get freshly rebuilt every run.
@@ -217,7 +222,179 @@ def _prop_shape_mismatch(week: dict, required: frozenset[str]) -> bool:
     return any(not required <= row.keys() for row in props)
 
 
-def build_snapshot(previous: dict | None = None) -> dict:
+# --------------------------------------------------------------------------- #
+# The staleness gate: a snapshot may not be published if the models it was built
+# from are newer than the snapshot itself.
+#
+# data/public_snapshot.json is the ONLY thing the public deployment serves
+# (`routes.py::_public_snapshot`), it is produced from the models in this
+# repository, and nothing downstream recomputes it. So a snapshot that predates a
+# retrain is not a stale cache -- it is a set of predictions made by a model this
+# repository no longer contains, against a label definition the code has since
+# changed, presented with timestamps that all still look healthy.
+#
+# That is not hypothetical, it is the state this branch started from. The
+# committed snapshot was generated at 2026-10-02T00:50:56Z; the anytime-TD label
+# was redefined (passing TDs dropped) and every model refitted at
+# 2026-10-02T05:05:04Z; and the snapshot was never regenerated --
+# `git log 56c3d84..61e34be -- data/public_snapshot.json` is empty. It still
+# carried 746 QB rows whose `anytime_td_prob` was computed against the old
+# `rushing + receiving + passing` label: median 0.763, 480 of them at or above
+# 0.59, and NONE of them below 0.09. The committed v2 model scores the same QBs
+# at median 0.099 and a maximum of 0.417. Not one of those 480 rows was a number
+# the current code could produce, and the public surface published all of them
+# with a healthy-looking `generated_at`.
+#
+# It takes TWO halves, and the first alone would have been theatre.
+#
+#   1. `assert_publishable` refuses to WRITE a payload older than the models. It
+#      is in the code that writes the file rather than in the workflow YAML on
+#      purpose: `workflow_dispatch` and anyone running
+#      `python -m nfl_predictor.public_snapshot` by hand both bypass the YAML, and
+#      a check that only the scheduled job runs is a check on a schedule, not a
+#      guarantee on the artifact.
+#
+#   2. `build_snapshot(previous_predates_models=True)` refuses to REUSE a week
+#      whose rows a different model produced. `generated_at` is stamped by
+#      `build_snapshot` itself, so a run that copies every prop week forward
+#      re-stamps last week's numbers as fresh and a timestamp gate passes on an
+#      artifact that is still entirely stale. Measured on the defect above: a
+#      regeneration with only half (1) rebuilt weeks 3-8 and moved 258 of 729 QB
+#      rows, then published the 471 rows in weeks 2 and 9-18 -- verbatim copies --
+#      still carrying the old label's probabilities under a brand new
+#      `generated_at`. So the gate that matters most is (2), and (1) is what
+#      turns a stale payload into a failed run instead of a bad commit.
+# --------------------------------------------------------------------------- #
+
+
+class StaleSnapshotError(RuntimeError):
+    """The snapshot about to be published is older than the models behind it."""
+
+
+def _as_utc(value: object) -> datetime | None:
+    """An ISO-8601 timestamp as an aware UTC datetime, or None if it is not one.
+
+    Naive timestamps are read as UTC rather than rejected: `train_all` and
+    `build_snapshot` both write `datetime.now(timezone.utc).isoformat()`, so a
+    naive value means a hand-written manifest, not a different clock.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    text = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def snapshot_generated_at(snapshot: dict | None) -> datetime | None:
+    """When the snapshot was generated, or None when it does not say."""
+    return _as_utc((snapshot or {}).get("generated_at"))
+
+
+def models_trained_at(manifest: dict | None) -> datetime | None:
+    """When the committed models were trained, or None when the manifest does not say."""
+    return _as_utc((manifest or {}).get("trained_at"))
+
+
+def staleness_gap(snapshot: dict | None, manifest: dict | None) -> timedelta | None:
+    """How much newer the models are than the snapshot.
+
+    Positive means the models are newer -- the publishing defect. Zero or
+    negative means the snapshot is at or after the models and is allowed, with
+    equality allowed deliberately: a snapshot built in the same instant the
+    models were written is not a snapshot of a different model.
+
+    `None` is a THIRD state and is deliberately not a pass. An absent or
+    unparseable timestamp on either side is precisely the situation in which
+    nothing can be shown about freshness, and folding it into "not stale" would
+    make this gate's silence indistinguishable from its agreement -- the exact
+    ambiguity that let the defect above ship.
+    """
+    generated, trained = snapshot_generated_at(snapshot), models_trained_at(manifest)
+    if generated is None or trained is None:
+        return None
+    return trained - generated
+
+
+def _format_gap(gap: timedelta) -> str:
+    """`4h14m08s (15248.7s)` -- readable for a human, exact for a grep."""
+    seconds = gap.total_seconds()
+    hours, rest = divmod(int(seconds), 3600)
+    minutes, secs = divmod(rest, 60)
+    return f"{hours}h{minutes:02d}m{secs:02d}s ({seconds:.1f}s)"
+
+
+def describe_staleness(snapshot: dict | None, manifest: dict | None) -> str:
+    """One line naming both timestamps, the gap and the verdict. Never raises.
+
+    Logged by `main` for the snapshot on disk before the build and for the
+    payload after it, so the mismatch is on the record in the run that repaired
+    it. A repair that says nothing is indistinguishable, to whoever reads the
+    log later, from a run that never found a mismatch.
+    """
+    generated = (snapshot or {}).get("generated_at")
+    trained = (manifest or {}).get("trained_at")
+    gap = staleness_gap(snapshot, manifest)
+    if gap is None:
+        verdict = "UNDECIDABLE (a timestamp is missing or unparseable)"
+    elif gap > timedelta(0):
+        verdict = f"STALE: the models are {_format_gap(gap)} newer"
+    else:
+        verdict = "fresh: the snapshot is not older than the models"
+    return f"snapshot generated_at={generated} | models trained_at={trained} | {verdict}"
+
+
+def assert_publishable(snapshot: dict, manifest: dict | None) -> None:
+    """Raise unless `snapshot` is provably at least as new as the models.
+
+    Called by `main` immediately before `write_text`, so every write of the file
+    goes through it: the workflow's build step, a `workflow_dispatch` run and a
+    hand-run `python -m nfl_predictor.public_snapshot` are all this one call.
+
+    Both timestamps and the gap appear in the message, because "your snapshot is
+    stale" is not actionable on its own and the entire cost of this bug class was
+    that nothing said anything at all.
+    """
+    generated = (snapshot or {}).get("generated_at")
+    trained = (manifest or {}).get("trained_at")
+    gap = staleness_gap(snapshot, manifest)
+    if gap is None:
+        raise StaleSnapshotError(
+            f"refusing to publish {config.PUBLIC_SNAPSHOT_PATH}: it cannot be shown to be "
+            f"at least as new as the models. generated_at={generated!r}, "
+            f"models/manifest.json trained_at={trained!r}. Refusing because an unreadable "
+            "timestamp is not evidence of freshness -- regenerate with "
+            "`python -m nfl_predictor.public_snapshot` and commit a snapshot that carries "
+            "a readable 'generated_at'."
+        )
+    if gap > timedelta(0):
+        raise StaleSnapshotError(
+            f"refusing to publish {config.PUBLIC_SNAPSHOT_PATH}: generated_at={generated} is "
+            f"{_format_gap(gap)} OLDER than the models it would be published against "
+            f"(models/manifest.json trained_at={trained}). Every prediction in it was made "
+            "by a model this repository no longer contains, so the public surface would "
+            "disagree with the code that produced it. Regenerate the snapshot with "
+            "`python -m nfl_predictor.public_snapshot` against the committed models, or "
+            "retrain (`python -m nfl_predictor.models.manifest`) and regenerate again."
+        )
+
+
+def build_snapshot(previous: dict | None = None, *, previous_predates_models: bool = False) -> dict:
+    """Every week 1-22 plus the season-level sections, in one snapshot.
+
+    `previous_predates_models` says the caller has established that
+    `previous["generated_at"]` is older than `models/manifest.json`'s
+    `trained_at`. When it is true, every week that carries props is rebuilt and
+    no prop row or standings projection is carried forward from `previous`,
+    because those numbers were produced by a model this repository no longer
+    contains -- see the staleness gate above. It is a keyword argument rather
+    than a manifest read from here so this stays a function of its arguments;
+    `main` is the only caller that has both files in hand.
+    """
     season, current_week = routes.current_season_and_week()
     previous = previous or {}
     previous_weeks = previous.get("weeks", {}) if previous.get("season") == season else {}
@@ -233,9 +410,26 @@ def build_snapshot(previous: dict | None = None) -> dict:
     reused: list[str] = []
     for week in range(1, MAX_WEEK + 1):
         key = str(week)
-        if rebuild_from <= week <= rebuild_to or key not in previous_weeks:
-            print(f"  week {week}")
-            weeks[key] = _build_week(season, week, previous=previous_weeks.get(key))
+        # A reused week is a byte-for-byte copy, so its prop rows keep whatever
+        # model produced them. Normally that is the right cost trade (see the
+        # note below), but across a retrain it republishes a superseded model
+        # under a fresh `generated_at` -- so those weeks are rebuilt instead.
+        superseded = previous_predates_models and bool(
+            (previous_weeks.get(key) or {}).get("player_props")
+        )
+        if rebuild_from <= week <= rebuild_to or key not in previous_weeks or superseded:
+            note = " (props predate the models; rebuilding rather than reusing)" if superseded else ""
+            print(f"  week {week}{note}")
+            # `_build_week` reads `previous` for one thing only: carrying the last
+            # good props forward when a fresh props build fails. Those props
+            # belong to the old model, so they are not offered as a fallback
+            # across a retrain -- the week reports `unavailable` instead, which
+            # the route answers with a 503 rather than a stale number.
+            weeks[key] = _build_week(
+                season,
+                week,
+                previous=None if previous_predates_models else previous_weeks.get(key),
+            )
         else:
             weeks[key] = previous_weeks[key]
             reused.append(key)
@@ -321,7 +515,14 @@ def build_snapshot(previous: dict | None = None) -> dict:
         standings = routes._get_standings_live(season)
     except Exception as exc:
         print(f"  ! skipped standings: {exc}")
-        standings = previous.get("standings", []) if previous.get("season") == season else []
+        # The projection is the game model's output -- `project_standings` is
+        # handed a `predict_fn` built from `load_models` -- so the previous
+        # snapshot's rows are the previous model's wins and carrying them across
+        # a retrain republishes them. `power_rankings` and the `hub_*` tables
+        # below are NOT model output (power_ratings is a K-factor Elo pass over
+        # played games), so for those the carry-forward stays.
+        carried = previous.get("season") == season and not previous_predates_models
+        standings = previous.get("standings", []) if carried else []
 
     print("Building power rankings...")
     try:
@@ -376,12 +577,47 @@ def sanitize_floats(value):
 
 
 def main() -> None:
+    """Build the snapshot and write it, or refuse to write it.
+
+    The staleness gate is HERE, in the code path that writes the file, and not
+    only in `.github/workflows/refresh-public-snapshot.yml`. A YAML guard covers
+    exactly one path into this function: `workflow_dispatch` re-runs the same
+    steps, and anyone debugging locally runs `python -m nfl_predictor.public_snapshot`
+    with no workflow at all. Putting the check at the `write_text` means every
+    write of the published artifact passes through it, whoever makes it.
+
+    The order matters. The snapshot already on disk is checked and LOGGED first,
+    but a stale one does not abort the run -- that file is what this run exists to
+    replace, so refusing to start would leave it unrepairable without a human
+    deleting it. Instead its verdict goes to `build_snapshot`, which then rebuilds
+    every week that carries props instead of reusing the copy. The payload is
+    checked again immediately before the write, and that one raises.
+    """
     previous = json.loads(config.PUBLIC_SNAPSHOT_PATH.read_text()) if config.PUBLIC_SNAPSHOT_PATH.exists() else None
-    snapshot = sanitize_floats(jsonable_encoder(build_snapshot(previous)))
+    manifest = model_manifest.load_manifest()
+    print(f"  {describe_staleness(previous, manifest)}")
+    gap = staleness_gap(previous, manifest)
+    previous_predates_models = gap is not None and gap > timedelta(0)
+    if previous_predates_models:
+        print(
+            f"  ! the published snapshot is {_format_gap(gap)} older than the models; rebuilding "
+            "every week that carries props and carrying no prop row or projection forward"
+        )
+    snapshot = sanitize_floats(
+        jsonable_encoder(
+            build_snapshot(previous, previous_predates_models=previous_predates_models)
+        )
+    )
     # allow_nan=False is the guard, not the mechanism: sanitize_floats has
     # already replaced every non-finite float, so reaching here means a new
     # one appeared somewhere and the build must fail loudly rather than
     # write invalid JSON again.
+    #
+    # The staleness gate runs before the write for the same reason: this is the
+    # last point at which refusing costs nothing. Past it the bad snapshot is on
+    # disk and the workflow is free to commit and push it.
+    assert_publishable(snapshot, manifest)
+    print(f"  {describe_staleness(snapshot, manifest)}")
     config.PUBLIC_SNAPSHOT_PATH.write_text(json.dumps(snapshot, indent=2, allow_nan=False))
     print(f"Wrote {config.PUBLIC_SNAPSHOT_PATH} ({config.PUBLIC_SNAPSHOT_PATH.stat().st_size / 1024:.0f} KB)")
 
