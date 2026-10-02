@@ -1413,6 +1413,16 @@ git commit -m "feat: single feature-construction entry point for game outcomes"
 **Interfaces:**
 - Produces: `player_usage.PLAYER_FEATURE_COLUMNS: list[str]`, `player_usage.build_player_training_frame(player_stats_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]` (adds rolling-form feature columns plus `anytime_td` target derived from `rushing_tds + receiving_tds + passing_tds > 0`), `player_usage.build_features_for_player(player_id: str, player_stats_df: pd.DataFrame) -> pd.Series | None` (`None` if the player has no prior games in `player_stats_df`).
 
+> **Superseded 2026-10-01.** This plan's `anytime_td` derivation of
+> `rushing_tds + receiving_tds + passing_tds > 0` is no longer what the code
+> does. The definition is now `rushing_tds + receiving_tds > 0` -- passing TDs
+> were excluded so that a quarterback's anytime-TD is a rushing-or-receiving
+> score rather than one driven by his arm. Passing TDs are a separate market
+> (`models/qb_passing_td.py`). The steps below are left as written because this
+> is the historical v1 plan; the authoritative definition is
+> `features/player_usage.py::anytime_td_actual`, which the classifier's label
+> and the tracker's grader both call.
+
 - [ ] **Step 1: Write the failing tests**
 
 ```python

@@ -55,10 +55,13 @@ import pandas as pd
 from scipy import optimize, stats
 
 #: The market name this writes. Distinct from `anytime_td` by construction --
-#: `anytime_td` is `rushing_tds + receiving_tds + passing_tds > 0`
-#: (features/player_usage.py:23-25), so a QB's anytime-TD is dominated by his
-#: passing and this category is the one where a QB is judged on passing TDs
-#: alone.
+#: `anytime_td` is `rushing_tds + receiving_tds > 0`
+#: (features/player_usage.py::build_player_training_frame), so passing TDs
+#: cannot reach it, and this is the category where a QB is judged on passing
+#: TDs at all. This comment previously stated the opposite -- that `anytime_td`
+#: was `rushing_tds + receiving_tds + passing_tds > 0` and was "dominated by
+#: his passing" -- which was true of the old label and false as of 2026-10-01,
+#: when passing TDs were dropped from it.
 PASSING_TD_MARKET = "passing_tds"
 
 #: The only value `line_source` ever takes. It is a constant, not a parameter,

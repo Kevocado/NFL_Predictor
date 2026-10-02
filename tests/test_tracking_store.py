@@ -500,6 +500,94 @@ def _td_stats(*player_tds):
     )
 
 
+def _actual_for(player_id):
+    """The `actual_value` the grader stored for one resolved anytime_td row."""
+    row = _resolved_row(player_id)
+    return row["actual_value"]
+
+
+def _resolved_row(player_id):
+    with contextlib.closing(store._connect()) as conn:
+        return pd.read_sql(
+            "SELECT actual_value FROM player_prop_predictions "
+            "WHERE player_id = ? AND market = 'anytime_td'",
+            conn, params=[player_id],
+        ).iloc[0]
+
+
+def test_the_grader_excludes_passing_tds_from_anytime_td():
+    """The grader's truth must be the definition the classifier was fitted on.
+
+    This is the counterpart to `test_player_usage.py::test_a_qb_game_with_passing_tds_only_is_not_an_anytime_td`.
+    `reconcile_player_prop_predictions` used to carry its own inline sum of
+    rushing + receiving + passing, so changing the model's label alone would have
+    left every QB's pick graded against the OLD truth -- the model predicting one
+    thing and the scorecard calling it wrong. Both now call
+    `player_usage.anytime_td_actual`.
+
+    Four players, one game: passing only, rushing only, receiving only, and
+    passing plus receiving. Only the last two are anytime TDs.
+    """
+    store.record_game_predictions([_future_game()])
+    store.record_player_prop_predictions([
+        _prop("qb_pass", "anytime_td", 0.60),
+        _prop("qb_rush", "anytime_td", 0.60),
+        _prop("wr_rec", "anytime_td", 0.60),
+        _prop("qb_both", "anytime_td", 0.60),
+    ])
+    assert store.reconcile_player_prop_predictions(_td_stats(
+        ("qb_pass", 0, 0, 3),   # passing alone -> not an anytime TD
+        ("qb_rush", 1, 0, 2),   # rushing, plus passing -> yes
+        ("wr_rec", 0, 1, 0),    # receiving -> yes
+        ("qb_both", 0, 1, 1),   # receiving, plus passing -> yes
+    )) == 4
+
+    assert _actual_for("qb_pass") == 0.0
+    assert _actual_for("qb_rush") == 1.0
+    assert _actual_for("wr_rec") == 1.0
+    assert _actual_for("qb_both") == 1.0
+
+
+def test_the_grader_and_the_training_frame_agree_on_the_definition():
+    """The definition cannot drift, because both call one function.
+
+    A tautology on its own -- which is the point. It fails if someone re-inlines
+    the sum in either call site, which is exactly the regression this asserts
+    against: the two sites were written separately and that is how they came to
+    disagree.
+    """
+    from nfl_predictor.features import player_usage
+
+    frame = pd.DataFrame([
+        {"player_id": "a", "player_name": "A", "position": "QB", "recent_team": "BAL",
+         "season": 2025, "week": 1, "passing_yards": 300, "passing_tds": 4,
+         "rushing_yards": 0, "rushing_tds": 0, "receiving_yards": 0, "receiving_tds": 0,
+         "receptions": 0, "targets": 0, "carries": 0},
+        {"player_id": "b", "player_name": "B", "position": "WR", "recent_team": "BAL",
+         "season": 2025, "week": 1, "passing_yards": 0, "passing_tds": 0,
+         "rushing_yards": 0, "rushing_tds": 0, "receiving_yards": 70, "receiving_tds": 1,
+         "receptions": 5, "targets": 8, "carries": 0},
+    ])
+    labelled, _ = player_usage.build_player_training_frame(frame)
+    assert labelled["anytime_td"].tolist() == [
+        player_usage.anytime_td_actual(0, 0),   # QB, passing only
+        player_usage.anytime_td_actual(0, 1),   # WR, receiving
+    ]
+    assert labelled["anytime_td"].tolist() == [0, 1]
+
+
+def test_anytime_td_actual_handles_missing_td_columns():
+    """The grader's row comes from a join that can leave a TD column absent or
+    NaN, and `NaN + 0` is NaN, which is `> 0` False. Rushing must still carry."""
+    from nfl_predictor.features import player_usage
+
+    assert player_usage.anytime_td_actual(None, 0) == 0.0
+    assert player_usage.anytime_td_actual(float("nan"), 0) == 0.0
+    assert player_usage.anytime_td_actual(float("nan"), 1) == 1.0
+    assert player_usage.anytime_td_actual(1, float("nan")) == 1.0
+    assert player_usage.anytime_td_actual(0, 0) == 0.0
+
+
 def test_anytime_td_confidence_buckets_group_by_predicted_probability():
     store.record_game_predictions([_future_game()])
     store.record_player_prop_predictions([

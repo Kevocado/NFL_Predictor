@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..config import CACHE_DIR, TRACKING_DB_PATH
+from ..features import player_usage
 
 
 def _connect() -> sqlite3.Connection:
@@ -1484,11 +1485,15 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
             if _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
                 continue
             if row["market"] == "anytime_td":
-                actual = float(
-                    (row.get("rushing_tds", 0) or 0)
-                    + (row.get("receiving_tds", 0) or 0)
-                    + (row.get("passing_tds", 0) or 0)
-                    > 0
+                # Rushing + receiving only; `passing_tds` was dropped from the
+                # definition on 2026-10-01. The grader used to carry its own
+                # inline sum of all three, so it would have kept resolving the
+                # market against the OLD truth after the classifier's label
+                # changed -- scoring every QB pick against a definition the model
+                # was never fitted on. One definition, one function:
+                # `player_usage.anytime_td_actual`.
+                actual = player_usage.anytime_td_actual(
+                    row.get("rushing_tds", 0), row.get("receiving_tds", 0)
                 )
             else:
                 stat_col = _MARKET_TO_STAT_COLUMN[row["market"]]

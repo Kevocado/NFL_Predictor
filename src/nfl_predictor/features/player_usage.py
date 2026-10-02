@@ -58,11 +58,55 @@ def _add_rolling(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.Data
     return df
 
 
+def anytime_td_actual(rushing_tds, receiving_tds) -> float:
+    """Ground truth for the `anytime_td` market, as 0.0 or 1.0.
+
+    THE definition, in one function, because this quantity has to be computed in
+    two places that must never disagree:
+
+    * `build_player_training_frame` below, to produce the classifier's target;
+    * `tracking/store.reconcile_player_prop_predictions`, to grade a stored
+      prediction. The grader used to carry its own inline copy of the sum, so
+      changing the label here alone would have left the grader resolving the
+      market against the OLD definition -- every QB's pick scored against a truth
+      the model was not fitted on. A grader that disagrees with the model is
+      worse than either definition on its own.
+
+    `anytime_td` = **rushing TDs + receiving TDs, and nothing else.** Passing TDs
+    are deliberately EXCLUDED (decided 2026-10-01; both call sites previously
+    summed `passing_tds` in as well).
+
+    The reason is that the two are not the same market. "Anytime TD" reads to a
+    user as a rushing-or-receiving score, but with passing included it fired on
+    passing alone, so a quarterback's anytime-TD was dominated by his arm and
+    quarterbacks sorted to the top of a category whose name never mentions
+    passing. Passing TDs are a separate market with their own per-player model
+    line: `models/qb_passing_td.py`, served as `passing_td_*` fields on QB rows
+    by `player_props.predict_props` and graded through the same store under the
+    `"passing_tds"` market. Nothing is lost by dropping it here -- the same
+    `passing_tds` column still feeds `with_passing_tds_roll` for that model.
+
+    Scalars or a Series; missing values read as 0, matching the `fillna(0)` the
+    training frame applies and the `(x or 0)` the grader used. Returns a float
+    for scalars and a float Series for a Series, so the grader's per-row call and
+    the frame-level call share one arithmetic expression.
+    """
+    if isinstance(rushing_tds, pd.Series):
+        rushing, receiving = rushing_tds.fillna(0), receiving_tds.fillna(0)
+    else:
+        rushing = 0 if rushing_tds is None or pd.isna(rushing_tds) else rushing_tds
+        receiving = 0 if receiving_tds is None or pd.isna(receiving_tds) else receiving_tds
+    scored = (rushing + receiving) > 0
+    return scored.astype(float) if isinstance(rushing_tds, pd.Series) else float(scored)
+
+
 def build_player_training_frame(player_stats_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     df = _add_rolling(player_stats_df)
-    df["anytime_td"] = (
-        (df["rushing_tds"].fillna(0) + df["receiving_tds"].fillna(0) + df["passing_tds"].fillna(0)) > 0
-    ).astype(int)
+
+    # The LABEL only. `PLAYER_FEATURE_COLUMNS` is untouched, so no model changes
+    # shape; and `predict_props` scores a live row from features alone, so the
+    # only artefact affected is one refitted against this label.
+    df["anytime_td"] = anytime_td_actual(df["rushing_tds"], df["receiving_tds"]).astype(int)
     return df, PLAYER_FEATURE_COLUMNS
 
 

@@ -484,8 +484,15 @@ def test_predict_props_omits_the_market_entirely_when_no_model_was_trained():
 
 
 def test_the_market_name_is_passing_tds_and_is_not_anytime_td():
-    """QB anytime_td counts rushing OR receiving OR passing (features/player_usage.py:23-25),
-    so this category is separate by construction and never aliases it."""
+    """QB anytime_td counts rushing OR receiving only, so this category is
+    separate by construction and never aliases it.
+
+    This docstring previously read "rushing OR receiving OR passing
+    (features/player_usage.py:23-25)". Passing TDs were dropped from the anytime-TD
+    label on 2026-10-01, so that parenthetical is now wrong. The behavioural pin on
+    the new definition lives in `test_player_usage.py::test_anytime_td_label_*`; this
+    test stays about the market *name*, which is what stops the two from aliasing.
+    """
     assert qbt.PASSING_TD_MARKET == "passing_tds"
     assert qbt.PASSING_TD_MARKET != "anytime_td"
 
