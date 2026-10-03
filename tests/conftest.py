@@ -473,6 +473,13 @@ def unlisted_skips() -> list[str]:
     return unlisted
 
 
+#: The only exit codes `pytest_sessionfinish` is allowed to turn into
+#: TESTS_FAILED. Anything else -- INTERRUPTED, INTERNAL_ERROR, USAGE_ERROR -- is a
+#: more specific diagnosis than "some skip was unlisted", and overwriting it would
+#: discard it. Named rather than inlined so the set reads as a policy.
+_UPGRADABLE_EXIT_CODES = frozenset({pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED})
+
+
 def _audit_message(unlisted: list[str]) -> str:
     return (
         f"{len(unlisted)} skip(s) this run are not in SKIP_SITES "
@@ -515,6 +522,16 @@ def pytest_sessionfinish(session, exitstatus):
             sys.stderr.write(line + "\n")
     # `session.exitstatus` is what `wrap_session` returns, so setting it here is
     # what actually fails the run. `pytest.ExitCode` is the public spelling.
+    #
+    # Only ever a promotion, never a demotion (CodeRabbit, Minor): an unlisted
+    # skip can be recorded before a later interrupt or internal error in the same
+    # session, and rewriting INTERRUPTED or INTERNAL_ERROR to TESTS_FAILED would
+    # throw away the more specific diagnosis for whoever is reading the exit code.
+    # OK and NO_TESTS_COLLECTED are the only codes worth upgrading -- the latter
+    # is the empty-collection case this hook exists to cover, and upgrading it to
+    # a plain failure is the point.
+    if session.exitstatus not in _UPGRADABLE_EXIT_CODES:
+        return
     session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 

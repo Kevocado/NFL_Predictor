@@ -848,6 +848,56 @@ def test_the_audit_still_fails_when_collection_leaves_nothing_to_run(tmp_path):
     assert "not in SKIP_SITES" in proc.stdout + proc.stderr
 
 
+def test_the_audit_does_not_downgrade_a_more_specific_exit_status(tmp_path):
+    """A later interrupt keeps its own exit code, even with an unlisted skip recorded.
+
+    The hook promotes `session.exitstatus`, and "promote" has to mean only that:
+    rewriting INTERRUPTED or INTERNAL_ERROR to TESTS_FAILED would discard the
+    specific diagnosis for whoever reads the exit code -- a Ctrl-C would arrive
+    looking like a skip-audit failure. So a run that both skips unlisted *and* is
+    interrupted must report INTERRUPTED.
+
+    Driven with a real interrupt rather than a stubbed `exitstatus`, because the
+    question is whether pytest's own teardown leaves the code it wants: the hook
+    runs after that, and a test that set the field by hand would not show it.
+    """
+    interrupted = """
+        import pytest
+
+        pytest.skip("models/manifest.json is not in this checkout", allow_module_level=True)
+
+        def test_never_runs():
+            assert False
+    """
+    conftest = (Path(__file__).parent / "conftest.py").read_text(encoding="utf-8") + (
+        "\n"
+        "# Interrupt *after* the module-level skip has been recorded, which is the"
+        "\n"
+        "# ordering that makes the promotion-vs-demotion question real."
+        "\n"
+        "def pytest_collection_finish(session):\n"
+        "    if session.testscollected == 0:\n"
+        "        pytest.exit('interrupted by the test', returncode=2)\n"
+    )
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "conftest.py").write_text(conftest, encoding="utf-8")
+    (tmp_path / "test_selfskip.py").write_text(textwrap.dedent(interrupted), encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"],
+        cwd=tmp_path, capture_output=True, text=True, check=False,
+        env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
+    )
+
+    assert proc.returncode == pytest.ExitCode.INTERRUPTED, (
+        f"the audit overwrote INTERRUPTED (2) with {proc.returncode}; an interrupt "
+        f"must keep its own diagnosis:\n{proc.stdout}\n{proc.stderr}"
+    )
+    # And the verdict is still reported -- a promotion that also silences the
+    # message would be no better than a demotion.
+    assert "not in SKIP_SITES" in proc.stdout + proc.stderr
+
+
 def test_a_test_level_skip_still_fails_the_run_the_same_way(tmp_path):
     """Nothing about the module-level path weakened the ordinary one.
 
