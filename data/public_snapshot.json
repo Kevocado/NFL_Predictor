@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-03T16:22:01.101282+00:00",
+  "generated_at": "2026-10-03T21:23:02.853771+00:00",
   "season": 2026,
   "current_week": 4,
   "weeks": {
@@ -10720,7 +10720,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 39.5
+          "total_line": 38.5
         },
         {
           "game_id": "2026_04_MIA_MIN",
@@ -10796,7 +10796,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 47.5
+          "total_line": 48.5
         },
         {
           "game_id": "2026_04_DET_CAR",
@@ -10960,8 +10960,8 @@
           "away_win_prob": 0.4842669860414637,
           "home_cover_prob": 0.6056605539584919,
           "away_cover_prob": 0.39433944604150806,
-          "over_prob": 0.592325100238374,
-          "under_prob": 0.40767489976162596,
+          "over_prob": 0.6235815130530714,
+          "under_prob": 0.3764184869469286,
           "predicted_margin": 0.5177242109602354,
           "predicted_total": 42.36995315551758,
           "sigma": 13.12453702446608,
@@ -11012,8 +11012,8 @@
           "away_win_prob": 0.44425414043634837,
           "home_cover_prob": 0.4647843572156205,
           "away_cover_prob": 0.5352156427843795,
-          "over_prob": 0.5468542603057898,
-          "under_prob": 0.45314573969421024,
+          "over_prob": 0.5144970933626936,
+          "under_prob": 0.48550290663730644,
           "predicted_margin": 1.8399552886699997,
           "predicted_total": 48.94668197631836,
           "sigma": 13.12453702446608,
