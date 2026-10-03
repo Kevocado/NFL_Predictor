@@ -41,9 +41,35 @@ from nfl_predictor.api import routes
 from nfl_predictor.api.main import app
 from nfl_predictor import public_snapshot
 from nfl_predictor.data import player_stats
+from tracked_artifacts import require
 
 SEASON = 2026
 WEEK = 3
+
+#: The committed artefact this module reads twice, named once. `require()`
+#: re-derives it from the path and refuses if the two disagree, so this spelling
+#: cannot drift from `config`'s.
+SNAPSHOT_REL = "data/public_snapshot.json"
+
+#: Why the artefact has to be there. Quoted into the failure message: a reader
+#: told their checkout is broken should not have to go and find out what they
+#: are missing.
+WHY_SNAPSHOT_REQUIRED = (
+    "In PUBLIC_MODE the snapshot IS the response -- routes._public_snapshot_cache "
+    "is served verbatim and the live pipeline never runs -- so this is the only "
+    "place the empty-state invariant is checked against the file the public "
+    "deployment actually serves."
+)
+
+#: What would have to be true for its absence to be expected. Nothing in this
+#: repository: the file is committed at `main`, so this branch is unreachable here
+#: and says so rather than inventing a reason.
+WHY_SNAPSHOT_ABSENT_IS_EXPECTED = (
+    "Nothing in this repository predicts it: data/public_snapshot.json is "
+    "committed at main. If you are reading this, your checkout is older than the "
+    "file or was cloned without it -- update the branch rather than committing a "
+    "test that tolerates its absence."
+)
 
 
 def _game_row(season: int = SEASON, week: int = WEEK) -> dict:
@@ -601,26 +627,42 @@ def test_a_successful_rebuild_is_marked_ok(data_seams, monkeypatch):
     assert [e["player_name"] for e in week["player_props_out"]] == ["Gone Guy"]
 
 
-def test_the_committed_snapshot_never_serves_an_empty_200_for_a_week_with_games(monkeypatch):
-    """The regression guard on the real artifact, not a fixture.
+def _assert_the_empty_state_invariant(client, snap: dict) -> list[int]:
+    """Every week in `snap` honours the empty-state invariant. Returns the offenders.
 
-    `data/public_snapshot.json` currently holds a full slate and zero props for
-    weeks 2-7 -- the window the last three builds rebuilt. This asserts the
-    invariant that makes that honest: any week with games either serves rows or
-    answers 503, and only a week with no games at all may serve an empty list.
-    Written against the actual file so it keeps holding after the next refresh
-    commits a different set of numbers.
+    Named, and taking the snapshot as an argument, so the three "this ran but
+    examined nothing" guards inside it are reachable from a test. Inline in the
+    one test that runs against the committed artefact they would be decoration:
+    the artefact has 22 weeks and 18 of them carry games, so disabling any of
+    those three assertions changes nothing observable and nothing would say so.
+    `test_the_guards_that_stop_this_from_being_vacuous_bite` is what makes them
+    real, and it can only exist because this is a function.
+
+    The invariant: a week with games either serves rows or answers 503; only a
+    week with no games at all may serve an empty list.
     """
-    from nfl_predictor.config import PUBLIC_SNAPSHOT_PATH
+    weeks = snap["weeks"]
+    assert weeks, (
+        f"the snapshot holds no weeks, so this check asked the props route "
+        f"nothing at all. An empty `weeks` is a real state -- a build before the "
+        f"window opens -- and a guard has to be able to say so rather than pass."
+    )
 
-    if not PUBLIC_SNAPSHOT_PATH.exists():
-        pytest.skip("no committed snapshot in this checkout")
-    snap = json.loads(PUBLIC_SNAPSHOT_PATH.read_text())
-    client = _public(monkeypatch, snap["weeks"])
-
-    empty_but_played = []
-    for week, block in snap["weeks"].items():
+    empty_but_played: list[int] = []
+    weeks_with_games = 0
+    for week, block in weeks.items():
+        # `"games" in block` rather than `block.get("games") or []`: a renamed or
+        # dropped key would read as "a week with no games" and sail through the
+        # else branch below asserting 200 and zero rows, so the check would pass
+        # on a snapshot whose every week it could not see.
+        assert "games" in block, (
+            f"week {week} has no `games` key (keys: {sorted(block)}). The "
+            f"games/player_props spellings are what make 'empty but played' "
+            f"distinguishable from 'not played'; if either was renamed, this loop "
+            f"can no longer tell those apart and must be rewritten, not left to pass."
+        )
         games, props = block.get("games") or [], block.get("player_props") or []
+        weeks_with_games += bool(games)
         response = client.get(f"/api/players/{snap['season']}/{week}/props")
         if games and not props:
             empty_but_played.append(int(week))
@@ -629,8 +671,108 @@ def test_the_committed_snapshot_never_serves_an_empty_200_for_a_week_with_games(
                 f"{response.status_code} {response.text[:120]}"
             )
         else:
-            assert response.status_code == 200
+            assert response.status_code == 200, (
+                f"week {week} served {response.status_code} {response.text[:120]}"
+            )
             assert len(response.json()) == len(props), f"week {week} served the wrong rows"
+
+    # The 503 arm is the point of the check, so a run in which it was never
+    # reached proved nothing -- including a run against a snapshot that had quietly
+    # stopped carrying any games at all.
+    assert weeks_with_games, (
+        f"none of the {len(weeks)} weeks carries a game, so the empty-but-played "
+        f"case never arose and this asserted only that empty weeks serve an "
+        f"empty list."
+    )
+    return empty_but_played
+
+
+#: Payloads that must each make `_assert_the_empty_state_invariant` raise, with
+#: the fragment of each message that says why. The committed snapshot is never any
+#: of these, so these are the only way the guards are ever exercised.
+UNJUDGEABLE_SNAPSHOTS = (
+    pytest.param(
+        {}, "holds no weeks",
+        id="no-weeks",
+    ),
+    pytest.param(
+        {"22": {"games": [], "player_props": [], "predictions": {}}},
+        "none of the 1 weeks carries a game",
+        id="no-week-has-games",
+    ),
+    pytest.param(
+        {"3": {"player_props": [], "predictions": {}}},
+        "week 3 has no `games` key",
+        id="a-week-lost-its-games-key",
+    ),
+)
+
+
+@pytest.mark.parametrize("weeks, expected", UNJUDGEABLE_SNAPSHOTS)
+def test_the_guards_that_stop_this_from_being_vacuous_bite(weeks, expected, monkeypatch):
+    """The three guards inside `_assert_the_empty_state_invariant`, each proved.
+
+    Without this they are assertions that cannot fail. The committed snapshot is
+    non-empty, carries games, and spells the key `games`, so on the real artefact
+    all three are satisfied trivially -- deleting them changes nothing observable
+    and the next person to run a mutation check has no signal that the coverage
+    went. Here each guard is handed the one payload it exists to reject.
+
+    The third is the subtle one and the reason the first two were not enough: a
+    snapshot that lost its `games` key entirely would read as "every week had no
+    games", take the else branch, and assert `200` with zero rows for each -- a
+    complete, silent, green pass over weeks it could not see.
+    """
+    snap = {"season": SEASON, "weeks": weeks}
+    with pytest.raises(AssertionError, match=expected):
+        _assert_the_empty_state_invariant(_public(monkeypatch, weeks), snap)
+
+
+def test_the_invariant_check_passes_on_a_snapshot_it_can_judge(monkeypatch):
+    """The other direction, so the guards above cannot be passed by raising always."""
+    weeks = {
+        "3": {"games": [_game_row()], "player_props": [], "predictions": {}},
+        "22": {"games": [], "player_props": [], "predictions": {}},
+    }
+    offenders = _assert_the_empty_state_invariant(
+        _public(monkeypatch, weeks), {"season": SEASON, "weeks": weeks}
+    )
+    assert offenders == [3], offenders
+
+
+def test_the_committed_snapshot_never_serves_an_empty_200_for_a_week_with_games(monkeypatch):
+    """The regression guard on the real artifact, not a fixture.
+
+    This asserts the invariant, not a set of numbers: any week with games either
+    serves rows or answers 503, and only a week with no games at all may serve an
+    empty list. It is written against the actual file so it keeps holding after
+    the next refresh commits different numbers -- which it has already done
+    twice, and is why no week is named here.
+
+    Three ways this could stop testing and still pass, all closed: the artefact is
+    absent (`require`, which fails where this used to skip); the artefact holds no
+    weeks, so the loop body never ran; and no week carries games, so the 503
+    branch was never reached. The latter two were open, and the first of them is a
+    live risk rather than a thought experiment -- a snapshot written before the
+    season window opens has an empty `weeks`, and this would have passed on it
+    having asked nothing of the route.
+
+    The loop itself lives in `_assert_the_empty_state_invariant` so those two
+    guards can be reached; see
+    `test_the_guards_that_stop_this_from_being_vacuous_bite`.
+    """
+    from nfl_predictor.config import PUBLIC_SNAPSHOT_PATH
+
+    path = require(
+        PUBLIC_SNAPSHOT_PATH,
+        rel=SNAPSHOT_REL,
+        required_because=WHY_SNAPSHOT_REQUIRED,
+        expected_absent_because=WHY_SNAPSHOT_ABSENT_IS_EXPECTED,
+    )
+    snap = json.loads(path.read_text())
+    empty_but_played = _assert_the_empty_state_invariant(
+        _public(monkeypatch, snap["weeks"]), snap
+    )
 
     # Recorded rather than asserted away: the count is the live symptom, and a
     # future snapshot that fixes it should show up as a change in this number
