@@ -140,8 +140,21 @@ def _scan_root(rel: str) -> Path:
 
 
 def _source_files() -> list[Path]:
-    """Every source file under `SCANNED`, and never nothing."""
+    """Every source file under `SCANNED`, and never fewer than the floor.
+
+    The floor is enforced HERE rather than only inside
+    `test_the_scan_examines_a_non_zero_number_of_files`, because this is the
+    function the two symbol scans actually read. It used to enforce nothing: a
+    caller went straight to `_files_by_root()`, which only checks that each root
+    contributed *something*, so `test_no_product_code_or_consumer_imports_or_calls_the_deleted_report`
+    run on its own -- `pytest -k no_product_code`, a bisect, an IDE's run button --
+    reported "nothing in the product references the deleted report" as a fact
+    about seven files. The sibling test that guards the width was still green in a
+    different process and said nothing about this one. A guard that only runs
+    beside the thing it guards is not a guard.
+    """
     files = _files_by_root()
+    _assert_the_scan_is_wide_enough(files)
     return sorted(p for root_files in files.values() for p in root_files)
 
 
@@ -256,6 +269,26 @@ def test_the_floor_rejects_a_scan_narrowed_to_one_root(monkeypatch):
     assert sum(len(f) for f in per_root.values()) == 1
     with pytest.raises(AssertionError, match="below the floor"):
         _assert_the_scan_is_wide_enough(per_root)
+
+
+def test_the_floor_is_enforced_on_the_path_the_symbol_scan_actually_reads(monkeypatch):
+    """The same floor, on the function the symbol scans call.
+
+    `test_the_scan_examines_a_non_zero_number_of_files` checks the width, but
+    `test_no_product_code_or_consumer_imports_or_calls_the_deleted_report` calls
+    `_source_files()` directly and used to get no width check at all. Run on its
+    own -- `pytest -k no_product_code`, a bisect, an IDE's run button -- it read
+    whatever roots happened to survive and reported "nothing in the product
+    references the deleted report" as a fact about them. The test that guards
+    the width was green in a different process and said nothing about this one.
+
+    `frontend/src` alone is the case: seven real files, so every per-root
+    existence check and the empty-root refusal are satisfied, and only the floor
+    stops it.
+    """
+    monkeypatch.setattr(sys.modules[__name__], "SCANNED", ("frontend/src",))
+    with pytest.raises(AssertionError, match="below the floor"):
+        _source_files()
 
 
 def test_the_empty_root_condition_names_every_offending_root():

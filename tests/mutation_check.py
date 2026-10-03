@@ -95,9 +95,10 @@ PYTHON = ROOT / ".venv/bin/python"
 # as ["src", "tests", "models", ".github"]; 0393f52 (2026-09-28) then added
 # tests/test_null_fabricated_market_hits.py, which loads a repo path at import
 # time, and the list was never updated. It is also read by
-# `test_passing_td_record_absence.py`, which scans it and skips a scan root that
-# is not there. `_check_the_copy_is_whole` below is what keeps the next one
-# honest.
+# `test_passing_td_record_absence.py`, whose scan roots it used to *skip* when
+# absent -- a scan that quietly got smaller and still reported "no reference
+# found". That half is closed over there (`tracked_artifacts.require`); the
+# copy-side floor is `_check_the_copy_is_whole` below.
 COPY_DIRS = ["src", "tests", "models", ".github", "scripts"]
 COPY_FILES = ["pyproject.toml"]
 DATA_GLOBS = ["data/*.json"]
@@ -480,6 +481,28 @@ def _resolve_repo_path(node: ast.expr, env: dict[str, tuple[str, ...]]):
         if head is not None and isinstance(tail, ast.Constant) and isinstance(tail.value, str):
             return head + (tail.value,)
         return None
+    if isinstance(node, ast.Call):
+        # An import-time read is usually *wrapped*: the file is named by one
+        # module-level constant and read by the next one --
+        #
+        #     COMMITTED_MODELS_DIR = ROOT / "models"
+        #     COMMITTED_MANIFEST = json.loads((COMMITTED_MODELS_DIR / "manifest.json").read_text())
+        #
+        # and the resolver stopped at the first line. `models` is a directory, so
+        # `(tree / "models").exists()` is satisfied by the copy manifest even when
+        # the file inside it was never copied, and `manifest.json` -- the thing
+        # whose absence actually raises during collection -- was never checked at
+        # all. So unwrap to the innermost path expression and report the FILE.
+        # Every current module still reports; one more required path per wrapped
+        # read, and no fewer than before.
+        for inner in (*node.args, *(kw.value for kw in node.keywords), node.func):
+            components = _resolve_repo_path(inner, env)
+            if components is not None:
+                return components
+        return None
+    if isinstance(node, ast.Attribute):
+        # `(MODELS_DIR / "manifest.json").read_text()` -- the path is the receiver.
+        return _resolve_repo_path(node.value, env)
     if isinstance(node, ast.Name):
         return env.get(node.id)
     if _is_repo_root(node):
