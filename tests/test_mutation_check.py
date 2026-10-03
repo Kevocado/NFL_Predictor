@@ -221,9 +221,10 @@ def test_the_harness_is_reachable_from_the_suite_at_all(request):
     assert harness.is_file()
 
 
-#: The shape the resolver has to see through. A module-level constant names the
+#: The shapes the resolver has to see through. A module-level constant names the
 #: *directory* and the next one reads the file inside it, at module scope, where
-#: its absence aborts collection.
+#: its absence aborts collection. The third reads two repo files in one call --
+#: keeping only the first is the same hole as keeping none.
 _WRAPPED_READ = '''\
 import json
 from pathlib import Path
@@ -231,6 +232,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COMMITTED_MODELS_DIR = REPO_ROOT / "models"
 COMMITTED_MANIFEST = json.loads((COMMITTED_MODELS_DIR / "manifest.json").read_text())
+BOTH_AT_ONCE = dict(
+    manifest=COMMITTED_MODELS_DIR / "manifest.json",
+    workflow=REPO_ROOT / ".github" / "workflows" / "deploy.yml",
+)
 '''
 
 
@@ -244,21 +249,36 @@ def test_the_resolver_reaches_the_file_a_module_reads_through_a_call(tmp_path):
     never asked about the file whose absence raises `FileNotFoundError`
     mid-collection. Every verdict from such a copy is INCONCLUSIVE, which is
     precisely the failure this harness exists to make loud.
+
+    The second half is the same defect one level along: a call that reads *two*
+    repo files used to report the first and discard the second, which is a quiet
+    hole exactly where the loud one used to be.
     """
     tree = tmp_path / "tree"
     (tree / "tests").mkdir(parents=True)
     (tree / "tests" / "test_probe.py").write_text(_WRAPPED_READ, encoding="utf-8")
 
-    found = dict(_module_level_repo_paths(tree / "tests" / "test_probe.py"))
-    assert found["COMMITTED_MODELS_DIR"] == ("models",), found
+    rows = _module_level_repo_paths(tree / "tests" / "test_probe.py")
+    found = dict(rows)
+    assert found["COMMITTED_MODELS_DIR"] == ("models",), rows
     assert found["COMMITTED_MANIFEST"] == ("models", "manifest.json"), (
-        f"the resolver stopped at the directory: {found}. The read is the file, so "
+        f"the resolver stopped at the directory: {rows}. The read is the file, so "
         "the file is what has to be in the copy."
     )
+    assert [c for name, c in rows if name == "BOTH_AT_ONCE"] == [
+        ("models", "manifest.json"),
+        (".github", "workflows", "deploy.yml"),
+    ], f"a call reading two repo files reported only one: {rows}"
 
-    # And the check bites on it: the directory present, the file gone.
+    # And the check bites on both: the directories present, the files gone.
     (tree / "models").mkdir()
-    with pytest.raises(AssertionError, match="manifest.json"):
+    (tree / ".github" / "workflows").mkdir(parents=True)
+    with pytest.raises(AssertionError) as excinfo:
         _check_the_copy_is_whole(tree)
+    message = str(excinfo.value)
+    assert "manifest.json" in message, message
+    assert "deploy.yml" in message, message
+
     (tree / "models" / "manifest.json").write_text("{}", encoding="utf-8")
-    _check_the_copy_is_whole(tree)  # still silent once the file is there
+    (tree / ".github" / "workflows" / "deploy.yml").write_text("{}", encoding="utf-8")
+    _check_the_copy_is_whole(tree)  # still silent once the files are there

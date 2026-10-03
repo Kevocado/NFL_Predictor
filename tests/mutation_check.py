@@ -473,14 +473,20 @@ def _is_repo_root(node: ast.AST) -> bool:
     )
 
 
-def _resolve_repo_path(node: ast.expr, env: dict[str, tuple[str, ...]]):
-    """Repo-relative components for `node`, or None if it is not a repo path."""
+def _resolve_repo_paths(node: ast.expr, env: dict[str, list[tuple[str, ...]]]):
+    """Every repo-relative path `node` reads, or `[]` if it reads none.
+
+    A LIST, not one path. A wrapped call can read more than one repo file --
+    `dict(manifest=MODELS_DIR / "manifest.json", workflow=REPO / "deploy.yml")` --
+    and returning only the first is how half of what a module reads at import
+    time goes unchecked, which is the same class of silent hole as returning
+    none.
+    """
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-        head = _resolve_repo_path(node.left, env)
         tail = node.right
-        if head is not None and isinstance(tail, ast.Constant) and isinstance(tail.value, str):
-            return head + (tail.value,)
-        return None
+        if not (isinstance(tail, ast.Constant) and isinstance(tail.value, str)):
+            return []
+        return [head + (tail.value,) for head in _resolve_repo_paths(node.left, env)]
     if isinstance(node, ast.Call):
         # An import-time read is usually *wrapped*: the file is named by one
         # module-level constant and read by the next one --
@@ -488,44 +494,47 @@ def _resolve_repo_path(node: ast.expr, env: dict[str, tuple[str, ...]]):
         #     COMMITTED_MODELS_DIR = ROOT / "models"
         #     COMMITTED_MANIFEST = json.loads((COMMITTED_MODELS_DIR / "manifest.json").read_text())
         #
-        # and the resolver stopped at the first line. `models` is a directory, so
-        # `(tree / "models").exists()` is satisfied by the copy manifest even when
-        # the file inside it was never copied, and `manifest.json` -- the thing
-        # whose absence actually raises during collection -- was never checked at
-        # all. So unwrap to the innermost path expression and report the FILE.
-        # Every current module still reports; one more required path per wrapped
-        # read, and no fewer than before.
+        # and the resolver used to stop at the first line. `models` is a
+        # directory, so `(tree / "models").exists()` is satisfied by the copy
+        # manifest even when the file inside it was never copied, and
+        # `manifest.json` -- the thing whose absence actually raises during
+        # collection -- was never checked at all. So unwrap, and report every
+        # path found inside.
+        found: list[tuple[str, ...]] = []
         for inner in (*node.args, *(kw.value for kw in node.keywords), node.func):
-            components = _resolve_repo_path(inner, env)
-            if components is not None:
-                return components
-        return None
+            found += _resolve_repo_paths(inner, env)
+        return found
     if isinstance(node, ast.Attribute):
         # `(MODELS_DIR / "manifest.json").read_text()` -- the path is the receiver.
-        return _resolve_repo_path(node.value, env)
+        return _resolve_repo_paths(node.value, env)
     if isinstance(node, ast.Name):
-        return env.get(node.id)
+        return env.get(node.id, [])
     if _is_repo_root(node):
-        return ()
-    return None
+        return [()]
+    return []
 
 
 def _module_level_repo_paths(module_path: Path) -> list[tuple[str, tuple[str, ...]]]:
     """`[(name, components)]` for the module-level repo paths in one test module."""
     tree = ast.parse(module_path.read_text(encoding="utf-8"), filename=str(module_path))
-    env: dict[str, tuple[str, ...]] = {}
+    env: dict[str, list[tuple[str, ...]]] = {}
     found: list[tuple[str, tuple[str, ...]]] = []
     for node in tree.body:
         if not isinstance(node, ast.Assign) or len(node.targets) != 1:
             continue
-        components = _resolve_repo_path(node.value, env)
-        if components is None:
+        resolved = _resolve_repo_paths(node.value, env)
+        if not resolved:
             continue
         target = node.targets[0]
         if isinstance(target, ast.Name):
-            env[target.id] = components
-        if components:
-            found.append((target.id if isinstance(target, ast.Name) else "?", components))
+            env[target.id] = resolved
+        # `dict.fromkeys` so one constant naming the same path twice through a
+        # wrapper is not reported as two required paths.
+        found += [
+            (target.id if isinstance(target, ast.Name) else "?", components)
+            for components in dict.fromkeys(resolved)
+            if components
+        ]
     return found
 
 
