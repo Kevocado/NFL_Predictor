@@ -31,6 +31,7 @@ import re
 import shutil
 import subprocess
 import sys
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
@@ -187,16 +188,97 @@ def test_the_copied_suite_collects_clean(copied_tree):
     )
 
 
-def test_the_harness_is_reachable_from_the_suite_at_all():
+def test_the_harness_is_reachable_from_the_suite_at_all(request):
     """Why this file exists.
 
     `tests/mutation_check.py` is not named `test_*.py`, so `pytest tests/` does
     not collect it. That is fine -- it is a harness, not tests -- but it means
     every check above has to live in a module pytest *does* collect, or it is
-    documentation. If this assertion ever needs loosening because the harness was
-    renamed to a collectible name, delete it rather than let it rot.
+    documentation.
+
+    This asks pytest what it actually collects rather than assuming, because the
+    earlier version compared `"tests/mutation_check.py"` -- a *path*, with a
+    separator in it -- against a set of `test_*` *basenames*. Those can never be
+    equal, so the assertion was incapable of failing and the reason this file
+    exists was guarded by nothing. Two things can make the harness collectible and
+    both are checked here: renaming it to a `test_*` name, and widening
+    `python_files`. If either ever has to happen, delete this assertion on
+    purpose rather than let it rot.
     """
-    assert "tests/mutation_check.py" not in {
-        p.name for p in Path(__file__).parent.iterdir() if p.name.startswith("test_")
-    }, "the harness is now collectible; this file should be folded into it"
-    assert (Path(__file__).parent / "mutation_check.py").is_file()
+    harness = Path(__file__).parent / "mutation_check.py"
+    patterns = request.config.getini("python_files")
+    collectible = sorted(
+        p.name
+        for p in Path(__file__).parent.iterdir()
+        if any(fnmatch(p.name, pattern) for pattern in patterns)
+    )
+    assert harness.name not in collectible, (
+        f"the harness is now collectible -- python_files ({patterns}) matches "
+        f"{harness.name}. Either fold tests/test_mutation_check.py into it or take "
+        "this assertion out on purpose; do not leave it asserting a condition "
+        "that cannot be false."
+    )
+    assert harness.is_file()
+
+
+#: The shapes the resolver has to see through. A module-level constant names the
+#: *directory* and the next one reads the file inside it, at module scope, where
+#: its absence aborts collection. The third reads two repo files in one call --
+#: keeping only the first is the same hole as keeping none.
+_WRAPPED_READ = '''\
+import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+COMMITTED_MODELS_DIR = REPO_ROOT / "models"
+COMMITTED_MANIFEST = json.loads((COMMITTED_MODELS_DIR / "manifest.json").read_text())
+BOTH_AT_ONCE = dict(
+    manifest=COMMITTED_MODELS_DIR / "manifest.json",
+    workflow=REPO_ROOT / ".github" / "workflows" / "deploy.yml",
+)
+'''
+
+
+def test_the_resolver_reaches_the_file_a_module_reads_through_a_call(tmp_path):
+    """A directory the copy happens to have is not the file the module reads.
+
+    `tests/test_fitted_vs_served_columns.py` reads `models/manifest.json` at module
+    scope, via a module-level constant. `_module_level_repo_paths` stopped at the
+    constant above it and reported only `models`, so `_check_the_copy_is_whole`
+    asked whether `models/` existed -- which `COPY_DIRS` already guarantees -- and
+    never asked about the file whose absence raises `FileNotFoundError`
+    mid-collection. Every verdict from such a copy is INCONCLUSIVE, which is
+    precisely the failure this harness exists to make loud.
+
+    The second half is the same defect one level along: a call that reads *two*
+    repo files used to report the first and discard the second, which is a quiet
+    hole exactly where the loud one used to be.
+    """
+    tree = tmp_path / "tree"
+    (tree / "tests").mkdir(parents=True)
+    (tree / "tests" / "test_probe.py").write_text(_WRAPPED_READ, encoding="utf-8")
+
+    rows = _module_level_repo_paths(tree / "tests" / "test_probe.py")
+    found = dict(rows)
+    assert found["COMMITTED_MODELS_DIR"] == ("models",), rows
+    assert found["COMMITTED_MANIFEST"] == ("models", "manifest.json"), (
+        f"the resolver stopped at the directory: {rows}. The read is the file, so "
+        "the file is what has to be in the copy."
+    )
+    assert [c for name, c in rows if name == "BOTH_AT_ONCE"] == [
+        ("models", "manifest.json"),
+        (".github", "workflows", "deploy.yml"),
+    ], f"a call reading two repo files reported only one: {rows}"
+
+    # And the check bites on both: the directories present, the files gone.
+    (tree / "models").mkdir()
+    (tree / ".github" / "workflows").mkdir(parents=True)
+    with pytest.raises(AssertionError) as excinfo:
+        _check_the_copy_is_whole(tree)
+    message = str(excinfo.value)
+    assert "manifest.json" in message, message
+    assert "deploy.yml" in message, message
+
+    (tree / "models" / "manifest.json").write_text("{}", encoding="utf-8")
+    (tree / ".github" / "workflows" / "deploy.yml").write_text("{}", encoding="utf-8")
+    _check_the_copy_is_whole(tree)  # still silent once the files are there

@@ -538,6 +538,14 @@ def test_every_committed_artefact_read_is_gated_in_source():
     The scanned set is chosen by content rather than by a hand-kept list of
     filenames: a module is scanned if it mentions `PUBLIC_SNAPSHOT_PATH` or
     `SCANNED`, so a fourth caller does not need this test updated.
+
+    A candidate that imports `tracked_artifacts` is scanned exactly like one that
+    does not. It used to be skipped over, which meant the escape was not "skip
+    without `require()`" but "skip without `require()` *and* without so much as
+    importing the helper" -- in the one test whose whole job is catching ungated
+    skips. A module can read a committed artefact through a helper it imports
+    itself, or through `tracked_artifacts` for an unrelated call, and either way
+    its own bare `pytest.skip` is still ungated.
     """
     tests_dir = Path(__file__).resolve().parent
     offenders: list[str] = []
@@ -548,11 +556,6 @@ def test_every_committed_artefact_read_is_gated_in_source():
         if not ("PUBLIC_SNAPSHOT_PATH" in source or "SCANNED" in source):
             continue
         tree = ast.parse(source, filename=str(path))
-        if any(
-            isinstance(node, ast.ImportFrom) and node.module == "tracked_artifacts"
-            for node in ast.walk(tree)
-        ):
-            continue
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and _is_pytest_skip(node.func):
                 offenders.append(f"{path.name}:{node.lineno}")

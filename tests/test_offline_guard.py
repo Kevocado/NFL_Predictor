@@ -26,6 +26,7 @@ independent half -- a second counter installed from outside the process, diffed
 against this one at session end -- is `tests/network_reconciliation.py`.
 """
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -312,3 +313,83 @@ def test_the_summary_separates_the_four_numbers():
     assert "blocked: connect github.com" in lines
     assert "unguarded: connect github.com" in lines
     assert "remote DNS: dns github.com" in lines
+
+
+# --- the skip audit's reason -----------------------------------------------
+
+
+def _report(longrepr, location=("tests/test_probe.py", 42, "test_probe")):
+    """A stand-in for pytest's `TestReport`, carrying only what `_record_skip` reads."""
+    from conftest import _record_skip
+
+    class _Report:
+        skipped = True
+        when = "call"
+
+        def __init__(self):
+            self.longrepr = longrepr
+            self.location = location
+            self.nodeid = "tests/test_probe.py::test_probe"
+
+    return _Report(), _record_skip
+
+
+def test_the_recorded_skip_reason_is_the_whole_longrepr_when_it_is_not_a_tuple():
+    """`longrepr` is whatever the reporting plugin handed over, not always a tuple.
+
+    `report.longrepr` is `(path, lineno, message)` when a skip comes from a
+    `pytest.skip` call, but it can be a plain string or an exception instance, and
+    `str(longrepr[-1])` on either of those is its last *character*. That is a
+    silently wrong value in the audit this suite gates its skips on: an unlisted
+    skip would be reported as
+
+        test_probe.py:42 skipped at test_probe.py:42 -- y
+
+    which reads as no reason at all. Every shape is driven here, so the reason is
+    a message in all of them rather than in only the one that happens to arrive
+    today.
+    """
+    from conftest import SKIPS
+
+    message = "the artefact is not committed and never was"
+    shapes = {
+        "tuple": (str(Path(__file__).parent / "test_probe.py"), 42, message),
+        "string": message,
+        "exception": RuntimeError(message),
+    }
+    recorded = {}
+    for label, longrepr in shapes.items():
+        report, record = _report(longrepr)
+        before = len(SKIPS)
+        try:
+            record(report)
+            recorded[label] = SKIPS[before]
+        finally:
+            del SKIPS[before:]
+
+    assert recorded["tuple"][3] == message, recorded["tuple"]
+    assert recorded["string"][3] == message, recorded["string"]
+    assert recorded["exception"][3] == message, recorded["exception"]
+    # And the site is still keyed correctly for the shapes that do not carry one,
+    # or the audit would file the skip under an unrelated line.
+    assert recorded["string"][:2] == ("test_probe.py", 42), recorded["string"]
+
+
+def test_an_empty_longrepr_does_not_index_off_the_end_of_the_tuple():
+    """`longrepr[-1]` on `()` is an IndexError, inside a logging hook.
+
+    A report with no representation at all has to degrade to a recorded skip; an
+    exception raised from `pytest_runtest_logreport` would abort the run as an
+    INTERNALERROR instead of failing one test.
+    """
+    from conftest import SKIPS
+
+    report, record = _report(())
+    before = len(SKIPS)
+    try:
+        record(report)
+        row = SKIPS[before]
+    finally:
+        del SKIPS[before:]
+
+    assert row[3] == "()", row

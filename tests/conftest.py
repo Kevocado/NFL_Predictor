@@ -376,7 +376,15 @@ def _record_skip(report) -> None:
         path, line = longrepr[0], longrepr[1]
     if path is None:
         path, line = report.location[:2]
-    SKIPS.append((Path(path).name, int(line), report.nodeid, str(longrepr[-1])))
+    # The reason is the LAST ELEMENT only when `longrepr` is the
+    # `(path, lineno, message)` tuple. `longrepr` is not always that shape: it is
+    # whatever the reporting plugin handed over, so it can be a plain string or
+    # an exception instance, and `str(longrepr[-1])` on a string is its last
+    # CHARACTER. That is a silently wrong value in the audit -- an unlisted skip
+    # would be reported as skipped at test_x.py:42 -- "y" -- a one-letter reason
+    # nobody can act on. The whole representation is the only honest fallback.
+    reason = str(longrepr[-1]) if isinstance(longrepr, tuple) and longrepr else str(longrepr)
+    SKIPS.append((Path(path).name, int(line), report.nodeid, reason))
 
 
 @pytest.hookimpl(trylast=True)
