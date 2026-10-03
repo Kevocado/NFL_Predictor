@@ -34,6 +34,13 @@ that it can never report an error, reads on the page as a feature. The writer
 that would fix it belongs in `api/routes.py`, which this change does not touch, so
 deleting was the only option available here rather than the preferred one.
 
+**A note on the wording, since it is load-bearing.** "Committed" and "tracked" are
+used the same way throughout, and both mean "git has it in the index or in a
+commit". `tests/tracked_artifacts.py` asks about both, because `git rm --cached`
+removes a path from the index and from disk while leaving it in every commit --
+so index-only would answer "not tracked" and skip, making the one command that can
+quietly untrack a directory the command that disabled the guard.
+
 What these tests pin
 --------------------
 That the module is gone, that no source file names it, and that the serving
@@ -41,6 +48,20 @@ path still writes no `passing_tds` row. All three are the facts the deletion
 rests on, so if a future change wires the write path up, the first two fail and
 that is the intended signal: reintroduction has to be a deliberate act, with a
 consumer named, not a resurrection of dead code.
+
+**The scan cannot come back empty.** `_source_files()` used to `continue` past a
+scan root that was not on disk. That is the same defect as a skip that is not
+justified, one syntax further out: with `scripts/` missing the file still parsed,
+every `DELETED_SYMBOLS` parametrisation still passed having read
+`src/` and `frontend/src/` only, and `test_no_product_code_or_consumer_imports_or_calls_the_deleted_report`
+reported "nothing in the product references the deleted report" as a fact about
+code that was never opened. PR #33 found the same hole in
+`tests/mutation_check.py`'s copy manifest, where a missing `scripts/` made every
+mutation verdict INCONCLUSIVE; both are now closed the same way. Each root goes
+through `tracked_artifacts.require`, so a committed root that has gone missing is a
+failure rather than a smaller scan, and
+`test_the_scan_examines_a_non_zero_number_of_files` refuses the other version --
+roots present, nothing to read.
 """
 from __future__ import annotations
 
@@ -50,6 +71,8 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from tracked_artifacts import require
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -68,20 +91,183 @@ DELETED_SYMBOLS = (
 #: Directories that are product code or consumers. `tests/` is deliberately NOT
 #: scanned: this file and the docstring of `tests/test_qb_passing_td.py` both
 #: have to be able to say the name out loud in order to assert it is gone.
+#:
+#: Every entry is REQUIRED and is checked with `tracked_artifacts.require`, so a
+#: root that has gone missing fails the tests rather than quietly reducing the
+#: scan. `scripts/` is listed because the scan covers it, not because this file
+#: needs it -- and that is why the missing-`scripts/` hole went unnoticed here
+#: while `tests/mutation_check.py` (which copies it) was the thing that noticed.
 SCANNED = ("src", "frontend/src", "scripts")
+
+#: Why each root has to be there. Quoted into the failure message so a reader
+#: told their checkout is incomplete learns what the directory was for.
+WHY_ROOT_REQUIRED = (
+    "This file's whole claim is that no product code or consumer reaches the "
+    "deleted report, and that claim is only worth anything if every directory "
+    "the report could have been reached from is actually read. `scripts/` was "
+    "the one that vanished silently -- see tests/mutation_check.py, where the "
+    "same absence made 32 mutation verdicts INCONCLUSIVE."
+)
+
+#: What would have to be true for a root's absence to be expected. All three are
+#: committed at `main`, so none of this branch is reachable here and it says so
+#: rather than inventing a plausible story for it.
+WHY_ROOT_ABSENT_IS_EXPECTED = (
+    "Nothing in this repository predicts it: this directory is committed at main. "
+    "If you are reading this, your checkout is incomplete -- restore the "
+    "directory rather than committing a test that tolerates its absence."
+)
+
+#: The file extensions the scan reads. Kept as a named constant because the
+#: count floor below is expressed against it: a root can be present and still
+#: contribute nothing, which is `frontend/src` if it ever held only `index.css`.
+SOURCE_SUFFIXES = frozenset({".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".sh"})
+
+#: How many files the scan must read. A floor, not the current count: the count
+#: is 46 (src 38, frontend/src 7, scripts 1) and will change with ordinary work,
+#: but "somewhere between one and a few hundred" is where a live scan lives and
+#: anything far outside it means the scan stopped reading what it claims to.
+MIN_SCANNED_FILES = 20
+
+
+def _scan_root(rel: str) -> Path:
+    return require(
+        REPO_ROOT / rel,
+        rel=rel,
+        required_because=WHY_ROOT_REQUIRED,
+        expected_absent_because=WHY_ROOT_ABSENT_IS_EXPECTED,
+    )
 
 
 def _source_files() -> list[Path]:
-    files: list[Path] = []
+    """Every source file under `SCANNED`, and never nothing."""
+    files = _files_by_root()
+    return sorted(p for root_files in files.values() for p in root_files)
+
+
+def _files_by_root() -> dict[str, list[Path]]:
+    """`{scan root: the source files under it}`, refusing an empty one.
+
+    A root that is missing raises (via `tracked_artifacts.require`) and a root
+    that is present but yields no matching file raises too. Either way the caller
+    cannot end up with an empty list, which is the only outcome this function is
+    no longer allowed to have: two of the three tests that read it report
+    "nothing references the deleted report", and that sentence must be about code
+    they opened.
+    """
+    per_root: dict[str, list[Path]] = {}
     for rel in SCANNED:
-        root = REPO_ROOT / rel
-        if not root.exists():
-            continue
-        files.extend(
+        root = _scan_root(rel)
+        found = sorted(
             p for p in root.rglob("*")
-            if p.is_file() and p.suffix in {".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".sh"}
+            if p.is_file() and p.suffix in SOURCE_SUFFIXES
         )
-    return sorted(files)
+        if not found:
+            raise AssertionError(
+                f"scan root {rel}/ is on disk but holds no file with a source "
+                f"suffix in {sorted(SOURCE_SUFFIXES)}. Reading nothing and "
+                f"reporting 'no reference found' is the failure this function "
+                f"exists to prevent; if the directory has genuinely become "
+                f"non-source, delete it from SCANNED and say why."
+            )
+        per_root[rel] = found
+    return per_root
+
+
+def _assert_the_scan_is_wide_enough(per_root: dict[str, list[Path]]) -> int:
+    """Every root contributed, and the total clears the floor. Returns the total.
+
+    Extracted from `test_the_scan_examines_a_non_zero_number_of_files` so its two
+    conditions can be handed a per-root map directly. Inline, both are satisfied
+    trivially by the real scan -- three roots, 46 files, every floor cleared -- so
+    neither could ever go red, and an assertion that cannot fail is not a guard.
+
+    The two conditions are separate on purpose. "Every root contributed" catches a
+    root that went empty; the floor catches a scan that quietly narrowed to one of
+    the three, which the first cannot see.
+    """
+    counts = {rel: len(files) for rel, files in per_root.items()}
+    assert all(counts.values()), (
+        f"these scan roots contributed no files to the scan: "
+        f"{ {rel: n for rel, n in counts.items() if not n} }"
+    )
+
+    total = sum(counts.values())
+    assert total >= MIN_SCANNED_FILES, (
+        f"the scan read {total} source files, below the floor of "
+        f"{MIN_SCANNED_FILES} (src 38, frontend/src 7, scripts 1 at the time "
+        f"this was written). Either the repository has shrunk very fast or the "
+        f"scan is no longer reading the roots it names -- and 'no reference "
+        f"found' over a handful of files is not the same claim."
+    )
+    return total
+
+
+def test_the_scan_examines_a_non_zero_number_of_files():
+    """Named, so a scan that stopped reading says so in one line.
+
+    `_files_by_root()` already refuses to return an empty list and already fails
+    on a root that has gone missing. This is the third thing: a scan that reads
+    *some* files. Five files, or forty thousand, both pass "did not return empty",
+    and a suffix set that stopped matching the frontend -- or a `rglob` that
+    started resolving somewhere else -- would be indistinguishable from a codebase
+    that genuinely mentions nothing.
+
+    The per-root counts and the whole scan are also reconciled against each other,
+    because a test that sums a map it built itself would not notice if `_files_by_root`
+    were handing back a different set than it claims to have read.
+    """
+    per_root = _files_by_root()
+    total = _assert_the_scan_is_wide_enough(per_root)
+    assert total == len(_source_files()), (
+        f"the per-root counts sum to {total} but the scan reads "
+        f"{len(_source_files())} files; two views of the same scan disagree, and "
+        f"one of them is lying about what was read"
+    )
+
+
+def test_a_root_present_but_holding_no_source_file_is_refused(monkeypatch):
+    """The root-exists-but-contributes-nothing half, which the floor does not cover.
+
+    `data/` is a committed directory with no `.py`, `.ts`, `.tsx` or `.js` file in
+    it at all, so pointing `SCANNED` at it produces a root that passes every
+    existence check and yields nothing. The floor would catch that too -- one file
+    is below twenty -- but it would catch it for the wrong reason, and a root
+    yielding two files would clear the floor while having stopped matching the
+    frontend entirely. So the refusal names the suffix set, and this proves the
+    refusal is reachable rather than a branch no test enters.
+    """
+    monkeypatch.setattr(sys.modules[__name__], "SCANNED", ("data",))
+    with pytest.raises(AssertionError, match="holds no file with a source suffix"):
+        _files_by_root()
+
+
+def test_the_floor_rejects_a_scan_narrowed_to_one_root(monkeypatch):
+    """The floor bites, and the case it catches is a real one.
+
+    `scripts/` is a real committed root holding a real `.py`, so scanning only it
+    satisfies every existence check and the empty-root refusal, and is stopped
+    solely by `MIN_SCANNED_FILES`. Without the floor, "the scan read one file" and
+    "the scan read the repository" would be the same claim -- which is the
+    difference between checking three roots and checking whichever one survived.
+    """
+    monkeypatch.setattr(sys.modules[__name__], "SCANNED", ("scripts",))
+    per_root = _files_by_root()  # one real file; must not raise the empty-root way
+    assert sum(len(f) for f in per_root.values()) == 1
+    with pytest.raises(AssertionError, match="below the floor"):
+        _assert_the_scan_is_wide_enough(per_root)
+
+
+def test_the_empty_root_condition_names_every_offending_root():
+    """The message has to be able to say *which* root, or it is not diagnosable.
+
+    A single-entry map makes this cheap: with three roots, a message that only
+    counted them would pass while telling the reader nothing about which one.
+    """
+    with pytest.raises(AssertionError, match="frontend/src"):
+        _assert_the_scan_is_wide_enough({"src": [Path("a.py")], "frontend/src": []})
+    with pytest.raises(AssertionError, match="scripts"):
+        _assert_the_scan_is_wide_enough({"src": [Path("a.py")], "scripts": []})
 
 
 def test_the_deleted_module_cannot_be_imported():
@@ -120,6 +306,13 @@ def test_no_product_code_or_consumer_imports_or_calls_the_deleted_report(symbol)
     Non-Python files are filtered line by line, which is good enough: `frontend/` and
     `scripts/` contain no reference at all today, so the filter is only there to let a
     future explanatory comment through.
+
+    This is the test the missing-scan-root hole made expensive. Its result is "no
+    product code or consumer reaches the deleted report", and with
+    `_source_files()` skipping an absent root that sentence was a claim about the
+    roots it happened to find rather than about all three. It is now gated on
+    `tracked_artifacts.require` and on
+    `test_the_scan_examines_a_non_zero_number_of_files`.
     """
     offenders = []
     for path in _source_files():

@@ -61,6 +61,7 @@ runs in CI".
 from __future__ import annotations
 
 import socket
+from pathlib import Path
 
 import pytest
 
@@ -298,6 +299,129 @@ def _no_blocked_connects_may_survive_the_session():
             f"{len(s['blocked'])} blocked network connection(s) during the run: "
             f"{sorted({a[1] for a in s['blocked']})}. "
             "Tests must stub the data module, not the socket."
+        )
+
+
+# --- the skip audit --------------------------------------------------------
+#
+# **Why this exists, and how it was found.** Three tests read a committed artefact
+# and answered its absence with `pytest.skip`; a deleted file was therefore a
+# green run. Those are fixed in `tests/tracked_artifacts.py`. But red-checking that
+# fix turned up the next layer: disabling `require()`'s "committed but missing"
+# branch did not make `tests/test_tracked_artifacts.py` fail -- it made two of its
+# tests **skip**. `pytest.raises(MissingTrackedArtifact)` wraps the call, `Skipped`
+# is not an `AssertionError` so it is not caught, and the test is reported as
+# skipped rather than failed.
+#
+# That is the same defect one level down, and it is worse than the one it replaced:
+# a test that stops being able to fail becomes a test that reports success while
+# checking nothing, and the cause -- a broken guard -- is exactly the cause this
+# file exists to make visible. So every skip in a run is now recorded and checked
+# against `SKIP_SITES`, a table of the places that are allowed to skip. Anything
+# else fails the run at session end, naming the file, the line and the reason.
+#
+# The table is the whole point: it turns "add a skip" from something a person does
+# quietly into something that has to be written down, with a reason, next to the
+# code that has to stay alive. Seventeen entries cover the stdlib sweep and
+# nothing else. `pytest.importorskip` is deliberately absent from the table: it
+# cannot fire on a tracked artefact, which is the class of absence that matters
+# here.
+#
+# Recorded from `pytest_runtest_logreport` rather than at collection, so a skip
+# raised inside a `with pytest.raises(...)` block is *not* counted -- that call
+# never skipped a test, it raised and was caught. Counting it would put the audit's
+# own tests on the allowlist, which is how an allowlist stops meaning anything.
+
+#: `(file basename, line) -> why this site may skip`. The reason string is not
+#: keyed on, only the site: the site is what has to be a deliberate decision, and
+#: a parametrised reason (`"json is stdlib"`) varies per case while the decision
+#: does not.
+SKIP_SITES: dict[tuple[str, int], str] = {
+    ("test_runtime_dependencies.py", 88): (
+        "a stdlib module is correctly not a third-party runtime dependency, so "
+        "there is nothing for this test to assert about it. The complementary "
+        "risk -- a *non*-stdlib module that the sweep did not classify -- is "
+        "caught by `test_every_imported_module_has_a_home`, which is why the "
+        "skip is safe rather than merely convenient."
+    ),
+    ("test_runtime_dependencies.py", 90): (
+        "a private module (`_foo`) is this project's own, not a dependency to "
+        "declare. Same complement as the stdlib case above."
+    ),
+    ("test_runtime_dependencies.py", 95): (
+        "a first-party module has distribution `None` and so cannot be satisfied "
+        "by any entry in `pyproject.toml`; asserting one existed would be wrong."
+    ),
+}
+
+#: Every skip this session produced, as `(file basename, line, nodeid, reason)`.
+SKIPS: list[tuple[str, int, str, str]] = []
+
+
+def _record_skip(report) -> None:
+    if not report.skipped or report.when not in {"setup", "call"}:
+        return
+    # Which line to key on. `report.location` is the *item's* line -- for a
+    # parametrised test that is the decorator, so every skip inside
+    # `test_runtime_dependencies` reports the same line and three genuinely
+    # different decisions become indistinguishable. `report.longrepr` is
+    # `(path, lineno, message)` and its lineno is the line of the `pytest.skip()`
+    # call itself, which is what SKIP_SITES names. Fall back to `location` when
+    # longrepr is not that shape, so an unexpected report shape degrades to a
+    # recorded skip rather than an exception inside a logging hook -- which
+    # would abort the whole run as an INTERNALERROR, not fail one test.
+    path = line = None
+    longrepr = report.longrepr
+    if isinstance(longrepr, tuple) and len(longrepr) >= 2:
+        path, line = longrepr[0], longrepr[1]
+    if path is None:
+        path, line = report.location[:2]
+    SKIPS.append((Path(path).name, int(line), report.nodeid, str(longrepr[-1])))
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_runtest_logreport(report):
+    if report.skipped:
+        _record_skip(report)
+
+
+def unlisted_skips() -> list[str]:
+    """Skips this session produced that `SKIP_SITES` does not account for.
+
+    Returns sentences rather than raising, so the caller decides when to complain
+    -- and so `tests/test_tracked_artifacts.py` can assert on the list directly
+    rather than on an exception.
+    """
+    unlisted = []
+    for name, line, nodeid, reason in SKIPS:
+        if (name, line) in SKIP_SITES:
+            continue
+        unlisted.append(f"{nodeid} skipped at {name}:{line} -- {reason}")
+    return unlisted
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _every_skip_is_a_deliberate_decision():
+    """Fail the run for a skip no entry in `SKIP_SITES` explains.
+
+    Session-scoped and last, because the audit is only meaningful once the whole
+    suite has run: a check placed mid-suite would miss every skip that happens
+    after it, which in alphabetical order is most of them.
+
+    Ordering against `_no_blocked_connects_may_survive_the_session` is not
+    guaranteed, and it does not matter -- they report different things and neither
+    depends on the other.
+    """
+    yield
+    unlisted = unlisted_skips()
+    if unlisted:
+        raise AssertionError(
+            f"{len(unlisted)} skip(s) this run are not in SKIP_SITES "
+            f"(tests/conftest.py):\n  " + "\n  ".join(unlisted) + "\n\n"
+            "A skip that nobody wrote down is a test that stopped testing and "
+            "reports success. If the absence is real, add the site to SKIP_SITES "
+            "with the reason it is expected -- and check first whether it means a "
+            "committed artefact has gone missing, which is a failure, not a skip."
         )
 
 
