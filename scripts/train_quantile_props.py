@@ -30,11 +30,11 @@ from nfl_predictor.evaluate.walk_forward import (  # noqa: E402
 BINDING_COLUMNS = ("p_over_exogenous", "covered_exogenous")
 DIAGNOSTIC_COLUMNS = ("p_over_own_median", "covered_own_median")
 from nfl_predictor.models.training import (  # noqa: E402
-    FORWARD_FEATURE_COLUMNS, gate_feature_columns, train_all,
+    FORWARD_FEATURE_COLUMNS, train_all,
 )
 from nfl_predictor.features.availability import add_availability_features  # noqa: E402
 from nfl_predictor.features.matchup import add_matchup_features  # noqa: E402
-from nfl_predictor.features.player_usage import PLAYER_FEATURE_COLUMNS, _add_rolling  # noqa: E402
+from nfl_predictor.features.player_usage import _add_rolling  # noqa: E402
 
 #: The gate's features come from the SAME constant the artifacts are fitted on.
 #: Re-declaring the list here is what let the gate validate 28 features while the
@@ -193,6 +193,9 @@ def main() -> int:
                         help="seasons to FIT on for the artifacts (default: --seasons)")
     parser.add_argument("--models-dir", default="models",
                         help="where to write *_quantile_2025.pkl")
+    parser.add_argument("--dump-feature-frame", default=None,
+                        help="write the assembled feature frame here; "
+                             "scripts/forward_tick.py --feature-frame consumes it")
     parser.add_argument("--write-artifacts", action="store_true",
                         help="fit on --train-seasons and write the versioned artifacts; "
                              "requires the walk-forward gate to PASS")
@@ -204,6 +207,11 @@ def main() -> int:
 
     frame = build_feature_frame(seasons, cache_dir, fetch_weather=args.fetch_weather)
     print(f"feature frame: {frame.shape[0]} rows, {frame['player_id'].nunique()} players")
+
+    if args.dump_feature_frame:
+        Path(args.dump_feature_frame).parent.mkdir(parents=True, exist_ok=True)
+        frame.to_parquet(args.dump_feature_frame, index=False)
+        print(f"feature frame written to {args.dump_feature_frame}")
 
     mae_table, scored = report(frame, validation)
     print("\n=== MAE ===")

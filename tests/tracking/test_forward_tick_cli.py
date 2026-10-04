@@ -33,11 +33,16 @@ GAME = {
     "over_prob": 0.5, "under_prob": 0.5,
 }
 
+#: Shaped like what `props_snapshot._normalize_rows` actually returns: names and a
+#: normalized_name, and NO player_id. An earlier version of this fixture carried a
+#: hand-seeded player_id, which is precisely why the missing join went unnoticed.
 PROP = {
-    "player_id": "00-1", "player_name": "P", "market": "player_rec_yds",
-    "line": 50.0, "over_odds": -110, "under_odds": -110,
-    "book": "fanduel", "team": "ALB",
+    "player_name": "A.J. Brown Jr.", "normalized_name": "aj brown",
+    "market": "player_rec_yds", "line": 50.0,
+    "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "ALB",
 }
+
+PLAYERS = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "ALB"}]
 
 
 def _stub(monkeypatch, credits=500, props=None):
@@ -132,7 +137,7 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
     result = forward_tick.run_forward_tick(
         games=[GAME],
         market_quantiles=forward_tick.predictor_for(models_dir),
-        feature_frame=_feature_frame(),
+        feature_frame=_feature_frame(), players=PLAYERS,
     )
 
     assert result["props_snapshotted"] == 1
@@ -227,6 +232,8 @@ def test_main_writes_a_weekly_report_when_asked(monkeypatch, tmp_path):
     forward_tick.main([
         "--models-dir", str(_artifacts(tmp_path, monkeypatch)),
         "--games-json", _games_file(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
         "--report-dir", str(out_dir), "--season", "2026", "--week", "4",
     ])
 
@@ -344,3 +351,121 @@ def test_a_matching_manifest_verifies(tmp_path, monkeypatch):
             "path": "receiving_yards_quantile_2025.pkl", "sha256": digest}}}}))
 
     assert forward_tick.predictor_for(models_dir)
+
+
+# --- the wiring that mutation showed nothing covered ------------------------
+
+def _feature_frame_path(tmp_path):
+    """The feature frame on disk, so main() takes the --feature-frame path."""
+    frame = _feature_frame()
+    path = tmp_path / "frame.parquet"
+    frame.to_parquet(path)
+    return str(path)
+
+
+def _players_file(tmp_path):
+    path = tmp_path / "players.json"
+    path.write_text(json.dumps([
+        {"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "ALB"},
+    ]))
+    return str(path)
+
+
+def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
+    """Deleting `run_forward_tick` from `main()` left the whole suite green,
+    because every other main() test supplied an empty prop list and took the
+    `continue`. This one supplies a real prop, so the wiring is covered."""
+    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    _stub(monkeypatch, props=[PROP])
+
+    exit_code = forward_tick.main([
+        "--models-dir", str(_artifacts(tmp_path, monkeypatch)),
+        "--games-json", _games_file(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+    ])
+
+    assert exit_code == 0
+    logged = _logged()
+    assert len(logged) == 1
+    assert logged[0]["player_id"] == "00-1", "the book name was joined to an nflverse id"
+    assert logged[0]["edge_vs_breakeven"] >= 0.05
+
+
+def test_main_reports_rather_than_crashes_when_no_player_index_is_given(monkeypatch, tmp_path):
+    """The Odds API returns names, not ids. Without the join there is nothing to
+    write, so say so instead of raising KeyError mid-slate after spending."""
+    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    _stub(monkeypatch, props=[PROP])
+
+    exit_code = forward_tick.main([
+        "--models-dir", str(_artifacts(tmp_path, monkeypatch)),
+        "--games-json", _games_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+    ])
+
+    # No join means no player_id, so nothing is writable. Reported, not raised.
+    assert exit_code == 0
+    assert _logged() == []
+
+
+def test_history_row_for_excludes_the_target_week():
+    """Mutation showed `<` -> `<=` in the filter leaves the suite green.
+
+    Returning the target week's own row is a real leak: it would carry that
+    week's actuals. The fixture deliberately puts the target week's row LAST so
+    a wrong sort or a `<=` picks it."""
+    import pandas as pd
+
+    frame = pd.DataFrame([
+        {"player_id": "00-1", "season": 2026, "week": 3, "receiving_yards_roll": 30.0},
+        {"player_id": "00-1", "season": 2026, "week": 4, "receiving_yards_roll": 99.0},
+    ])
+
+    row = forward_tick.history_row_for(frame, "00-1", 2026, 4)
+
+    assert row["receiving_yards_roll"] == 30.0, "the target week's own row leaked in"
+
+
+def test_history_row_for_excludes_a_later_season():
+    import pandas as pd
+
+    frame = pd.DataFrame([
+        {"player_id": "00-1", "season": 2026, "week": 12, "receiving_yards_roll": 30.0},
+        {"player_id": "00-1", "season": 2027, "week": 1, "receiving_yards_roll": 77.0},
+    ])
+
+    row = forward_tick.history_row_for(frame, "00-1", 2027, 1)
+
+    assert row["receiving_yards_roll"] == 30.0
+
+
+def test_history_row_for_uses_the_TARGET_game_context_not_the_history_row():
+    """`is_home`, rest days and weather describe the game being played. Taking
+    them from the history row supplies the wrong home/away and the wrong rest
+    days -- wrong values, not merely stale ones."""
+    import pandas as pd
+
+    frame = pd.DataFrame([{
+        "player_id": "00-1", "season": 2026, "week": 3,
+        "receiving_yards_roll": 30.0, "is_home": 1, "rest_days": 3.0,
+        "is_outdoor": 1, "temp_c": 20.0,
+    }])
+
+    # The target game is away, with different rest and weather.
+    context = {"is_home": 0, "rest_days": 7.0, "is_outdoor": 0, "temp_c": 2.0}
+    row = forward_tick.history_row_for(frame, "00-1", 2026, 4, game_context=context)
+
+    assert row["is_home"] == 0, "week 3's home flag was used for a week-4 away game"
+    assert row["rest_days"] == 7.0
+    assert row["is_outdoor"] == 0
+    assert row["receiving_yards_roll"] == 30.0, "usage still comes from history"
+
+
+def test_history_row_for_has_no_row_for_an_unknown_player():
+    import pandas as pd
+
+    frame = pd.DataFrame([{"player_id": "other", "season": 2026, "week": 3,
+                           "receiving_yards_roll": 30.0}])
+
+    assert forward_tick.history_row_for(frame, "00-1", 2026, 4) == {}

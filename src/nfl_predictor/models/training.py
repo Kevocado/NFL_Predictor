@@ -72,10 +72,6 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
 )
 
 
-def gate_feature_columns(market: str) -> list[str]:
-    """The gate's features for `market`: the shared list, minus its own label."""
-    return [c for c in FORWARD_FEATURE_COLUMNS if c != market]
-
 
 def _feature_columns(frame: pd.DataFrame, market: str) -> list[str]:
     """`FORWARD_FEATURE_COLUMNS` minus `market`, restricted to what the frame has.

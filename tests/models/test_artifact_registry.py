@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -402,8 +403,6 @@ def test_rolling_features_are_used_when_present(tmp_path):
 def test_a_frame_without_the_declared_features_writes_nothing(tmp_path):
     """The leakage filter can starve a model, and that must show up as no
     artifact rather than as one fitted on whatever numeric columns remain."""
-    from nfl_predictor.models import quantile_registry
-
     artifacts = train_all(frame=_training_frame(with_features=False),
                           trained_seasons=[2017], out_dir=tmp_path,
                           manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
@@ -418,19 +417,30 @@ def test_a_frame_without_the_declared_features_writes_nothing(tmp_path):
 
 def test_the_gate_and_the_artifacts_share_one_feature_list():
     """The drift this pins: the gate validated 28 features while the artifacts
-    were fitted on 30, with nothing comparing the two lists. They are now one
-    constant, and this asserts the script actually imports it rather than
-    re-declaring."""
-    import sys
-    from pathlib import Path
+    were fitted on 30, and nothing compared the two lists.
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
-    import train_quantile_props
-
+    Asserted against the COMMITTED manifest rather than by importing the script
+    -- `tests/test_runtime_dependencies.py` treats any unlisted import as a
+    third-party distribution, and re-declaring the list in a test would only
+    create a third copy to drift. The manifest is what a fresh clone actually
+    loads, so it is the better thing to check.
+    """
     from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS
 
-    assert set(train_quantile_props.FEATURE_COLUMNS) == set(FORWARD_FEATURE_COLUMNS), (
-        "the gate and the artifacts must be scored on the same features")
+    manifest_path = Path(__file__).resolve().parents[2] / "models" / "manifest.json"
+    if not manifest_path.exists():
+        pytest.skip("no committed manifest")
+    manifest = json.loads(manifest_path.read_text())
+    entry = manifest.get("quantile_yardage_v1")
+    if not entry:
+        pytest.skip("quantile artifacts not registered yet")
+
+    assert set(entry["feature_cols"]) <= set(FORWARD_FEATURE_COLUMNS), (
+        "the registered artifact carries features outside the shared list")
+
+    for market, meta in entry["markets"].items():
+        assert meta["n_features"] == len(FORWARD_FEATURE_COLUMNS) - (1 if market in FORWARD_FEATURE_COLUMNS else 0), (
+            f"{market} was fitted on a different feature count than the gate validates")
 
 
 def test_closing_line_features_are_excluded():
@@ -444,15 +454,6 @@ def test_closing_line_features_are_excluded():
     closing = {"spread_line", "total_line", "implied_team_total", "game_total"}
 
     assert not (closing & set(FORWARD_FEATURE_COLUMNS))
-
-
-def test_gate_feature_columns_drops_only_the_models_own_label():
-    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS, gate_feature_columns
-
-    for market in ("passing_yards", "rushing_yards", "receiving_yards"):
-        columns = gate_feature_columns(market)
-        assert market not in columns
-        assert set(columns) == set(FORWARD_FEATURE_COLUMNS) - {market}
 
 
 def test_train_all_refuses_on_an_empty_calibration_report(tmp_path):

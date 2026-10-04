@@ -128,33 +128,50 @@ def _target_season_week(game: dict) -> tuple[int, int]:
         return 0, 0
 
 
-def history_row_for(feature_frame, player_id: str, season: int, week: int) -> dict:
-    """The player's most recent feature row from BEFORE the target game.
+#: Features describing the game being played, not the player's history. Taken
+#: from the target game itself: a week-3 row carries week 3's `is_home`, and
+#: week 3's rest days, which are wrong values for a week-4 game rather than
+#: merely stale ones. `is_home` is a material yardage driver, so this is not a
+#: rounding error.
+TARGET_GAME_COLUMNS: tuple[str, ...] = (
+    "is_home", "rest_days", "is_outdoor", "temp_c", "wind_kph", "precip_mm",
+    "high_wind_flag",
+)
 
-    Every feature in the frame is already lagged, so a row for week W-1 carries
-    only games before W-1. Using it for week W is therefore strictly LESS
-    information than the model was trained on -- it omits the player's most
-    recent game -- and it can never leak. The staleness is real and is the price
-    of not having a feature builder that can score an unplayed week; it is noted
-    in OFFLINE_GATE.md rather than hidden.
 
-    A player with no prior row cannot be priced, and returns {} -- which
-    `_row_predictor` rejects. Better a skipped prop than a zero-filled one.
+def history_row_for(feature_frame, player_id: str, season: int, week: int,
+                    game_context: dict | None = None) -> dict:
+    """Feature row for the target game: lagged history plus the game's own context.
+
+    The lagged half comes from the player's most recent row STRICTLY before the
+    target week, so it carries only games before that row's week -- less
+    information than training used (it omits the most recent game), and never a
+    leak. The context half describes the game being played and MUST come from the
+    target game; taking it from the history row would silently supply the wrong
+    home/away, rest days and weather.
+
+    Returns {} when the player has no prior row, which `_row_predictor` rejects.
+    A skipped prop beats a zero-filled one.
     """
     if feature_frame is None or feature_frame.empty:
         return {}
     prior = feature_frame[
         (feature_frame["player_id"] == player_id)
-        & (feature_frame["season"] < season)
-        | ((feature_frame["player_id"] == player_id)
-           & (feature_frame["season"] == season)
-           & (feature_frame["week"] < week))
+        & ((feature_frame["season"] < season)
+           | ((feature_frame["season"] == season) & (feature_frame["week"] < week)))
     ]
     if prior.empty:
         return {}
+
     row = prior.sort_values(["season", "week"]).iloc[-1]
-    return {column: row[column] for column in FORWARD_FEATURE_COLUMNS
-            if column in prior.columns}
+    context = game_context or {}
+    result = {}
+    for column in FORWARD_FEATURE_COLUMNS:
+        if column in TARGET_GAME_COLUMNS:
+            result[column] = context.get(column, float("nan"))
+        elif column in prior.columns:
+            result[column] = row[column]
+    return result
 
 
 def _has_spread(quantiles: dict) -> bool:
@@ -230,8 +247,17 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             break
         # The Odds API returns names, not ids. Without this join every real prop
         # row is missing `player_id` and the write raises.
-        if players is not None:
-            props = match_props_to_players(props, players)
+        if players is None:
+            # The Odds API returns names, not ids, and every snapshot row is
+            # keyed by player_id. Without the join there is nothing to write, so
+            # say so and log nothing rather than raising mid-slate after a credit
+            # has already been spent.
+            logger.warning(
+                "no player index supplied: cannot join book prop names to nflverse "
+                "ids, so nothing is recorded for %s. Pass --players-path.", event_id)
+            result["no_props_coverage"] = True
+            continue
+        props = match_props_to_players(props, players)
         if not props:
             # The fetch's own result IS the coverage answer. A separate probe was
             # a second full props pull per game, charged whether or not it was
@@ -342,6 +368,29 @@ def _fetch_slate(season: int, week: int) -> list[dict]:
     return games
 
 
+def _player_index(path: str | None) -> list[dict] | None:
+    """The nflverse player list, or None when the caller has not supplied one.
+
+    None means "no join", and the Odds API returns names rather than ids, so a
+    tick without this cannot write a row. It is reported rather than guessed.
+    """
+    if not path:
+        return None
+    import json
+
+    with open(path) as handle:
+        players = json.load(handle)
+    if not isinstance(players, list) or not players:
+        raise ValueError(f"{path}: expected a non-empty list of players")
+    return players
+
+
+def _read_parquet(path: str):
+    import pandas as pd
+
+    return pd.read_parquet(path)
+
+
 def main(argv: list[str] | None = None) -> int:
     """One forward-test tick.
 
@@ -366,6 +415,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--edge-gate", type=float, default=EDGE_GATE)
     parser.add_argument("--report-dir", default=None,
                         help="write the weekly markdown report here")
+    parser.add_argument("--players-path", default=None,
+                        help="JSON list of {player_id, player_name, team} used to "
+                             "join book prop names to nflverse ids")
+    parser.add_argument("--feature-frame", default=None,
+                        help="parquet of the assembled feature frame (required)")
     parser.add_argument("--dry-run", action="store_true",
                         help="report what a tick would cost and record; spend nothing")
     args = parser.parse_args(argv)
@@ -391,8 +445,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(f"loaded markets: {sorted(predictors)}")
 
+    players = _player_index(args.players_path)
+    if not args.feature_frame:
+        print("error: --feature-frame is required. The tick consumes the assembled "
+              "feature frame and does not build it: producing that frame is "
+              "scripts/train_quantile_props.py's job, and src/ must not import "
+              "from scripts/ (scripts/ is not installed in the Docker image).\n"
+              "  python scripts/train_quantile_props.py --seasons 2017-2026 --out-dir ...\n"
+              "  # then point --feature-frame at the frame it wrote")
+        return 2
+    feature_frame = _read_parquet(args.feature_frame)
+
     result = run_forward_tick(games=games, market_quantiles=predictors,
-                              edge_gate=args.edge_gate)
+                              edge_gate=args.edge_gate,
+                              players=players, feature_frame=feature_frame)
     for key in ("games", "games_skipped_post_kickoff", "props_snapshotted",
                 "picks_logged", "degenerate_rows", "no_props_coverage"):
         print(f"  {key}: {result[key]}")

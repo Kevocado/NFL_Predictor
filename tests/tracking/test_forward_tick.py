@@ -52,6 +52,13 @@ def _stub(monkeypatch, props_by_event, props=None, coverage=None, credits=500):
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda event_id, markets=None, credits_needed=1: props_by_event.get(event_id, []))
 
+#: Book props carry names; the tick's player index supplies the id.
+PLAYERS = [
+    {"player_id": "00-1", "player_name": "Test", "team": "A"},
+    {"player_id": "00-2", "player_name": "Good", "team": "A"},
+    {"player_id": "00-3", "player_name": "Meh", "team": "A"},
+]
+
 
 def _pick(monkeypatch, p_over_by_market):
     from nfl_predictor.tracking import forward_tick
@@ -67,7 +74,7 @@ def test_tick_rejects_post_kickoff_game(monkeypatch):
     _stub(monkeypatch, {"G_LIVE": [{"player_id": "00-1", "player_name": "P",
                                     "market": "player_rec_yds", "line": 50.0,
                                     "over_odds": -110, "under_odds": -110,
-                                    "book": "fanduel", "team": "ALB"}]})
+                                    "book": "fanduel", "team": "A"}]})
     _pick(monkeypatch, {"player_rec_yds": lambda line: {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
 
     result = run_forward_tick(games=[_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)],
@@ -81,10 +88,10 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     # Two props: one the model likes a lot, one it is indifferent on.
     props = [
-        {"player_id": "00-1", "player_name": "Good", "market": "player_rec_yds",
-         "line": 50.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "ALB"},
-        {"player_id": "00-2", "player_name": "Meh", "market": "player_rec_yds",
-         "line": 90.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "ALB"},
+        {"player_name": "Good", "normalized_name": "good", "market": "player_rec_yds",
+         "line": 50.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "A"},
+        {"player_name": "Meh", "normalized_name": "meh", "market": "player_rec_yds",
+         "line": 90.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "A"},
     ]
     _stub(monkeypatch, {"G1": props})
     # A flat distribution around 60: the 50 line is a clear over, the 90 a clear under,
@@ -93,13 +100,14 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
                  0.6: 62.0, 0.7: 64.0, 0.8: 66.0, 0.9: 68.0}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles})
+                              market_quantiles={"player_rec_yds": quantiles},
+                              players=PLAYERS)
 
     assert result["props_snapshotted"] == 2
     logged = _logged()
     sides = {(r["player_id"], r["side"]) for r in logged}
-    assert ("00-1", "over") in sides
-    assert ("00-2", "under") in sides
+    assert ("00-2", "over") in sides
+    assert ("00-3", "under") in sides
     for row in logged:
         assert row["edge_vs_breakeven"] >= EDGE_GATE
 
@@ -111,14 +119,15 @@ def test_a_prop_the_model_is_indifferent_about_is_not_logged(monkeypatch):
     turn that into a pick -- a 98% confidence from a flat distribution is a
     fabricated edge, and the 5% gate would wave it through."""
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_id": "00-1", "player_name": "Coin",
+    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 60.0,
                                 "over_odds": -110, "under_odds": -110,
-                                "book": "fanduel", "team": "ALB"}]})
+                                "book": "fanduel", "team": "A"}]})
     quantiles = {q: 60.0 for q in [i / 10 for i in range(1, 10)]}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles})
+                              market_quantiles={"player_rec_yds": quantiles},
+                              players=PLAYERS)
 
     assert result["picks_logged"] == 0
     assert _logged() == []
@@ -169,14 +178,15 @@ def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
 
 def test_tick_returns_the_documented_counters(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_id": "00-1", "player_name": "P",
+    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 50.0,
                                 "over_odds": -110, "under_odds": -110,
-                                "book": "fanduel", "team": "ALB"}]})
+                                "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles})
+                              market_quantiles={"player_rec_yds": quantiles},
+                              players=PLAYERS)
 
     for key in ("games", "props_snapshotted", "picks_logged", "credits_remaining"):
         assert key in result
@@ -184,14 +194,15 @@ def test_tick_returns_the_documented_counters(monkeypatch):
 
 def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_id": "00-1", "player_name": "P",
+    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 50.0,
                                 "over_odds": -115, "under_odds": -105,
-                                "book": "fanduel", "team": "ALB"}]})
+                                "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     run_forward_tick(games=[_game("G1", FUTURE)],
-                     market_quantiles={"player_rec_yds": quantiles})
+                     market_quantiles={"player_rec_yds": quantiles},
+                     players=PLAYERS)
 
     row = next(r for r in _logged() if r["side"] == "over")
     # over at -115 breakevens at 115/215 = 0.5349
@@ -201,14 +212,15 @@ def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
 
 def test_under_pick_records_its_own_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_id": "00-1", "player_name": "P",
+    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 90.0,
                                 "over_odds": -110, "under_odds": -110,
-                                "book": "fanduel", "team": "ALB"}]})
+                                "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     run_forward_tick(games=[_game("G1", FUTURE)],
-                     market_quantiles={"player_rec_yds": quantiles})
+                     market_quantiles={"player_rec_yds": quantiles},
+                     players=PLAYERS)
 
     # model_p_over stores the probability of the side TAKEN, so the under's 0.98
     # is 1 - p_over(90) = 1 - 0.02: the model says the 90 will not be covered.
