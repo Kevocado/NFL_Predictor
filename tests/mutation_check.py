@@ -6,8 +6,9 @@ the tests, not a pass.
 
     .venv/bin/python tests/mutation_check.py            # all
     .venv/bin/python tests/mutation_check.py M4 M9      # named only
+    .venv/bin/python tests/mutation_check.py --shard=0/4   # CI: this run's slice
 
-Four things this harness is built around, each of which broke a previous
+Five things this harness is built around, each of which broke a previous
 version of it:
 
 **It never writes to a tracked file.** The first version applied mutations to
@@ -32,7 +33,17 @@ INCONCLUSIVE, which is a harness problem and is reported as one.
 **The canary.** A mutation that is known to survive must report SURVIVED. If it
 reports CAUGHT, the harness itself has stopped detecting and every other verdict
 in the run is suspect, so that fails the whole harness. This is what makes a
-broken harness loud instead of green.
+broken harness loud instead of green. Every shard carries every canary for the
+same reason: `all()` over an empty sequence is True, so a shard with none would
+print `0 canary (all correct: True)`.
+
+**The copy has to be a git repository.** `tests/tracked_artifacts.py` asks git
+whether `data/public_snapshot.json`, the scan roots, and `models/manifest.json`
+are committed, and `committed_state` answers UNVERIFIABLE -- never UNTRACKED, the
+only answer allowed to skip -- when there is no repository to ask. Three baseline
+assertions failed, the run aborted at the baseline, and 35 mutations were
+unjudged while nothing said why. Same class of defect as the copy manifest
+robbing `scripts/`: the suite in the copy is not the suite in the repo.
 
 **The copy has to be whole, and it says so.** A copy missing one file is not a
 smaller copy, it is a different tree: a test module that resolves a repo path at
@@ -153,12 +164,16 @@ MUTATIONS: list[Mutation] = [
       '''        if latest_players.empty and (player_history["season"] == season).sum() == 0:''',
       '''        if False:''',
       "python"),
+    # One line, not two. The anchor used to span `carried = ...` and `if carried:`
+    # as adjacent lines; a four-line comment explaining the carry-forward went
+    # between them, the anchor stopped matching, and the harness reported SKIPPED
+    # and exit 1 -- which is the designed behaviour for a stale mutation, but it
+    # means this job was red on arrival and never said which mutation or why in
+    # CI, because CI never ran it. Same edit, same test, fewer lines to rot.
     M("M5", "snapshot drops the previous props on failure (reintroduces the frozen empty)",
       "src/nfl_predictor/public_snapshot.py",
-      '''        carried = (previous or {}).get("player_props") or []
-        if carried:''',
-      '''        carried = []
-        if carried:''',
+      '''        carried = (previous or {}).get("player_props") or []''',
+      '''        carried = []''',
       "python"),
     M("M6", "snapshot status hardcoded to 'ok'",
       "src/nfl_predictor/public_snapshot.py",
@@ -363,6 +378,34 @@ MUTATIONS: list[Mutation] = [
 
 _TMP: Path | None = None
 
+# An identity, because `git commit` refuses without one and a runner's global
+# config is not something this harness may assume. `gpgsign=false` for the same
+# reason: a runner with signing configured would otherwise hang or fail on a key
+# it does not have.
+_GIT = (
+    "git",
+    "-c", "user.email=mutation-harness@example.invalid",
+    "-c", "user.name=mutation harness",
+    "-c", "commit.gpgsign=false",
+)
+
+
+def _git(cwd: Path, *args: str) -> None:
+    """Run git in `cwd`, or raise. Never `check=False`: a copy that is only
+    half-initialised is the anonymous failure this harness is not allowed to
+    produce.
+
+    With `GIT_*` stripped from the environment. `cwd` does not win: `GIT_DIR`,
+    `GIT_WORK_TREE` and `GIT_INDEX_FILE` each redirect git away from it, so a
+    caller who exports any of them gets `init`, `add` and `commit` aimed at the
+    repository the harness was launched from -- the one thing in this file that
+    must never be written to. Stripping the whole prefix rather than setting them
+    to empty is deliberate: an empty `GIT_DIR` names a directory git will try to
+    use, which is worse than not naming one.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run([*_GIT, *args], cwd=cwd, check=True, capture_output=True, text=True, env=env)
+
 
 def _cleanup(*_args) -> None:
     if _TMP and _TMP.exists():
@@ -441,6 +484,22 @@ def build_tree() -> Path:
         if src.exists() and not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             os.symlink(src, dst)
+    # The copy has to be a *git repository* in which the copied paths are
+    # committed. tests/tracked_artifacts.py asks git about
+    # data/public_snapshot.json, about the three scan roots, and about
+    # models/manifest.json, and `committed_state` answers UNVERIFIABLE for every
+    # one of them when there is no repository to ask -- so three baseline
+    # assertions fail and `main()` aborts with exit 2 before judging a single
+    # mutation. Same class of defect as the missing `scripts/`: the suite in the
+    # copy is not the suite in the repo, and it reads as a broken suite rather
+    # than as a missing repository.
+    #
+    # Three commands, not a copy of `.git`, which is the thing COPY_DIRS exists
+    # to avoid. `add -A` records the two symlinks as symlinks -- one entry each,
+    # git does not follow them -- so this stays cheap.
+    _git(_TMP, "init", "--quiet")
+    _git(_TMP, "add", "-A", "--", ".")
+    _git(_TMP, "commit", "--quiet", "-m", "the copy under test")
     # The copy is finished; now ask whether it is whole. Cheap (an AST walk of
     # tests/test_*.py) and it turns "the baseline went red for a reason nobody
     # could see" into a sentence naming the file, before a single mutation runs.
@@ -632,9 +691,19 @@ def run_python(tree: Path) -> tuple[str, str]:
     So a failure is only believed when pytest's own summary says tests failed.
     Anything else is INCONCLUSIVE and fails the harness, because a runner that
     cannot run is not a runner that detected.
+
+    `-m "not network"` for the same reason tests.yml's own pytest step carries
+    it, and here it is not optional. The two deselected tests reconcile against
+    live nflverse data, so without the marker the harness opened the network 27
+    times per pass and its baseline could go red because an upstream schema
+    moved -- reported as "BASELINE IS RED -- aborting" for a cause that has
+    nothing to do with whether the tests bite. It also nearly halved the cost of
+    a pass (76s -> 40s per run), which is most of why the harness fits in CI at
+    all. Same suite, same marker, as the CI pytest step.
     """
     proc = subprocess.run(
-        [str(PYTHON), "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"],
+        [str(PYTHON), "-m", "pytest", "-q", "-p", "no:cacheprovider",
+         "-m", "not network", "tests"],
         cwd=tree, capture_output=True, text=True,
         env={**os.environ, "PYTHONPATH": str(tree / "src")},
     )
@@ -682,10 +751,62 @@ def run_frontend(tree: Path) -> tuple[str, str]:
 
 # --- main ------------------------------------------------------------------
 
+_SHARD = re.compile(r"^--shard=(\d+)/(\d+)$")
+
+
+def select(argv: list[str]) -> list[Mutation]:
+    """The mutations this run judges: the ones named, or shard I of N.
+
+    Sharding exists because a full pass is minutes, not seconds, and this runs
+    on every push. It is `MUTATIONS[i::n]` rather than a list of ids per shard in
+    the workflow, because a list in a workflow is a list that rots: a mutation
+    added to MUTATIONS and left out of every shard is a mutation nobody judges,
+    which is the same silent hole the CI job was added to close, moved inside
+    the job.
+
+    Every shard also gets every canary, and that is not an optimisation to undo
+    later. `main` computes `all(v == "SURVIVED" for _, v in canaries)`, which
+    over an empty sequence is True, so a shard holding no canary would print
+    `0 canary (all correct: True)` -- a clean bill of health from a shard that
+    never checked whether its own detector works. That is why this is not "the
+    canaries go in shard 0": one shard's verdicts are evidence about the tests,
+    and the rest would be evidence about nothing. The canaries cost one run each
+    per shard, which is the price of a shard's verdict meaning something.
+    """
+    names = [a for a in argv[1:] if not a.startswith("--")]
+    shards = [a for a in argv[1:] if a.startswith("--")]
+    picked = [m for m in (_SHARD.match(a) for a in shards) if m]
+    unknown = [a for a in shards if not _SHARD.match(a)]
+    if unknown:
+        raise SystemExit(f"unknown option {unknown[0]!r}; the only one is --shard=I/N")
+    if not picked:
+        return [m for m in MUTATIONS if not names or m.ident in set(names)]
+    if names:
+        raise SystemExit(
+            f"{picked[0].group(0)} and {sorted(names)} are both given; a run "
+            "judges either one slice of every mutation or some of them by name, not both"
+        )
+    index, count = int(picked[0][1]), int(picked[0][2])
+    if count < 1 or not 0 <= index < count:
+        raise SystemExit(f"--shard={index}/{count} is not 0 <= i < N with N >= 1")
+    # Membership by identity, not by dataclass equality: two mutations with the
+    # same fields would satisfy `in` at once, and the ids are not unique either.
+    mine = {id(m) for m in MUTATIONS[index::count]}
+    return [m for m in MUTATIONS if id(m) in mine or m.canary]
+
+
+#: How to say the canary verdict, including when there was none to give.
+CANARY_VERDICT = {
+    True: "all correct: True",
+    False: "all correct: False",
+    None: "none ran, so the detector was NOT checked",
+}
+
+
 def main(argv: list[str]) -> int:
     wanted = set(argv[1:])
     tree = build_tree()
-    selected = [m for m in MUTATIONS if not wanted or m.ident in wanted]
+    selected = select(argv)
     if not selected:
         print(f"no mutation matched {sorted(wanted)}", file=sys.stderr)
         return 2
@@ -778,10 +899,16 @@ def main(argv: list[str]) -> int:
     inconclusive = [(m, v) for m, v, _ in results if v == "INCONCLUSIVE"]
     skipped = [(m, v) for m, v, _ in results if v == "SKIPPED"]
     canaries = [(m, v) for m, v, _ in results if m.canary]
-    canary_ok = all(v == "SURVIVED" for _, v in canaries)
+    # `all()` over an empty sequence is True, so a run that selected no canary
+    # would print `0 canary (all correct: True)` -- the only verdict in this file
+    # that would claim a check it did not do. Named selection can reach that
+    # (`mutation_check.py M4`); sharding cannot, because every shard is handed all
+    # five. Reported rather than enforced: a named run is a debugging aid, and
+    # failing it would be a worse trade than saying out loud what it is.
+    canary_ok = all(v == "SURVIVED" for _, v in canaries) if canaries else None
 
     print()
-    if not canary_ok:
+    if canary_ok is False:
         print("HARNESS BROKEN: a canary mutation did not report SURVIVED, so the")
         print("detector itself is not working and every other verdict here is void.")
         for m, v in canaries:
@@ -801,8 +928,8 @@ def main(argv: list[str]) -> int:
             print(f"  - {m.ident} {m.name}")
     caught = sum(1 for _, v, _ in results if v == "CAUGHT")
     print(f"\n{caught} caught, {len(survivors)} survived, {len(inconclusive)} inconclusive, "
-          f"{len(canaries)} canary (all correct: {canary_ok})")
-    return 1 if (survivors or inconclusive or skipped or not canary_ok) else 0
+          f"{len(canaries)} canary ({CANARY_VERDICT[canary_ok]})")
+    return 1 if (survivors or inconclusive or skipped or canary_ok is False) else 0
 
 
 if __name__ == "__main__":

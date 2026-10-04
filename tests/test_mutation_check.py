@@ -70,6 +70,37 @@ def test_the_copy_carries_the_script_the_suite_loads_at_import_time(copied_tree)
     )
 
 
+def test_the_copy_is_a_repository_in_which_the_artefacts_are_committed(copied_tree):
+    """The third way this copy stopped being the repo, found by putting it in CI.
+
+    `tests/tracked_artifacts.py` asks git about `data/public_snapshot.json`,
+    about the three scan roots, and about `models/manifest.json`. `committed_state`
+    answers UNVERIFIABLE -- not UNTRACKED, which is the only answer allowed to
+    skip -- for every one of them when there is no repository to ask. So three of
+    that module's assertions failed in the copy, `main()` printed "BASELINE IS RED
+    -- aborting", and the harness exited 2 before judging a single mutation.
+
+    Identical in shape to the missing `scripts/` above and it hid for the same
+    reason this file exists: the harness is not named `test_*.py`, so
+    `pytest tests/` collected zero tests from it and every push reported green.
+    A harness that has never been executed cannot report that it does not start.
+
+    Asserted against `committed_state` rather than against the three failing
+    tests, because that is the *cause* and it is one git call instead of an 8s
+    subprocess suite -- and those three assertions all reduce to this call.
+    """
+    from tracked_artifacts import TRACKED, committed_state
+
+    for rel in ("data/public_snapshot.json", "src", "models/manifest.json"):
+        assert committed_state(rel, repo_root=copied_tree) is TRACKED, (
+            f"{rel} is not committed in the copy, so committed_state() answers "
+            "'unverifiable' and three baseline assertions in "
+            "tests/test_tracked_artifacts.py fail against it. The harness then "
+            "aborts at the baseline and judges nothing, reporting a broken suite "
+            "rather than a missing repository."
+        )
+
+
 @pytest.mark.parametrize("rel", [*COPY_DIRS, *COPY_FILES])
 def test_the_copy_carries_every_declared_path(copied_tree, rel):
     assert (copied_tree / rel).exists(), f"{rel} is declared for copying but is not in the copy"
