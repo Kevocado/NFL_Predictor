@@ -33,6 +33,7 @@ Nothing here runs the harness or opens a socket.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,20 @@ JOB = "mutation-harness"
 
 def text() -> str:
     return WORKFLOW.read_text()
+
+
+def harness_source() -> str:
+    """`mutation_check.py`'s own source, through a seam.
+
+    `test_each_check_can_fail` has to hand `check_judges_the_same_suite_ci_does`
+    a copy of this file with one thing broken. The first version wrote the broken
+    text into the real `tests/mutation_check.py` and restored it in `finally`,
+    which is precisely the bug the harness's own module docstring opens with:
+    `finally` does not run on SIGKILL or a CI timeout, so the red-check could
+    leave the harness itself mutated in the working tree. A guard must not be the
+    thing that damages the file it guards.
+    """
+    return HARNESS.read_text()
 
 
 def job(whole: str, name: str = JOB) -> str:
@@ -195,8 +210,7 @@ def check_judges_the_same_suite_ci_does(whole: str) -> None:
     run instead of 40s. The ordinary pytest step here has always carried the
     marker; these two lines are the check that they stay the same line.
     """
-    harness = HARNESS.read_text()
-    marked = re.findall(r'"-m",\s*"not network"', harness)
+    marked = re.findall(r'"-m",\s*"not network"', harness_source())
     assert marked, (
         f"{HARNESS.name} runs pytest without `-m \"not network\"`, so the harness "
         "reconciles against live upstream data once per mutation: a network "
@@ -227,7 +241,7 @@ def test_the_workflow_file_exists():
     assert WORKFLOW.read_text(), "the workflow is empty"
 
 
-def test_each_check_can_fail():
+def test_each_check_can_fail(monkeypatch):
     """A guard that cannot fail is not a guard.
 
     Each check runs against the real file and against a copy with one thing
@@ -258,12 +272,13 @@ def test_each_check_can_fail():
         )
         try:
             if name == "same_suite":
-                original = HARNESS.read_text()
-                try:
-                    HARNESS.write_text(original.replace(old, new, 1))
-                    CHECKS[name](good)
-                finally:
-                    HARNESS.write_text(original)
+                # Through the seam, not through the file. See `harness_source`.
+                monkeypatch.setattr(
+                    sys.modules[__name__], "harness_source",
+                    lambda: HARNESS.read_text().replace(old, new, 1),
+                )
+                CHECKS[name](good)
+                monkeypatch.undo()
             else:
                 CHECKS[name](good.replace(old, new, 1))
         except AssertionError:

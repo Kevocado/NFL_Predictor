@@ -393,8 +393,18 @@ _GIT = (
 def _git(cwd: Path, *args: str) -> None:
     """Run git in `cwd`, or raise. Never `check=False`: a copy that is only
     half-initialised is the anonymous failure this harness is not allowed to
-    produce."""
-    subprocess.run([*_GIT, *args], cwd=cwd, check=True, capture_output=True, text=True)
+    produce.
+
+    With `GIT_*` stripped from the environment. `cwd` does not win: `GIT_DIR`,
+    `GIT_WORK_TREE` and `GIT_INDEX_FILE` each redirect git away from it, so a
+    caller who exports any of them gets `init`, `add` and `commit` aimed at the
+    repository the harness was launched from -- the one thing in this file that
+    must never be written to. Stripping the whole prefix rather than setting them
+    to empty is deliberate: an empty `GIT_DIR` names a directory git will try to
+    use, which is worse than not naming one.
+    """
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run([*_GIT, *args], cwd=cwd, check=True, capture_output=True, text=True, env=env)
 
 
 def _cleanup(*_args) -> None:
