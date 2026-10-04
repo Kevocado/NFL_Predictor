@@ -16,13 +16,18 @@ Named coverage, one test per claim the reviewer made:
 Plus the count distribution chosen by fitting BOTH on history and comparing log
 loss, and the train/serve feature parity.
 
-**What is deliberately absent.** The report that graded these picks into a track
-record, `nfl_predictor.tracking.qb_passing_td_record`, was deleted: nothing
+**What moved, and where it went.** The report that graded these picks into a track
+record, `nfl_predictor.tracking.qb_passing_td_record`, was deleted in PR #31: nothing
 wrote a `market="passing_tds"` row and nothing read the report, so it was a
-feature-shaped module with no feature behind it. Its grading and counting tests
-went with it. `tests/test_passing_td_record_absence.py` pins that the module is
-gone and unreferenced, so putting it back has to be a decision rather than an
-accident. What is left here is only what the model and `store` really do.
+feature-shaped module with no feature behind it, and it swallowed every error besides.
+The writer now exists (`routes._passing_td_prop_row`, called from
+`background_tracking_tick`) and the grading lives in
+`store._passing_td_metrics` inside `_prop_markets`, beside every other prop market's
+record. The module stays deleted.
+`tests/test_passing_td_record_absence.py` pins that it is gone and unreferenced and
+that the writer and the record slot both exist now; `tests/test_passing_td_record.py`
+holds the record end to end -- recorded from the tick, graded against actual passing
+TDs, immutable once written, and loud about a pick that could not be recorded.
 """
 import math
 
@@ -39,10 +44,13 @@ def _is_half_point(line) -> bool:
     """Whether `line` ends in .5, spelled out locally.
 
     This used to be `qb_passing_td_record.line_is_half_point`, imported from the
-    module that recorded the picks. It is four lines of arithmetic about the line
-    grid, and the claim it supports is `model_line` landing on that grid -- so it
-    belongs beside the test. It also keeps the deleted module's push-impossibility
-    argument alive: see `test_a_whole_number_line_would_be_a_push` below.
+    module that recorded the picks, and the same arithmetic now lives in
+    `tracking/store.py::_line_is_half_point` as the grader's backstop on a stored
+    row. It is restated here because the claim it supports in THIS file is
+    `model_line` landing on that grid, which is a property of the model and not of
+    the grader -- see `test_a_whole_number_line_would_be_a_push` below, and
+    `tests/test_passing_td_record.py::test_a_whole_number_line_is_reported_ungradeable_rather_than_scored`
+    for the grader's half.
     """
     value = float(line)
     doubled = value * 2
@@ -273,10 +281,12 @@ def test_a_whole_number_line_would_be_a_push():
 # These two moved here from the deleted module's section and are kept, because
 # what they assert is `store.record_player_prop_predictions` -- real, reachable
 # code that round-trips the optional `line`/`line_source`/`side`/`mu`/`call_prob`
-# columns. What they do NOT assert is that anything in serving fills those
-# columns: `routes.background_tracking_tick` writes no `passing_tds` row, so on
-# the live database all five are NULL. The columns are a format, ready for a
-# writer; see the note on `_PASSING_TD_PROP_COLUMNS` in `tracking/store.py`.
+# columns.
+#
+# **They are not the whole claim any more.** They write the rows through the store
+# directly, which proves the columns round-trip and nothing about whether the tick
+# fills them; that is `tests/test_passing_td_record.py`, which goes through
+# `background_tracking_tick` and then grades what it wrote.
 
 
 def _record_call(player_id="q1", line=2.5, side="under", mu=2.3, prob=0.6):

@@ -109,8 +109,8 @@ def model_line(mu: float) -> float:
     read carelessly, and it produces **whole-number lines**: `model_line(1.0)`
     came out 1.0. A whole-number line is an instant push waiting to happen -- a
     quarterback throws exactly 1 passing TD, actual == line, and neither over nor
-    under is true. The grading assertion in `qb_passing_td_record` then refuses
-    the row, and the pick is ungradeable.
+    under is true. `tracking/store.py::_line_is_half_point` then refuses to grade
+    the row, and the pick is reported ungradeable rather than scored.
 
     Restricting the grid to x.5 makes push structurally impossible rather than
     merely unlikely, which is what "push cannot occur" has to mean for the record

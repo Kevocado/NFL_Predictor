@@ -34,6 +34,17 @@ that it can never report an error, reads on the page as a feature. The writer
 that would fix it belongs in `api/routes.py`, which this change does not touch, so
 deleting was the only option available here rather than the preferred one.
 
+**And it has now been written, the way this file said it had to be.** The writer
+is `routes._passing_td_prop_row`, called from `background_tracking_tick`, and the
+report is `store._passing_td_metrics` -- inside `_prop_markets`, beside every
+other market's record, with no bare `except` around it. The module itself stays
+deleted and the symbols it exported stay unreferenced: the defect was never the
+file, it was a report with no writer, and the fix is a writer, not a file. The
+two tests at the bottom of this file are the deliberate signal this docstring
+asked for, and they are written by CALLING the writer and the reader, because the
+substring check they replaced went green the moment the market went live (see
+`test_the_writer_and_the_record_slot_both_exist_now`).
+
 **A note on the wording, since it is load-bearing.** "Committed" and "tracked" are
 used the same way throughout, and both mean "git has it in the index or in a
 commit". `tests/tracked_artifacts.py` asks about both, because `git rm --cached`
@@ -43,11 +54,10 @@ quietly untrack a directory the command that disabled the guard.
 
 What these tests pin
 --------------------
-That the module is gone, that no source file names it, and that the serving
-path still writes no `passing_tds` row. All three are the facts the deletion
-rests on, so if a future change wires the write path up, the first two fail and
-that is the intended signal: reintroduction has to be a deliberate act, with a
-consumer named, not a resurrection of dead code.
+That the module is gone, that no source file names it, **and that the writer and
+the record slot it lacked now exist.** The first two are still the facts the
+deletion rests on; the third is the change that came after it, so the two are
+pinned together rather than one having quietly stopped meaning anything.
 
 **The scan cannot come back empty.** `_source_files()` used to `continue` past a
 scan root that was not on disk. That is the same defect as a skip that is not
@@ -394,26 +404,25 @@ def _python_references(tree, symbol):
 def test_every_prose_reference_is_a_comment_and_only_one_is_stale():
     """What the code test above deliberately tolerates, stated so none of it is lost.
 
-    The deleted module's name still appears in prose in three places, in two kinds:
+    The deleted module's name now appears in prose in exactly one file:
 
-    * `tracking/store.py` -- written by this change, on `_PASSING_TD_PROP_COLUMNS` and
-      `_MARKET_TO_STAT_COLUMN`, so the surviving columns are not mistaken for a live
-      feature: "a writer in `api/routes.py` will need no migration, and the report that
-      read them was deleted for having no consumer".
-    * `models/qb_passing_td.py` -- **stale, and left stale on purpose.** It says "the
-      grading assertion in `qb_passing_td_record`" refuses a whole-number line, and that
-      module is gone. This change is scoped to `src/nfl_predictor/tracking/`; `models/`
-      is off limits for it, so the sentence could not be corrected here.
+    * `tracking/store.py` -- on `_PASSING_TD_PROP_COLUMNS` and
+      `_MARKET_TO_STAT_COLUMN`, and it is the history rather than a caveat: these
+      columns survived the era when nothing wrote the market so that wiring the
+      writer up would need no migration, and they are filled in production now.
+
+    `models/qb_passing_td.py` used to name it too, and **was stale** -- it pointed at a
+    grading assertion in a module that no longer existed. That is corrected: the refusal
+    it describes is `tracking/store.py::_line_is_half_point`, and the arithmetic is
+    asserted in `tests/test_qb_passing_td.py::test_a_whole_number_line_would_be_a_push`
+    and again on a stored row in `tests/test_passing_td_record.py`.
 
     The first half asserts every hit is prose -- a `#` comment or a docstring -- and so
-    cannot be code. The second asserts that outside `tracking/` exactly one file still
-    names it, so a NEW stale reference cannot slip in unnoticed. Pinned rather than
-    ignored, so a green run is not misread as "nothing mentions it any more".
-
-    The arithmetic the stale comment describes is not lost: it is asserted in
-    `tests/test_qb_passing_td.py::test_a_whole_number_line_would_be_a_push`, and the
-    structural fix it refers to -- `model_line` never returning a whole number -- is
-    unchanged.
+    cannot be code. The second rejects a reference in some OTHER file, so a NEW stale
+    reference cannot slip in unnoticed, and tolerates *fewer* than one in
+    `models/qb_passing_td.py` rather than requiring one: the fix to a stale comment is
+    the outcome this test wants, and a test keyed on the lie surviving would teach the
+    next person to leave it in place.
     """
     prose_hits: dict[str, int] = {}
     for path in _source_files():
@@ -447,9 +456,9 @@ def test_every_prose_reference_is_a_comment_and_only_one_is_stale():
         "needs a look before it lands."
     )
     assert "src/nfl_predictor/tracking/store.py" in prose_hits, (
-        "store.py no longer explains why the passing-TD columns and the grader route "
-        "survive with no writer -- that explanation is the thing a future reader "
-        "needs to avoid treating them as a live feature"
+        "store.py no longer records why the passing-TD columns and the grader route "
+        "survived a stretch with no writer -- that history is the thing a future "
+        "reader needs in order to trust that the market is real now"
     )
 
 
@@ -473,46 +482,112 @@ def _prose_lines(source: str) -> set[int]:
     return lines
 
 
-def test_serving_still_writes_no_passing_td_row_and_the_record_has_no_slot_for_one():
-    """The two halves of "there is no consumer", asserted against the live paths.
+def test_the_writer_and_the_record_slot_both_exist_now():
+    """The reintroduction PR #31 asked for, carried out deliberately.
 
-    Three checks, and the second one exists because of a hole a reviewer found in an
-    earlier draft of this test. Reading `routes.py` for a `"passing_tds"` literal was
-    not enough on its own: the snapshot loop iterates
-    `player_props.POSITION_MARKETS`, so adding `"passing_tds"` to that dict would
-    make serving write the rows with no `"passing_tds"` string anywhere in `routes.py`
-    at all, and the text check would have gone on passing while the premise of the
-    whole deletion quietly stopped being true. So the configured markets are asserted
-    too, by value rather than by reading the source of the dict's owner.
+    **The module stays deleted.** The three tests above still say so, and nothing
+    here resurrects it. What changed is the half that was missing: there is now a
+    writer (`routes._passing_td_prop_row`, called from
+    `background_tracking_tick`) and a slot for the result
+    (`store._prop_markets()[PASSING_TD_MARKET]`). PR #31's docstring asked for
+    "a consumer named" before the write path was wired up; the consumer is
+    `_passing_td_metrics`, in the same module as every other prop market's record.
 
-    The third check is the other half: `get_track_record` reports `anytime_td` plus the
-    five yardage markets, so even a written row had nowhere to be summarised. Between
-    them: no writer, and no slot for a result.
+    **Every check here CALLS the code, and that is the reason this test is
+    rewritten rather than deleted.** The version it replaces asserted the absence
+    with a substring search for `"passing_tds"` over the snapshot block of
+    `routes.py`, and it went GREEN on the change that made the market live --
+    because the writer names the market through
+    `player_props.qb_passing_td.PASSING_TD_MARKET` and never spells the string
+    anywhere in that file. A text check on a name the code has stopped spelling is
+    a check on the absence of a substring, not on the absence of a feature, and it
+    would have left the market shipped, graded and recorded while this file
+    insisted nothing wrote it.
     """
+    import pandas as pd
+
+    from nfl_predictor.api import routes
     from nfl_predictor.models import player_props
+    from nfl_predictor.tracking import store
 
-    configured = {m for markets in player_props.POSITION_MARKETS.values() for m in markets}
-    assert "passing_tds" not in configured, (
-        f"`POSITION_MARKETS` now offers {sorted(configured)}, so serving writes "
-        "`passing_tds` rows through the position-market loop and the text check on "
-        "routes.py below cannot see it. If that is deliberate the report has a writer "
-        "and belongs in _prop_markets, not in a deleted module."
+    # One market name, agreed on by the writer and the reader. If these two ever
+    # diverged, every row would be written under a name the record does not
+    # summarise -- a recorded pick in no figure, which is the failure this whole
+    # market has already had once.
+    assert store.PASSING_TD_MARKET == player_props.qb_passing_td.PASSING_TD_MARKET
+
+    qb_prop = {
+        "player_id": "00-1", "player_name": "Pat QB", "position": "QB",
+        "passing_td_line": 2.5, "passing_td_line_source": "model_line",
+        "passing_td_side": "over", "passing_td_mu": 2.3, "passing_td_prob": 0.64,
+    }
+    row = routes._passing_td_prop_row(qb_prop, "2026_03_A_B")
+    assert row is not None and row["market"] == store.PASSING_TD_MARKET
+    assert row["line"] == 2.5 and row["side"] == "over"
+
+    # No call -> no row, and no fabricated zero. The `None` is what the tick turns
+    # into a logged gap rather than a silent omission.
+    assert routes._passing_td_prop_row(
+        {**qb_prop, "passing_td_line": None}, "2026_03_A_B") is None
+    assert routes._passing_td_prop_row(
+        {**qb_prop, "position": "WR"}, "2026_03_A_B") is None
+
+    # And there is somewhere for a written row to be summarised.
+    assert store.PASSING_TD_MARKET in store._prop_markets(pd.DataFrame())
+
+
+def test_the_writer_is_reached_from_the_production_tick_and_nowhere_else():
+    """Reachability, from the parse.
+
+    A writer that exists but is not called by the tick is the deleted-module defect
+    wearing a new hat, and `test_the_writer_and_the_record_slot_both_exist_now`
+    above would still pass on it: it calls `_passing_td_prop_row` itself. So this
+    one walks the AST of `background_tracking_tick` and requires the call to be
+    inside it -- and requires that the whole snapshot loop still ends at the one
+    writer, so a second `record_player_prop_predictions` call cannot split the
+    market off into a transaction that commits on its own.
+    """
+    import ast
+
+    from nfl_predictor.api import routes
+
+    tree = ast.parse(Path(routes.__file__).read_text(encoding="utf-8"))
+    tick = next(n for n in tree.body
+                if isinstance(n, ast.FunctionDef) and n.name == "background_tracking_tick")
+    called = {_called_name(n) for n in ast.walk(tick) if isinstance(n, ast.Call)}
+    assert "_passing_td_prop_row" in called, (
+        "the passing-TD writer is not called from background_tracking_tick, so the "
+        "market is served and reported but never recorded -- which is exactly what "
+        "PR #31 deleted a report for"
+    )
+    assert "record_player_prop_predictions" in called, (
+        "the tick no longer writes any prop rows; the whole prop record is gone"
+    )
+    assert sum(1 for line_number in _call_lines(tree, "record_player_prop_predictions")
+               if _within(line_number, tick)) == 1, (
+        "the tick writes prop rows from more than one place, so a failure part-way "
+        "through could commit a partial record that reads as complete"
     )
 
-    routes = (REPO_ROOT / "src/nfl_predictor/api/routes.py").read_text(encoding="utf-8")
-    snapshot_block = routes[routes.index("prop_rows.append"):routes.index(
-        "store.record_player_prop_predictions(prop_rows)")]
-    assert '"passing_tds"' not in snapshot_block, (
-        "serving now snapshots a passing_tds prop row -- if that is deliberate the "
-        "report has a writer and belongs in _prop_markets, not in a deleted module"
-    )
 
-    store_src = (REPO_ROOT / "src/nfl_predictor/tracking/store.py").read_text(encoding="utf-8")
-    assert '"passing_tds": "passing_tds",' in store_src, (
-        "the grader's passing_tds stat-column route is gone; see the note on "
-        "_MARKET_TO_STAT_COLUMN before removing it again"
-    )
-    reported = store_src[store_src.index("_YARDAGE_MARKETS = ("):store_src.index(")\n", store_src.index("_YARDAGE_MARKETS = ("))]
-    assert "passing_tds" not in reported, (
-        "the reported markets changed; re-check whether the passing-TD report has a consumer"
-    )
+def _called_name(call: ast.Call) -> str | None:
+    """The name a call targets, whether it is `f()` or `obj.f()`.
+
+    Both spellings occur in `routes.py`, and collecting only one of them makes the
+    reachability test below report a missing call for code that plainly makes it.
+    """
+    if isinstance(call.func, ast.Attribute):
+        return call.func.attr
+    if isinstance(call.func, ast.Name):
+        return call.func.id
+    return None
+
+
+def _call_lines(tree: ast.AST, name: str) -> list[int]:
+    """Every line calling `name(...)`, so a count can be scoped to one function."""
+    return [n.lineno for n in ast.walk(tree)
+            if isinstance(n, ast.Call) and _called_name(n) == name]
+
+
+def _within(lineno: int, node: ast.AST) -> bool:
+    return node.lineno <= lineno <= (node.end_lineno or node.lineno)
