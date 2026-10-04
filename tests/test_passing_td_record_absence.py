@@ -268,15 +268,25 @@ def test_a_root_present_but_holding_no_source_file_is_refused(monkeypatch):
 def test_the_floor_rejects_a_scan_narrowed_to_one_root(monkeypatch):
     """The floor bites, and the case it catches is a real one.
 
-    `scripts/` is a real committed root holding a real `.py`, so scanning only it
-    satisfies every existence check and the empty-root refusal, and is stopped
-    solely by `MIN_SCANNED_FILES`. Without the floor, "the scan read one file" and
-    "the scan read the repository" would be the same claim -- which is the
-    difference between checking three roots and checking whichever one survived.
+    `scripts/` is a real committed root holding real `.py` files, so scanning only
+    it satisfies every existence check and the empty-root refusal, and is stopped
+    solely by `MIN_SCANNED_FILES`. Without the floor, "the scan read a couple of
+    files" and "the scan read the repository" would be the same claim -- which is
+    the difference between checking three roots and checking whichever one
+    survived.
+
+    The count is asserted as "at least one, and below the floor" rather than a
+    literal. This test previously asserted exactly 1, which silently coupled it to
+    how many scripts the repository happened to contain: adding a second script
+    (`scripts/train_quantile_props.py`) broke a test about a deleted report, and
+    the fix is not to keep the count at 1 forever. What this test is about is the
+    floor biting, not the inventory of `scripts/`.
     """
     monkeypatch.setattr(sys.modules[__name__], "SCANNED", ("scripts",))
-    per_root = _files_by_root()  # one real file; must not raise the empty-root way
-    assert sum(len(f) for f in per_root.values()) == 1
+    per_root = _files_by_root()  # real files; must not raise the empty-root way
+    scanned = sum(len(f) for f in per_root.values())
+    assert scanned >= 1, "the narrow scan read nothing, so it proves nothing"
+    assert scanned < MIN_SCANNED_FILES, "the fixture no longer exercises the floor"
     with pytest.raises(AssertionError, match="below the floor"):
         _assert_the_scan_is_wide_enough(per_root)
 

@@ -118,6 +118,15 @@ def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
             f"ALTER TABLE player_prop_predictions ADD COLUMN {LABEL_VERSION_COLUMN} INTEGER"
         )
         added.append(f"player_prop_predictions.{LABEL_VERSION_COLUMN}")
+
+    # Forward-test columns: the book's line as snapshotted, the model's
+    # probability and edge against it, and the closing line for CLV. ALTER TABLE
+    # again, so rows written before the forward test keep their NULLs and stay
+    # readable -- they simply are not forward-test rows.
+    for column, sql_type in _FORWARD_PROP_COLUMNS:
+        if column not in prop_cols:
+            conn.execute(f"ALTER TABLE player_prop_predictions ADD COLUMN {column} {sql_type}")
+            added.append(f"player_prop_predictions.{column}")
     return added
 
 
@@ -143,6 +152,24 @@ _PASSING_TD_PROP_COLUMNS = (
     ("side", "TEXT"),
     ("mu", "REAL"),
     ("call_prob", "REAL"),
+)
+
+#: Columns the forward test adds to `player_prop_predictions`, in migration
+#: order. Declared once beside the passing-TD list so the migration and the
+#: writer cannot grow a column in one place and forget it in the other.
+#:
+#: `line_at_snapshot` is deliberately NOT the existing `line` column. `line` is
+#: the MODEL's line for a projection call; the forward test grades against the
+#: BOOK's line, which is a different number with a different meaning, and
+#: overwriting one with the other would corrupt existing rows.
+_FORWARD_PROP_COLUMNS = (
+    ("line_at_snapshot", "REAL"),
+    ("odds_at_snapshot", "REAL"),
+    ("model_p_over", "REAL"),
+    ("edge_vs_breakeven", "REAL"),
+    ("closing_line", "REAL"),
+    ("clv", "REAL"),
+    ("hit", "INTEGER"),
 )
 
 #: The `anytime_td` DEFINITION that graded a row, stamped at resolve time from
@@ -1429,6 +1456,12 @@ def _summarize_games(
     }
 
 
+#: Markets holding a yardage POINT ESTIMATE, graded by MAE and signed error.
+#:
+#: Forward picks are excluded by construction: they are stored under an
+#: `fwd_`-prefixed market (`tracking.forward_tick.forward_market`) because their
+#: `predicted_value` is the book's line, not a model estimate. A `fwd_` row here
+#: would be graded as a point estimate and corrupt the published numbers.
 _YARDAGE_MARKETS = ("passing_yards", "rushing_yards", "receiving_yards", "receptions", "carries")
 
 # Anytime-TD confidence buckets: predicted-probability ranges whose
@@ -1884,7 +1917,9 @@ def record_player_prop_predictions(props: list[dict]) -> int:
         (prop["game_id"], prop["player_id"], prop["player_name"], prop.get("position"),
          prop["market"], float(prop["predicted_value"]), now,
          _optional_float(prop.get("line")), prop.get("line_source"),
-         prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")))
+         prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")),
+         _optional_float(prop.get("line_at_snapshot")), _optional_float(prop.get("odds_at_snapshot")),
+         _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")))
         for prop in props
     ]
     with contextlib.closing(_connect()) as conn, conn:
@@ -1892,12 +1927,63 @@ def record_player_prop_predictions(props: list[dict]) -> int:
             """
             INSERT OR IGNORE INTO player_prop_predictions
                 (game_id, player_id, player_name, position, market, predicted_value,
-                 snapshotted_at, line, line_source, side, mu, call_prob)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 snapshotted_at, line, line_source, side, mu, call_prob,
+                 line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
         return cursor.rowcount
+
+
+def record_closing_lines(updates: list[dict]) -> int:
+    """Write each row's closing line, keyed by (game_id, player_id, market).
+
+    Separate from the snapshot because the close is not knowable pre-kickoff:
+    writing it at snapshot time would mean recording a price as though it were
+    bettable. Rows that do not exist are skipped rather than inserted -- a close
+    with no snapshot is not a pick.
+    """
+    if not updates:
+        return 0
+    with contextlib.closing(_connect()) as conn, conn:
+        cursor = conn.executemany(
+            """
+            UPDATE player_prop_predictions SET closing_line = ?
+            WHERE game_id = ? AND player_id = ? AND market = ?
+            """,
+            [(float(u["closing_line"]), u["game_id"], u["player_id"], u["market"])
+             for u in updates if u.get("closing_line") is not None],
+        )
+        return cursor.rowcount
+
+
+def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
+    """(hit, clv) for a snapshot row, or (None, None) when it cannot be graded.
+
+    CLV's sign follows the side taken: an over gains when the line closes
+    higher, an under when it closes lower. Both are "the line moved my way",
+    and reporting them with one shared sign would make half the track record
+    read backwards.
+
+    `clv` needs a closing line, `hit` needs a side and a snapshot line. A yardage
+    projection with no over/under call is not a pick, so it gets neither.
+    """
+    # `_present`, not `is None`: these values come from `pd.read_sql`, so a SQL
+    # NULL arrives as NaN, and every comparison against NaN is False. Testing
+    # `is None` therefore graded a snapshot-less row as a MISS.
+    if side not in ("over", "under") or not _present(line_at_snapshot, actual_value):
+        return None, None
+
+    line = float(line_at_snapshot)
+    value = float(actual_value)
+    covered = value > line if side == "over" else value < line
+
+    clv = None
+    if _present(closing_line):
+        close = float(closing_line)
+        clv = close - line if side == "over" else line - close
+    return int(covered), clv
 
 
 _MARKET_TO_STAT_COLUMN = {
@@ -1940,13 +2026,18 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
     timestamp fails closed, and a prop row whose game is absent from
     game_predictions drops out of the inner join -- also fail closed.
 
-    **The only columns written here are `resolved`, `actual_value` and
-    `LABEL_VERSION_COLUMN`, and only on rows that are still `resolved = 0`.**
-    That is the immutability rule: a recorded pick's prediction, line and side
-    are never rewritten, and a row already graded is never re-graded -- which is
-    precisely why the label version has to be stamped here, in the same UPDATE
-    that writes the verdict, instead of being backfilled over the history
-    afterwards.
+    **The only columns written here are `resolved`, `actual_value`, `hit`, `clv`
+    and `LABEL_VERSION_COLUMN`, and only on rows that are still `resolved = 0`.**
+    That is the immutability rule: a recorded pick's prediction, snapshot line,
+    odds, probability and edge are never rewritten, and a row already graded is
+    never re-graded -- which is precisely why the label version has to be stamped
+    here, in the same UPDATE that writes the verdict, instead of being backfilled
+    over the history afterwards.
+
+    `hit` and `clv` are derived from immutable inputs, so computing them at
+    resolve time is safe; they are written here rather than by a second pass so
+    a row's verdict and its outcome can never disagree. They stay NULL when the
+    row is not an over/under call, which every existing yardage projection is.
     """
     if player_stats_df.empty:
         return 0
@@ -1987,13 +2078,20 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
                     continue
                 actual = float(row[stat_col])
                 label_version = None
+
+            hit, clv = _forward_verdict(
+                row.get("side"), row.get("line_at_snapshot"),
+                row.get("closing_line"), actual,
+            )
             cursor = conn.execute(
                 f"""
                 UPDATE player_prop_predictions
-                SET resolved = 1, actual_value = ?, {LABEL_VERSION_COLUMN} = ?
+                SET resolved = 1, actual_value = ?, {LABEL_VERSION_COLUMN} = ?,
+                    hit = ?, clv = ?
                 WHERE game_id = ? AND player_id = ? AND market = ? AND resolved = 0
                 """,
-                (actual, label_version, row["game_id"], row["player_id"], row["market"]),
+                (actual, label_version, hit, clv,
+                 row["game_id"], row["player_id"], row["market"]),
             )
             resolved_count += cursor.rowcount
         return resolved_count

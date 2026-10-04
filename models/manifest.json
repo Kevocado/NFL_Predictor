@@ -88,5 +88,125 @@
       "div_game"
     ],
     "anytime_td_label_version": 2
+  },
+  "quantile_yardage_v1": {
+    "artifact_suffix": "_quantile_2025",
+    "quantiles": [
+      0.01,
+      0.02,
+      0.03,
+      0.04,
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      0.95,
+      0.96,
+      0.97,
+      0.98,
+      0.99
+    ],
+    "trained_seasons": [
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "feature_cols": [
+      "passing_yards_roll",
+      "rushing_yards_roll",
+      "receiving_yards_roll",
+      "targets_roll",
+      "carries_roll",
+      "receptions_roll",
+      "opp_pass_yds_allowed_roll",
+      "opp_rush_yds_allowed_roll",
+      "opp_rec_yds_allowed_roll",
+      "is_home",
+      "rest_days",
+      "is_outdoor",
+      "temp_c",
+      "wind_kph",
+      "precip_mm",
+      "high_wind_flag",
+      "inj_Q",
+      "inj_D",
+      "inj_O",
+      "ol_injuries_out",
+      "depth_rank_change",
+      "snap_share",
+      "snap_share_trend",
+      "route_participation",
+      "form_deviation",
+      "separation_avg"
+    ],
+    "markets": {
+      "passing_yards": {
+        "path": "passing_yards_quantile_2025.pkl",
+        "sha256": "b7ee272b3cc30ca3122dccda5540bf851c40a90d63854b73fd8cec4dd7ed4242",
+        "walkforward_mae": 70.45861177430666,
+        "trained_seasons": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "n_features": 26,
+        "n_quantiles": 19
+      },
+      "rushing_yards": {
+        "path": "rushing_yards_quantile_2025.pkl",
+        "sha256": "8acfe18057eb4fc35119bed1d2b297c372dc8bf5b23e8ac7feaddc22d9b26d14",
+        "walkforward_mae": 21.457207373976654,
+        "trained_seasons": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "n_features": 26,
+        "n_quantiles": 19
+      },
+      "receiving_yards": {
+        "path": "receiving_yards_quantile_2025.pkl",
+        "sha256": "4c5b669b8acca41f4e4d1582ad2cc0b4f440d24e79a4f39eb3680398d5133f9b",
+        "walkforward_mae": 21.22892809442039,
+        "trained_seasons": [
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "n_features": 26,
+        "n_quantiles": 19
+      }
+    },
+    "created_at": "2026-10-04T12:13:39.742569+00:00"
   }
 }

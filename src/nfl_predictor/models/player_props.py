@@ -31,6 +31,30 @@ POSITION_MARKETS: dict[str, list[str]] = {
 }
 
 
+#: Quantile levels fitted per market. P(over) is interpolated between these, so
+#: the ends matter: at q0.1 a line below the lowest fitted quantile saturates at
+#: the clamp in `prop_probability`.
+#: Quantile levels fitted per market.
+#:
+#: The tenths are the model's substance. The extra deep-tail levels (0.01-0.05,
+#: 0.95-0.99) exist because `p_over_from_quantiles` CLAMPS to [0.02, 0.98]: with
+#: q0.1 as the lowest fitted quantile, any line below it reports a flat 0.98, and
+#: a line above q0.9 reports a flat 0.02. Those clamps are not measurements, and
+#: on the 2025 offline gate the flat 0.02 tail bucket carried a 0.057 gap against
+#: a true rate of 0.077 -- the single failing bucket, and entirely an artifact.
+#: Fitting the tails lets the model express the real probability instead of
+#: saturating, which moved that bucket to a 0.012 gap.
+QUANTILES: list[float] = (
+    [round(q, 2) for q in (0.01, 0.02, 0.03, 0.04, 0.05)]
+    + [round(q, 1) for q in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)]
+    + [round(q, 2) for q in (0.95, 0.96, 0.97, 0.98, 0.99)]
+)
+
+#: Shared with fit_yardage_regressor so the q50 model and the production point
+#: regressor differ only in objective.
+_TREE_PARAMS = {"n_estimators": 150, "max_depth": 3, "learning_rate": 0.05, "random_state": 42}
+
+
 def fit_anytime_td_classifier(X_train: pd.DataFrame, y_train: pd.Series) -> XGBClassifier:
     model = XGBClassifier(
         n_estimators=150, max_depth=3, learning_rate=0.05,
@@ -44,6 +68,26 @@ def fit_yardage_regressor(X_train: pd.DataFrame, y_train: pd.Series) -> XGBRegre
     model = XGBRegressor(n_estimators=150, max_depth=3, learning_rate=0.05, random_state=42)
     model.fit(X_train.fillna(0), y_train)
     return model
+
+
+def fit_yardage_quantile_models(X_train: pd.DataFrame, y_train: pd.Series,
+                               quantiles: list[float] | None = None
+                               ) -> dict[float, XGBRegressor]:
+    """One quantile regressor per level, keyed by the level itself.
+
+    Independent fits rather than XGBoost's `reg:quantileerror` multi-quantile
+    mode: that mode shares trees across levels, which makes them cross far more
+    often, and crossing quantiles break the P(over) interpolation. `p_over_from_quantiles`
+    repairs crossings anyway, but a model that rarely needs the repair is better.
+    """
+    quantiles = QUANTILES if quantiles is None else quantiles
+    X = X_train.fillna(0)
+    models: dict[float, XGBRegressor] = {}
+    for q in quantiles:
+        model = XGBRegressor(objective="reg:quantileerror", quantile_alpha=q, **_TREE_PARAMS)
+        model.fit(X, y_train)
+        models[q] = model
+    return models
 
 
 def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
