@@ -165,7 +165,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 code complete; **1028 passed, 19 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1054 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -176,10 +176,10 @@ Tasks 1–14 code complete; **1028 passed, 19 skipped**; ruff clean at CI's rule
 | 6 | `models/player_props.py` | `fit_yardage_quantile_models`, deep-tail grid (§3) |
 | 7 | `models/prop_probability.py` | P(over\|line), edge math |
 | 8 | `evaluate/walk_forward.py`, `scripts/train_quantile_props.py` | walk-forward, both curves, tail watch |
-| 9 | `models/quantile_registry.py` | versioned artifacts, sha256, additive manifest |
+| 9 | `models/quantile_registry.py`, `models/training.py` | versioned artifacts, sha256, additive manifest, gated writes |
 | 10 | `tracking/store.py` | 7 forward columns, ALTER TABLE, `hit`/`clv` |
 | 11 | `odds/props_snapshot.py` | budget-guarded live fetcher |
-| 12 | `tracking/forward_tick.py` | 5% edge gate, pre-kickoff only |
+| 12 | `tracking/forward_tick.py` | 5% edge gate, pre-kickoff only; `main()` is the CLI |
 | 13 | `tracking/forward_report.py` | weekly markdown record |
 | 14 | this file | verdict |
 
@@ -187,11 +187,55 @@ Tasks 1–14 code complete; **1028 passed, 19 skipped**; ruff clean at CI's rule
 
 **Anytime-TD model** untouched and still calibrated (log-loss 0.452). It was not retrained.
 
-**Not done, deliberately:** no artifacts committed, no manifest entry written, no Odds API credit spent, no tick run, nothing published or bet. Task 9's writes happen on Kevin's go.
+**Not done, deliberately:** no Odds API credit spent, no tick run, nothing published or bet. Artifacts are written and registered (above); the first live tick waits on Kevin's word.
+
+### Artifacts written (Task 9, 2026-10-04)
+
+| market | features | quantiles | walk-forward MAE |
+|---|---|---|---|
+| `passing_yards_quantile_2025.pkl` | 30 | 19 | 69.5 |
+| `rushing_yards_quantile_2025.pkl` | 30 | 19 | 21.4 |
+| `receiving_yards_quantile_2025.pkl` | 30 | 19 | 21.2 |
+
+Manifest: additive key `quantile_yardage_v1`, each artifact carrying a sha256.
+Every pre-existing manifest key is carried through byte-identical — the live site
+reads them and `models/manifest.py` verifies its fingerprint against them on load.
+
+Reproduce with:
+
+```
+python scripts/train_quantile_props.py --seasons 2017-2025 \
+    --validate 2018-2025 --train-seasons 2017-2025 --write-artifacts
+```
+
+`train_all` refuses to write without a walk-forward verdict, and refuses again if
+any calibration bucket fails. The gate deciding whether an artifact may exist is
+the whole point of Task 9 following Task 14.
+
+**Two bugs caught while writing these**, both worth recording:
+
+1. The first artifact had **71 features**, because the feature set was *derived*
+   ("every numeric column that is not the label") and so swept in the same-week
+   raw stats — `passing_yards`, `targets`, `completions`, `attempts`,
+   `fantasy_points`. The offline gate is scored against the declared list, so it
+   passed, while the artifact would have been fitted on the answer and would
+   collapse at serving, where those columns do not exist. The set is now
+   `FORWARD_FEATURE_COLUMNS` — declared, gate-validated — and a test asserts the
+   artifact's features are a **subset** of it. The 71-feature artifact was
+   discarded and rewritten at 30.
+2. All three artifacts recorded the same MAE (37.4): the pooled mean, which hid
+   that passing (69.5) and receiving (21.2) differ by 3×. Per-market now.
 
 ### Next step
 
-`python scripts/forward_tick.py` for the current slate — which spends metered credits, so it is Kevin's call, not this build's. Expected first cost: one `scores` probe plus one props call per game.
+```
+python -m nfl_predictor.tracking.forward_tick --models-dir models \
+    --slate 2026:<week> --report-dir docs/superpowers/forward-test
+```
+
+Add `--dry-run` first: it prints the estimated credit cost and spends nothing.
+A tick costs one `scores` probe plus one props call per pre-kickoff game. Still
+Kevin's word to give — this build has made no request and spent no credit.
 
 ## 9. Plan deviations
 
