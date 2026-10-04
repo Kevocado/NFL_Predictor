@@ -8,7 +8,19 @@ from __future__ import annotations
 
 import requests
 
-URL = "https://api.open-meteo.com/v1/forecast"
+#: **Historical** weather comes from the archive endpoint, not the forecast one.
+#: `api.open-meteo.com/v1/forecast` only serves roughly the last three months
+#: and answers anything older with HTTP 400 "start_date is out of allowed range".
+#: A mocked test cannot see that, because the mock has no date range: a pull
+#: built against the forecast URL silently returns nothing for every game in
+#: 2017-2025 and the weather columns come out all-NaN, which looks like "no
+#: weather signal" rather than "wrong endpoint". The archive endpoint has no
+#: such limit.
+ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+
+#: Recent games (inside the archive's usual lag) still resolve on the archive
+#: endpoint, so one URL covers both training history and the forward test.
+URL = ARCHIVE_URL
 
 #: 15 mph, the plan's high-wind threshold, in the km/h Open-Meteo reports.
 HIGH_WIND_KPH = 15 * 1.609344

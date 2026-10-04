@@ -7,12 +7,12 @@ from nfl_predictor.data.weather import (
     STADIUM_COORDS, fetch_game_weather, is_outdoor,
 )
 
-URL = "https://api.open-meteo.com/v1/forecast"
+URL = "https://archive-api.open-meteo.com/v1/archive"
 
 
-def _hourly(hour: int = 17, **overrides):
+def _hourly(hour: int = 17, time: list[str] | None = None, **overrides):
     payload = {
-        "time": [f"2025-10-05T{hour:02d}:00"],
+        "time": time if time is not None else [f"2025-10-05T{hour:02d}:00"],
         "temperature_2m": [12.0],
         "wind_speed_10m": [25.0],
         "precipitation": [0.0],
@@ -67,6 +67,19 @@ def test_missing_kickoff_hour_fails_loudly(requests_mock):
 
     with pytest.raises(LookupError):
         fetch_game_weather(41.88, -87.63, "2025-10-05T17:00:00Z")
+
+
+def test_uses_the_archive_endpoint_not_the_forecast_one(requests_mock):
+    """`api.open-meteo.com/v1/forecast` answers 400 "out of allowed range" for
+    anything older than ~3 months. A mock cannot see that, because the mock has
+    no date range -- so pin the host, or a historical pull silently returns
+    nothing and every weather column comes out NaN."""
+    m = requests_mock.get(URL, json=_hourly(hour=17, time=["2017-09-10T17:00"]))
+
+    fetch_game_weather(41.88, -87.63, "2017-09-10T17:00:00Z")
+
+    assert "archive-api.open-meteo.com" in m.last_request.url
+    assert "api.open-meteo.com/v1/forecast" not in m.last_request.url
 
 
 def test_http_error_is_not_swallowed(requests_mock):
