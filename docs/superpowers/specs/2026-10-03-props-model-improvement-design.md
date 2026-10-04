@@ -15,7 +15,18 @@ sportsbook props (FanDuel et al.).
 **Success criteria (all must hold before real money):**
 1. Walk-forward (train ≤ season Y, test Y+1, 2018–2025): predicted P(over) is
    calibrated — bucketed predicted probabilities match empirical over-rates within
-   ±5 points in every bucket with n ≥ 100.
+   ±5 points in every bucket with n ≥ 100. **Scoring line (amended 2026-10-04):**
+   score at the exogenous cross-sectional median trailing-median line per
+   market/week, NOT the player's own trailing median. The own-median line is
+   endogenous to the same recent form the model sees, which compresses the
+   empirical P(over) range and fails calibrated models on a test artifact rather
+   than a model flaw (diagnosed 2026-10-04: 3 failing buckets at own-median vs 0
+   at cross-sectional median, worst gap 0.040). The quantile-coverage table
+   (empirical vs nominal levels) is the primary calibration evidence.
+   **Forward-test watch item:** book lines chase recent form too, so the forward
+   test must report calibration sliced by |line − trailing median| distance — the
+   own-median result hints at possible tail overconfidence when lines follow
+   streaks, and real lines are the only true test of it.
 2. Forward test on live 2026 games: ≥ 6 weeks of logged picks, per-pick hit rate
    reported against the 52.4% breakeven (-110), with positive mean CLV as a leading
    indicator before the hit-rate sample is large enough to trust.
@@ -43,7 +54,7 @@ All pulls are scripted and cached under `data/` so reruns are deterministic.
 
 | # | Source | What | Seasons | Access |
 |---|--------|------|---------|--------|
-| D1 | nflverse via `nfl_data_py` | weekly player stats (the training labels + core features) | 2017–2025 complete, 2026 to date | python package, free |
+| D1 | nflverse via `nfl_data_py` | weekly player stats (training labels + core features) | 2017–2024 complete. **2025 is NOT in the weekly feed** (corrected 2026-10-04 — the spec originally claimed otherwise, falsely) | python package, free |
 | D2 | nflverse play-by-play | snap shares, route participation, air yards, OL/blitz context | 2017–2026 to date | same package, free |
 | D3 | nflverse injuries | player game-status designations (Q/D/O) + practice reports | 2017–2026 to date | same package, free |
 | D4 | nflverse rosters + depth charts | position, depth-chart rank changes (flag demotions/promotions) | 2017–2026 to date | same package, free |
@@ -51,7 +62,7 @@ All pulls are scripted and cached under `data/` so reruns are deterministic.
 | D6 | Open-Meteo API | kickoff temp, wind, precipitation for outdoor stadiums | historical + forecast | REST, free, no key |
 | D7 | nflverse games | spread/total per game → implied team totals as features | 2017–2026 to date | same package, free |
 | D8 | The Odds API (free tier, 500 credits/mo) | **live** player-prop lines for the forward test only (weekly slate snapshot, batched to stay in budget) | 2026 live | REST, existing key in repo config |
-| D9 | nflverse weekly 2025 + 2026-to-date | retraining labels incl. the 2025 season the models never saw | 2025, 2026 wks 1–4+ | same as D1 |
+| D9 | nflverse play-by-play | **2025 labels, derived** (weekly feed ends at 2024): player-game yardage aggregated from pbp, validated against the official 2024 weekly series — passing yards and receptions exact, receiving/rushing r > 0.999 | 2025 (derived), 2026 to date (pbp runs through 2026) | same package, free |
 
 Notes:
 - 2025 is a complete season in nflverse now; 2026 weeks 1–4 are available (verify
@@ -93,7 +104,8 @@ steps) per market. P(over | line) is interpolated from the predicted quantiles �
 no normality assumption, no residual-variance hack. This directly serves the
 betting decision: edge = P(over) − breakeven(line odds).
 
-- **Training regime:** seasons 2017–2025 (2025 is new data the models never saw);
+- **Training regime:** seasons 2017–2025 (2025 labels are pbp-derived per §3 D9 —
+  the weekly feed ends at 2024);
   walk-forward validation by season (train on seasons ≤ Y, validate on Y+1) using
   the existing `src/nfl_predictor/evaluate/walk_forward.py` harness — extend it,
   don't fork it.
@@ -163,6 +175,11 @@ the NFL forward gate.
 - Q1: D8 props coverage — verify at build time which books/markets the free tier
   returns for `americanfootball_nfl` props; if FanDuel props aren't on the free
   tier, snapshot whatever US books are and note the book mismatch in the log.
-- Q2: 2026 nflverse week coverage at build time (expect weeks 1–4+).
+- Q2: 2026 season data at build time — play-by-play runs through 2026 (verified
+  2026-10-04); weekly player-stats feed ends at 2024, so 2025+ actuals use the
+  pbp-derived series (§3 D9). Forward-test actuals likewise come from pbp.
+- Q4 (added 2026-10-04): weather (D6) is built and tested but not yet wired into
+  the feature frame — approved to fetch, cache, and wire; the forward tick must
+  use forecast (not historical) weather at snapshot time.
 - Q3: Quantile-GBM library choice (LightGBM vs XGBoost quantile objective) —
   decided at implementation; both satisfy the spec.
