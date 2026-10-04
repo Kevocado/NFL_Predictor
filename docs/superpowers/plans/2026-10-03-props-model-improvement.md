@@ -617,11 +617,17 @@ git commit -m "feat: P(over|line) interpolation and edge math"
 - Consumes: Tasks 1–7
 - Produces: `walk_forward_quantile(feature_df, markets, seasons=range(2018, 2026))
   -> pd.DataFrame` with one row per (season, week, player, market) holding
-  `p_over_at_median_line_proxy`; plus `calibration_report(df) -> dict` bucketing
+  `p_over_at_proxy_line`; plus `calibration_report(df) -> dict` bucketing
   predicted P(over) vs empirical over-rate. (No historical props lines exist, so
-  the walk-forward scores P(over) against the *realized* outcome at a proxy line
-  = the player's rolling median — this tests calibration, not profitability.
-  Profitability is the forward test's job.)
+  the walk-forward scores P(over) against the *realized* outcome at a proxy line.
+  **Amended 2026-10-04:** the proxy line is the EXOGENOUS cross-sectional median
+  of players' trailing medians for that market and week — NOT the player's own
+  trailing median. The own-median line is endogenous to the same recent form the
+  model sees; it compresses the empirical P(over) range (observed 0.128–0.737 vs
+  predicted 0.02–0.98, gap scaling 0.005 mid → 0.289 tail) and fails calibrated
+  models on a test artifact. Also compute the own-median diagnostic as a
+  non-binding reported curve — it is the early-warning signal for tail
+  overconfidence at form-chasing lines.)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -649,13 +655,15 @@ Expected: FAIL
 Extend `walk_forward.py` (read it first; follow its season-loop structure):
 for each validation season Y in 2018..2025, train quantile models on seasons
 < Y with the full Task 4–5 feature set, predict quantiles for season Y, derive
-P(over) at each player's rolling-median proxy line, record outcome
-(actual > proxy line). `calibration_report` buckets P(over) in 0.1 bins and
-requires n ≥ 100 per reported bucket. Also compute MAE of the q50 vs actuals and
-compare against the 2025-holdout baselines from the spec (passing 72.2,
-rushing 20.9, WR 22.3, TE 17.7) and against a naive rolling-mean baseline —
-log all three; the quantile model must beat naive on MAE *and* show
-calibration within ±0.05 per bucket, else the offline gate fails (report, stop).
+P(over) at the exogenous cross-sectional-median proxy line (amended 2026-10-04,
+see Interfaces), record outcome (actual > proxy line). `calibration_report`
+buckets P(over) in 0.1 bins and requires n ≥ 100 per reported bucket. Also
+compute MAE of the q50 vs actuals and compare against the 2025-holdout baselines
+from the spec (passing 72.2, rushing 20.9, WR 22.3, TE 17.7) and against a naive
+rolling-mean baseline — log all three; the quantile model must beat naive on
+MAE *and* show calibration within ±0.05 per bucket at the exogenous line, else
+the offline gate fails (report, stop). Report the own-trailing-median diagnostic
+curve separately as non-binding context for the forward test's tail watch.
 
 - [ ] **Step 4: Run test to verify it passes**
 
