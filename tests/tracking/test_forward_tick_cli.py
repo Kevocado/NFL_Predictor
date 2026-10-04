@@ -148,6 +148,8 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
     logged = _logged()
     assert logged[0]["side"] == "over"
     assert logged[0]["edge_vs_breakeven"] >= 0.05
+    assert logged[0]["market"] == "fwd_receiving_yards", (
+        "a forward pick must not share a market with the yardage projections")
 
 
 def test_cli_refuses_without_an_api_key(monkeypatch, tmp_path):
@@ -390,6 +392,8 @@ def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
     assert len(logged) == 1
     assert logged[0]["player_id"] == "00-1", "the book name was joined to an nflverse id"
     assert logged[0]["edge_vs_breakeven"] >= 0.05
+    assert logged[0]["market"] == "fwd_receiving_yards", (
+        "a forward pick must not share a market with the yardage projections")
 
 
 def test_main_reports_a_missing_player_index_as_a_misconfiguration(monkeypatch, tmp_path):

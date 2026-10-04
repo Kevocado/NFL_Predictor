@@ -216,3 +216,30 @@ def _graded() -> dict:
         conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT * FROM player_prop_predictions").fetchone()
     return dict(row)
+
+# --- CodeRabbit findings on PR #39 ------------------------------------------
+
+def test_a_nan_snapshot_line_is_not_graded_as_a_miss():
+    """`_forward_verdict` read these from `pd.read_sql`, so a SQL NULL arrives as
+    NaN, not None -- and every comparison against NaN is False. Testing `is None`
+    therefore wrote hit=0: a fabricated miss on a row that was never a pick."""
+    from nfl_predictor.tracking.store import _forward_verdict
+
+    hit, clv = _forward_verdict("over", float("nan"), float("nan"), 60.0)
+    assert hit is None and clv is None
+
+    hit, clv = _forward_verdict("over", 52.5, float("nan"), 60.0)
+    assert hit == 1 and clv is None, "a missing close must not fabricate a CLV"
+
+
+def test_a_forward_pick_cannot_be_graded_as_a_yardage_projection():
+    """The forward tick's `predicted_value` is the BOOK'S LINE. Stored under a
+    plain yardage market it would be read as a model point estimate and corrupt
+    the published MAE; and on the (game_id, player_id, market) primary key with
+    INSERT OR IGNORE it could be swallowed by the tracking tick instead."""
+    from nfl_predictor.tracking.forward_tick import forward_market
+    from nfl_predictor.tracking.store import _YARDAGE_MARKETS
+
+    for market in _YARDAGE_MARKETS:
+        assert forward_market(market) not in _YARDAGE_MARKETS
+        assert forward_market(market).startswith("fwd_")

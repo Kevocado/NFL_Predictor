@@ -190,7 +190,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1090 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1097 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -204,7 +204,7 @@ Tasks 1–14 complete; **1090 passed, 20 skipped**; ruff clean at CI's rule set.
 | 9 | `models/quantile_registry.py`, `models/training.py` | versioned artifacts, sha256, additive manifest, gate-gated writes, one shared feature list |
 | 10 | `tracking/store.py` | 7 forward columns, ALTER TABLE, `hit`/`clv` |
 | 11 | `odds/props_snapshot.py` | budget-guarded live fetcher |
-| 12 | `tracking/forward_tick.py` | 5% edge gate, pre-kickoff only; `main()` is the CLI |
+| 12 | `tracking/forward_tick.py` | 5% edge gate, pre-kickoff only; `main()` is the CLI; picks stored under an `fwd_` market namespace |
 | 13 | `tracking/forward_report.py` | weekly markdown record |
 | 14 | this file | verdict |
 

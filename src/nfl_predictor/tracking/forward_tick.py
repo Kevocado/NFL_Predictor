@@ -51,6 +51,21 @@ MARKET_MAP = {
 #: Reverse of `MARKET_MAP`, for loading artifacts named after the model market.
 BOOK_MARKET_BY_MODEL = {model: book for book, model in MARKET_MAP.items()}
 
+#: Forward picks are stored under a `fwd_`-prefixed market name.
+#:
+#: `player_prop_predictions` is keyed (game_id, player_id, market) and written
+#: with INSERT OR IGNORE, so storing a forward pick as `receiving_yards` either
+#: loses it silently -- the background tracking tick may already hold that
+#: player/game -- or, if it lands, has its `predicted_value` read as a model's
+#: point estimate. That value is the BOOK'S LINE, not a q50, so it would corrupt
+#: the published MAE and signed error for that market.
+FORWARD_MARKET_PREFIX = "fwd_"
+
+
+def forward_market(market: str) -> str:
+    """The storage name for a forward pick on `market`."""
+    return f"{FORWARD_MARKET_PREFIX}{market}"
+
 
 def quantiles_for(market: str) -> dict[float, float]:
     """Predicted quantiles for one prop row. Replaced at the call site by the
@@ -349,10 +364,10 @@ def _row(game, prop, market, side, p_side, edge, odds) -> dict:
         "player_id": prop["player_id"],
         "player_name": prop["player_name"],
         "position": prop.get("position"),
-        "market": market,
+        "market": forward_market(market),
         "side": side,
-        # predicted_value is the q50, kept for continuity with the existing
-        # yardage columns; the forward test grades against the book line.
+        # The book's line, not a model point estimate. Safe only because the
+        # market name is namespaced -- see FORWARD_MARKET_PREFIX.
         "predicted_value": float(prop["line"]),
         "line_at_snapshot": float(prop["line"]),
         "odds_at_snapshot": float(odds) if odds is not None else None,

@@ -1456,6 +1456,12 @@ def _summarize_games(
     }
 
 
+#: Markets holding a yardage POINT ESTIMATE, graded by MAE and signed error.
+#:
+#: Forward picks are excluded by construction: they are stored under an
+#: `fwd_`-prefixed market (`tracking.forward_tick.forward_market`) because their
+#: `predicted_value` is the book's line, not a model estimate. A `fwd_` row here
+#: would be graded as a point estimate and corrupt the published numbers.
 _YARDAGE_MARKETS = ("passing_yards", "rushing_yards", "receiving_yards", "receptions", "carries")
 
 # Anytime-TD confidence buckets: predicted-probability ranges whose
@@ -1963,7 +1969,10 @@ def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
     `clv` needs a closing line, `hit` needs a side and a snapshot line. A yardage
     projection with no over/under call is not a pick, so it gets neither.
     """
-    if side not in ("over", "under") or line_at_snapshot is None or actual_value is None:
+    # `_present`, not `is None`: these values come from `pd.read_sql`, so a SQL
+    # NULL arrives as NaN, and every comparison against NaN is False. Testing
+    # `is None` therefore graded a snapshot-less row as a MISS.
+    if side not in ("over", "under") or not _present(line_at_snapshot, actual_value):
         return None, None
 
     line = float(line_at_snapshot)
@@ -1971,7 +1980,7 @@ def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
     covered = value > line if side == "over" else value < line
 
     clv = None
-    if closing_line is not None:
+    if _present(closing_line):
         close = float(closing_line)
         clv = close - line if side == "over" else line - close
     return int(covered), clv
