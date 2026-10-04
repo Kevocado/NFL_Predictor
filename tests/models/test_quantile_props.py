@@ -22,8 +22,33 @@ def synthetic():
     return X, y
 
 
-def test_default_quantiles_are_tenths():
-    assert QUANTILES == [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+def test_default_quantiles_cover_the_clamp_range():
+    """p_over_from_quantiles clamps to [0.02, 0.98]. Unless a fitted quantile
+    sits at or below 0.02, a line under the model's distribution reports a flat
+    0.98 -- a constant, not a measurement. Same at the top."""
+    assert QUANTILES[0] <= 0.02, "no quantile low enough to price the clamped floor"
+    assert QUANTILES[-1] >= 0.98, "no quantile high enough to price the clamped ceiling"
+    assert QUANTILES == sorted(QUANTILES), "levels must ascend"
+    assert len(set(QUANTILES)) == len(QUANTILES), "no duplicate levels"
+
+
+def test_default_quantiles_include_every_tenth():
+    for q in [i / 10 for i in range(1, 10)]:
+        assert round(q, 1) in QUANTILES, f"missing the tenth at {q}"
+
+
+def test_a_line_below_every_fitted_quantile_is_still_clamped():
+    """The clamp remains as a backstop; it is just no longer the common case.
+
+    A line below everything returns the CEILING: certain to be covered. Above
+    everything returns the floor. Both directions are pinned, because getting
+    them backwards inverts every bet.
+    """
+    from nfl_predictor.models.prop_probability import p_over_from_quantiles
+
+    ascending = {q: 100 + i for i, q in enumerate(QUANTILES)}
+    assert p_over_from_quantiles(ascending, 0.0) == 0.98, "way under -> certain cover"
+    assert p_over_from_quantiles(ascending, 10_000.0) == 0.02, "way over -> certain miss"
 
 
 def test_quantile_models_bracket_median(synthetic):

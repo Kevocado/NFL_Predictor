@@ -120,9 +120,27 @@ QUANTILE_MARKETS: dict[str, tuple[str, ...]] = {
 }
 
 #: Proxy lines are not real book lines -- no free historical props exist. Each
-#: row is scored at the player's own rolling median, which tests calibration
-#: without pretending to test profitability.
+#: row is scored against an exogenous line, which tests calibration without
+#: pretending to test profitability.
 DEFAULT_MIN_PROXY_HISTORY = 3
+
+#: Scoring lines. `exogenous` is the BINDING gate; `own_median` is reported
+#: alongside it as a non-binding diagnostic.
+#:
+#: **Amended 2026-10-04** (plan Task 8, matching the spec). The gate used to score
+#: against the player's own trailing median. That line is endogenous to the same
+#: recent form the model predicts from, so it compresses the empirical P(over)
+#: range -- observed 0.128-0.737 against a predicted 0.02-0.98, with the gap
+#: scaling 0.005 mid-range to 0.289 in the tail -- and fails a model whose
+#: held-out quantile coverage is good at every level. The cross-sectional median
+#: of trailing medians for the same market and week is set by the market rather
+#: than by the player being priced, which is the closest available analogue to a
+#: book line.
+SCORING_LINES = ("exogenous", "own_median")
+
+#: Per-line column names. `proxy_line` stays the name of the BINDING line so
+#: existing readers of the offline report keep working unchanged.
+LINE_COLUMN = {"exogenous": "proxy_line", "own_median": "own_median_line"}
 
 
 def proxy_line(values: pd.Series, by: pd.Series, min_history: int = DEFAULT_MIN_PROXY_HISTORY) -> pd.Series:
@@ -140,6 +158,17 @@ def naive_prediction(values: pd.Series, by: pd.Series, window: int = 5) -> pd.Se
     own lagged rolling mean."""
     return values.groupby(by).transform(
         lambda s: s.shift(1).rolling(window, min_periods=1).mean())
+
+
+def exogenous_line(own_median: pd.Series, market_season_week) -> pd.Series:
+    """The cross-sectional median of players' trailing medians, per market-week.
+
+    A player scored against this line is scored against a number set by the rest
+    of the market, not by his own recent form -- the property the binding gate
+    needs. Rows whose own median is unknown (too little history) have no
+    cross-sectional median either, and fall out as unscoreable.
+    """
+    return own_median.groupby(market_season_week).transform("median")
 
 
 def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
@@ -166,8 +195,12 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
             continue
         sub = sub.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
         by_player = sub["player_id"]
-        sub = sub.assign(proxy_line=proxy_line(sub[market], by_player),
-                         naive_pred=naive_prediction(sub[market], by_player, window))
+        own_median = proxy_line(sub[market], by_player)
+        sub = sub.assign(
+            proxy_line=exogenous_line(own_median, [sub["season"], sub["week"]]),
+            own_median_line=own_median,
+            naive_pred=naive_prediction(sub[market], by_player, window),
+        )
 
         for val_season in seasons:
             train = sub[sub["season"] < val_season]
@@ -179,30 +212,38 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
             predicted = {q: models[q].predict(val[feature_cols].fillna(0)) for q in quantiles}
 
             for i, (_, record) in enumerate(val.iterrows()):
-                line = record["proxy_line"]
                 quantiles_at_row = {q: float(predicted[q][i]) for q in quantiles}
-                scoreable = pd.notna(line)
-                rows.append({
+                row = {
                     "market": market,
                     "season": int(val_season),
                     "week": int(record["week"]),
                     "player_id": record["player_id"],
                     "position": record["position"],
-                    "proxy_line": line,
                     "actual": float(record[market]),
-                    "p_over": p_over_from_quantiles(quantiles_at_row, float(line)) if scoreable else np.nan,
-                    "covered": int(record[market] > line) if scoreable else np.nan,
                     "q10": quantiles_at_row.get(0.1, np.nan),
                     "q50": quantiles_at_row.get(0.5, np.nan),
                     "q90": quantiles_at_row.get(0.9, np.nan),
                     "naive_pred": record["naive_pred"],
-                })
+                }
+                # Both lines are scored on the same row so the binding curve and
+                # the tail-watch diagnostic are directly comparable.
+                for label, column in (("exogenous", "proxy_line"),
+                                      ("own_median", "own_median_line")):
+                    line = record[column]
+                    scoreable = pd.notna(line)
+                    row[LINE_COLUMN[label]] = line
+                    row[f"p_over_{label}"] = (
+                        p_over_from_quantiles(quantiles_at_row, float(line)) if scoreable else np.nan)
+                    row[f"covered_{label}"] = (
+                        int(record[market] > line) if scoreable else np.nan)
+                rows.append(row)
 
     return pd.DataFrame(rows)
 
 
 def calibration_report(df: pd.DataFrame, n_bins: int = 10, min_n: int = 100,
-                       tolerance: float = 0.05) -> dict[str, dict]:
+                       tolerance: float = 0.05, columns: tuple[str, str] = ("p_over", "covered")
+                       ) -> dict[str, dict]:
     """Bucket predicted P(over) and compare each bucket to its empirical rate.
 
     Bucket edges are derived from the bucket index rather than from np.digitize
@@ -213,8 +254,9 @@ def calibration_report(df: pd.DataFrame, n_bins: int = 10, min_n: int = 100,
     spec's gate is defined on n >= 100, and a verdict drawn from 40 predictions
     is noise wearing a number. `within_tolerance` is the per-bucket gate result.
     """
-    probabilities = pd.Series(df["p_over"], index=df.index).astype(float)
-    outcomes = pd.Series(df["covered"], index=df.index).astype(float)
+    probability_column, outcome_column = columns
+    probabilities = pd.Series(df[probability_column], index=df.index).astype(float)
+    outcomes = pd.Series(df[outcome_column], index=df.index).astype(float)
     keep = probabilities.notna() & outcomes.notna()
     probabilities, outcomes = probabilities[keep], outcomes[keep]
 

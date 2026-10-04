@@ -15,8 +15,13 @@ import pandas as pd
 import pytest
 
 from nfl_predictor.evaluate.walk_forward import (
-    calibration_report, proxy_line, walk_forward_quantile,
+    exogenous_line, calibration_report, proxy_line, walk_forward_quantile,
 )
+
+# The binding gate scores against the exogenous line (amended 2026-10-04); the
+# own-median curve is reported beside it and is not binding.
+BINDING = ("p_over_exogenous", "covered_exogenous")
+DIAGNOSTIC = ("p_over_own_median", "covered_own_median")
 
 FEATURES = ["f1", "f2"]
 
@@ -113,8 +118,9 @@ def test_walkforward_produces_one_row_per_player_week_market():
                                 seasons=[2019, 2020], feature_cols=FEATURES,
                                 quantiles=[0.1, 0.5, 0.9])
 
-    assert set(out.columns) >= {"season", "week", "player_id", "market",
-                                "p_over", "proxy_line", "actual", "covered", "q50"}
+    assert set(out.columns) >= {"season", "week", "player_id", "market", "actual", "q50",
+                                "proxy_line", "p_over_exogenous", "covered_exogenous",
+                                "own_median_line", "p_over_own_median", "covered_own_median"}
     assert len(out) == 6 * 8 * 2, "6 players x 8 weeks x 2 validation seasons"
     assert set(out["season"]) == {2019, 2020}
 
@@ -125,9 +131,9 @@ def test_walkforward_never_scores_a_row_without_a_proxy_line():
                                 seasons=[2019], feature_cols=FEATURES,
                                 quantiles=[0.1, 0.5, 0.9])
 
-    scored = out[out["covered"].notna()]
+    scored = out[out["covered_exogenous"].notna()]
     assert not scored["proxy_line"].isna().any(), "a NaN proxy line makes covered meaningless"
-    assert (out["p_over"].between(0.02, 0.98)).all()
+    assert (out["p_over_exogenous"].between(0.02, 0.98)).all()
 
 
 def test_walkforward_reports_the_naive_baseline():
@@ -181,7 +187,8 @@ def test_a_seasons_own_labels_cannot_move_its_predictions():
     a = after.sort_values(["player_id", "week"]).reset_index(drop=True)
     # Week 8's own prediction is unchanged...
     earlier = b["week"] < 8
-    pd.testing.assert_series_equal(b.loc[earlier, "p_over"], a.loc[earlier, "p_over"])
+    pd.testing.assert_series_equal(b.loc[earlier, "p_over_exogenous"],
+                                  a.loc[earlier, "p_over_exogenous"])
     # ...but its recorded outcome must reflect the new reality.
     assert (b.loc[~earlier, "actual"] != a.loc[~earlier, "actual"]).any()
 
@@ -213,3 +220,81 @@ def test_mae_is_computable_per_market_and_season():
 
     assert mae > 0
     assert naive_mae > 0
+
+# --- the amended gate: exogenous line is binding, own-median is diagnostic ---
+
+def test_exogenous_line_is_the_cross_sectional_median():
+    own = pd.Series([10.0, 20.0, 30.0, 100.0])
+    by = pd.Series([2024, 2024, 2024, 2024])
+
+    assert exogenous_line(own, by).tolist() == [25.0] * 4
+
+
+def test_exogenous_line_is_shared_across_a_market_week():
+    """The whole point: one player is not scored against his own noise."""
+    own = pd.Series([10.0, 20.0, 30.0, 100.0])
+    weeks = pd.Series([1, 1, 2, 2])
+
+    line = exogenous_line(own, weeks)
+
+    assert line.iloc[0] == line.iloc[1] == 15.0, "same week, same line"
+    assert line.iloc[2] == line.iloc[3] == 65.0, "a different week moves the line"
+
+
+def test_exogenous_line_still_responds_to_the_cross_section():
+    """A player's own median does not set his line, but the population's does.
+    Doubling one player's median leaves that player's line unchanged only if
+    it stays below the new cross-sectional median."""
+    own = pd.Series([10.0, 20.0, 30.0])
+    weeks = pd.Series([1, 1, 1])
+    assert exogenous_line(own, weeks).tolist() == [20.0] * 3
+
+    # 10 -> 90 pushes the cross-sectional median from 20 to 30. The scored
+    # player's own value (20) is unchanged; the market's line moved.
+    moved = exogenous_line(own * pd.Series([9, 1, 1]), weeks)
+    assert moved.iloc[1] == pytest.approx(30.0)
+
+
+def test_walkforward_scores_both_lines_on_the_same_rows():
+    frame = _frame()
+    out = walk_forward_quantile(frame, markets=["receiving_yards"], seasons=[2020],
+                                feature_cols=FEATURES, quantiles=[0.1, 0.5, 0.9])
+
+    scoreable = out["covered_exogenous"].notna() & out["covered_own_median"].notna()
+    assert scoreable.any()
+    # One line per market-week, shared by every player in it. Players number 6
+    # here, so sharing is only detectable within a single week.
+    one_week = out[scoreable & (out["week"] == 1)]
+    assert len(one_week) > 1, "need several players in the same week to test sharing"
+    assert one_week["proxy_line"].nunique() == 1, (
+        "the exogenous line is shared across a market-week")
+
+
+def test_both_calibration_curves_are_reported():
+    frame = _frame()
+    out = walk_forward_quantile(frame, markets=["receiving_yards"], seasons=[2020],
+                                feature_cols=FEATURES, quantiles=[0.1, 0.5, 0.9])
+
+    binding = calibration_report(out, min_n=1, columns=BINDING)
+    diagnostic = calibration_report(out, min_n=1, columns=DIAGNOSTIC)
+
+    assert binding and diagnostic
+    # The own-median line is expected to be worse; that is why it is diagnostic.
+    worst_binding = max(b["gap"] for b in binding.values())
+    worst_diagnostic = max(b["gap"] for b in diagnostic.values())
+    assert worst_diagnostic >= worst_binding
+
+
+def test_calibration_report_columns_are_explicit_not_guessed():
+    """Both curves live in one frame with differently-named columns, so the
+    report must be told which pair to read."""
+    df = pd.DataFrame({
+        "p_over_exogenous": [0.6] * 200, "covered_exogenous": [1] * 118 + [0] * 82,
+        "p_over_own_median": [0.6] * 200, "covered_own_median": [1] * 60 + [0] * 140,
+    })
+
+    binding = calibration_report(df, min_n=1, columns=BINDING)
+    diagnostic = calibration_report(df, min_n=1, columns=DIAGNOSTIC)
+
+    assert binding["0.6-0.7"]["within_tolerance"] is True
+    assert diagnostic["0.6-0.7"]["within_tolerance"] is False
