@@ -172,5 +172,32 @@ def weekly_from_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
     return weekly.sort_values(keys)[WEEKLY_COLUMNS].reset_index(drop=True)
 
 
+def fill_positions(weekly: pd.DataFrame, rosters: pd.DataFrame) -> pd.DataFrame:
+    """Attach a position to weekly rows that have none.
+
+    pbp carries no roster, so derived weeks arrive with `position` empty. The
+    depth-chart cache does carry one. Matched on (player, season) rather than
+    week, because a player's position does not change week to week and a
+    week-level match would miss anyone who missed a depth chart.
+    """
+    if weekly.empty or rosters.empty or "position" not in rosters.columns:
+        return weekly
+
+    regular = rosters
+    if "game_type" in rosters.columns:
+        regular = rosters[rosters["game_type"].astype(str).str.upper() == "REG"]
+    positions = (regular.dropna(subset=["position"])
+                 .groupby(["gsis_id", "season"], as_index=False)["position"]
+                 .agg(lambda s: s.value_counts().index[0]))
+    merged = weekly.merge(positions.rename(columns={"gsis_id": "player_id"}),
+                          on=["player_id", "season"], how="left",
+                          suffixes=("", "_roster"))
+    if "position_roster" in merged.columns:
+        filled = merged["position"].notna() & (merged["position"] != "")
+        merged.loc[~filled, "position"] = merged.loc[~filled, "position_roster"]
+        merged = merged.drop(columns=["position_roster"])
+    return merged
+
+
 def pull_schedules(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     return _cached_pull("schedules", seasons, Path(cache_dir), nfl.import_schedules)

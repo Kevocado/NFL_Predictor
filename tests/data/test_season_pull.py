@@ -132,3 +132,64 @@ def test_live_weekly_has_the_columns_we_depend_on(tmp_path):
 
     missing = set(WEEKLY_COLUMNS) - set(df.columns)
     assert not missing, f"nflverse weekly is missing {sorted(missing)}"
+
+
+# --- fill_positions ---------------------------------------------------------
+
+GSIS = "00-0000001"
+
+
+def test_fill_positions_backfills_from_the_depth_chart_cache():
+    from nfl_predictor.data.season_pull import fill_positions
+
+    weekly = pd.DataFrame([{"player_id": GSIS, "season": 2025, "week": 1,
+                            "position": pd.NA, "receiving_yards": 40}])
+    rosters = pd.DataFrame([{"gsis_id": GSIS, "season": 2025, "week": 1.0,
+                             "position": "WR", "game_type": "REG",
+                             "depth_position": 1, "club_code": "A"}])
+
+    out = fill_positions(weekly, rosters)
+
+    assert out.iloc[0]["position"] == "WR"
+
+
+def test_fill_positions_does_not_overwrite_a_known_position():
+    from nfl_predictor.data.season_pull import fill_positions
+
+    weekly = pd.DataFrame([{"player_id": GSIS, "season": 2025, "week": 1,
+                            "position": "TE", "receiving_yards": 40}])
+    rosters = pd.DataFrame([{"gsis_id": GSIS, "season": 2025, "week": 1.0,
+                             "position": "WR", "game_type": "REG",
+                             "depth_position": 1, "club_code": "A"}])
+
+    assert fill_positions(weekly, rosters).iloc[0]["position"] == "TE"
+
+
+def test_fill_positions_takes_the_most_common_depth_chart_position():
+    from nfl_predictor.data.season_pull import fill_positions
+
+    weekly = pd.DataFrame([{"player_id": GSIS, "season": 2025, "week": 3,
+                            "position": pd.NA, "receiving_yards": 40}])
+    # Listed as aWR more often than aTE across the season.
+    rosters = pd.DataFrame([
+        {"gsis_id": GSIS, "season": 2025, "week": w, "position": pos,
+         "game_type": "REG", "depth_position": 1, "club_code": "A"}
+        for w, pos in [(1, "WR"), (2, "WR"), (3, "WR"), (4, "TE")]
+    ])
+
+    assert fill_positions(weekly, rosters).iloc[0]["position"] == "WR"
+
+
+def test_fill_positions_leaves_unknown_players_empty():
+    from nfl_predictor.data.season_pull import fill_positions
+
+    weekly = pd.DataFrame([{"player_id": "00-9999999", "season": 2025, "week": 1,
+                            "position": pd.NA, "receiving_yards": 40}])
+    rosters = pd.DataFrame([{"gsis_id": GSIS, "season": 2025, "week": 1.0,
+                             "position": "WR", "game_type": "REG",
+                             "depth_position": 1, "club_code": "A"}])
+
+    out = fill_positions(weekly, rosters)
+
+    assert pd.isna(out.iloc[0]["position"])
+    assert len(out) == 1
