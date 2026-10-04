@@ -68,7 +68,7 @@ def test_pull_weekly_concatenates_multiple_seasons(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("fn,name", [
     ("pull_pbp", "pbp"), ("pull_injuries", "injuries"),
-    ("pull_rosters", "rosters"), ("pull_ngs", "ngs"),
+    ("pull_rosters", "rosters"),
 ])
 def test_pull_aux_writes_cache(tmp_path, monkeypatch, fn, name):
     import nfl_data_py as nfl
@@ -83,6 +83,29 @@ def test_pull_aux_writes_cache(tmp_path, monkeypatch, fn, name):
 
     assert (tmp_path / f"{name}_2024.parquet").exists()
     assert len(df) > 0
+
+
+def test_pull_ngs_requests_every_stat_type(tmp_path, monkeypatch):
+    """`import_ngs_data(stat_type, years)` takes the type FIRST and requires one.
+    Calling it as import_ngs_data([season]) turns the season list into a stat
+    type, which is a ValueError at best and the wrong dataset at worst."""
+    import nfl_data_py as nfl
+    from nfl_predictor.data import season_pull
+
+    seen: list[tuple] = []
+
+    def fake(*args, **kwargs):
+        seen.append((args, kwargs))
+        stat = args[0] if args else kwargs.get("stat_type")
+        return pd.DataFrame([{"stat_type": stat, "season": 2024, "week": 1}])
+
+    monkeypatch.setattr(nfl, "import_ngs_data", fake)
+
+    df = season_pull.pull_ngs([2024], cache_dir=tmp_path)
+
+    assert (tmp_path / "ngs_2024.parquet").exists()
+    assert sorted(df["stat_type"]) == sorted(season_pull.NGS_STAT_TYPES)
+    assert len(seen) == len(season_pull.NGS_STAT_TYPES)
 
 
 def test_pull_schedules_writes_cache(tmp_path, monkeypatch):

@@ -16,12 +16,14 @@ from pathlib import Path
 import nfl_data_py as nfl
 import pandas as pd
 
+#: NGS is published per stat type, and `import_ngs_data` requires one.
+NGS_STAT_TYPES: tuple[str, ...] = ("passing", "rushing", "receiving")
+
 IMPORTERS: dict[str, str] = {
     "weekly": "import_weekly_data",
     "pbp": "import_pbp_data",
     "injuries": "import_injuries",
     "rosters": "import_depth_charts",
-    "ngs": "import_ngs_data",
     "schedules": "import_schedules",
 }
 
@@ -55,7 +57,22 @@ def pull_rosters(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
 
 
 def pull_ngs(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
-    return _cached_pull("ngs", seasons, Path(cache_dir), nfl.import_ngs_data)
+    """Next Gen Stats.
+
+    `import_ngs_data(stat_type, years)` takes the stat type *first* and requires
+    one -- calling it as `import_ngs_data([season])` silently becomes
+    stat_type=[2024]. All three stat types are cached into one file per season.
+    """
+    cache_dir = Path(cache_dir)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    frames = []
+    for season in seasons:
+        path = cache_dir / f"ngs_{season}.parquet"
+        if not path.exists():
+            frames_for_season = [nfl.import_ngs_data(stat, [season]) for stat in NGS_STAT_TYPES]
+            pd.concat(frames_for_season, ignore_index=True).to_parquet(path, index=False)
+        frames.append(pd.read_parquet(path))
+    return pd.concat(frames, ignore_index=True)
 
 
 def pull_schedules(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
