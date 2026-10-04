@@ -33,7 +33,11 @@ dependencies = [
 # this extra disarmed the single line that made the lint step able to run, and CI
 # went red on every push. Verified here: with this list unchanged, `ruff` is
 # absent from the venv and the step exits 1.
-dev = ["pytest", "pytest-mock", "httpx", "ruff"]
+# requests-mock is used by tests/odds/test_props_snapshot.py to stub The Odds
+# API. Declared here because a test that imports an undeclared package fails
+# collection on CI while passing locally -- the exact shape
+# tests/test_runtime_dependencies.py exists to prevent.
+dev = ["pytest", "pytest-mock", "httpx", "ruff", "requests-mock"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
