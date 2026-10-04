@@ -68,6 +68,13 @@ def load_weekly(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+#: Play-by-play is ~450k rows x 398 columns; the availability features read
+#: seven of them. Loading the whole frame to build a snap share is how a
+#: walk-forward turns into an out-of-memory kill.
+PBP_COLUMNS = ["season", "week", "posteam", "receiver_player_id",
+               "rusher_player_id", "passer_player_id", "route"]
+
+
 def build_feature_frame(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     """Assemble the model frame: weekly labels + usage rolls + matchup + availability."""
     print("loading weekly labels...")
@@ -88,8 +95,8 @@ def build_feature_frame(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     frame = add_matchup_features(frame, schedules)
 
     print("building availability features (this reads play-by-play)...")
-    pbp = pd.concat([pd.read_parquet(cache_dir / f"pbp_{s}.parquet") for s in seasons],
-                    ignore_index=True)
+    pbp = pd.concat([pd.read_parquet(cache_dir / f"pbp_{s}.parquet", columns=PBP_COLUMNS)
+                     for s in seasons], ignore_index=True)
     frame = add_availability_features(frame, injuries, rosters, ngs_df=ngs, pbp_df=pbp)
 
     return frame.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
