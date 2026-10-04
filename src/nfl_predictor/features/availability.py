@@ -171,6 +171,103 @@ def _participation(pbp: pd.DataFrame) -> pd.DataFrame:
     return merged.rename(columns={"gsis_id": "player_id"}).fillna({"snaps": 0, "routes": 0})
 
 
+def _role_opportunity_share(pbp: pd.DataFrame) -> pd.DataFrame:
+    """Per (player, team, week): the player's share of HIS OWN role's work.
+
+    `snap_share` cannot answer "does this player start". A starting QB reads
+    about 0.49 there, because `team_snaps` counts every offensive play while the
+    player's own count only credits plays with an identified participant -- and
+    worse, a share pooled across roles is diluted by the receivers and rushers
+    who touch the very same snaps.
+
+    So the share is taken within the player's role, against a team total drawn
+    from the SAME population:
+
+    * QB    -- passing attempts / team passing attempts
+    * RB    -- carries / team carries
+    * WR/TE -- targets / team targets
+
+    That is sharp where `snap_share` is vague: on 2026, J. Dart reads 1.00 in the
+    game he started and 0.21 in the one he came in relief, and S. Darnold 0.97
+    against 0.06.
+
+    This is a raw post-game observation; the caller lags it.
+    """
+    keys = ["player_id", "season", "week", "posteam"]
+    if pbp.empty:
+        return pd.DataFrame(columns=keys + ["opp_share"])
+
+    frames = []
+    passer = pbp[pbp.get("passer_player_id").notna()] if "passer_player_id" in pbp else None
+    if passer is not None:
+        attempts = (passer.assign(player_id=passer.passer_player_id)
+                    .groupby(keys, as_index=False)
+                    .agg(attempts=("player_id", "size")))
+        team_att = (attempts.groupby(["season", "week", "posteam"], as_index=False)["attempts"]
+                    .sum().rename(columns={"attempts": "team_attempts"}))
+        frames.append(attempts.merge(team_att, on=["season", "week", "posteam"], how="left")
+                      .assign(share=lambda d: d.attempts / d.team_attempts.replace(0, float("nan")),
+                              role="QB"))
+
+    if "rusher_player_id" in pbp:
+        rushes = pbp[pbp.rusher_player_id.notna()]
+        carries = (rushes.assign(player_id=rushes.rusher_player_id)
+                   .groupby(keys, as_index=False)
+                   .agg(carries=("player_id", "size")))
+        team_car = (carries.groupby(["season", "week", "posteam"], as_index=False)["carries"]
+                    .sum().rename(columns={"carries": "team_carries"}))
+        frames.append(carries.merge(team_car, on=["season", "week", "posteam"], how="left")
+                      .assign(share=lambda d: d.carries / d.team_carries.replace(0, float("nan")),
+                              role="RB"))
+
+    if "receiver_player_id" in pbp and "passer_player_id" in pbp:
+        targets = pbp[pbp.receiver_player_id.notna() & pbp.receiver_player_id.ne(pbp.passer_player_id)]
+        tgt = (targets.assign(player_id=targets.receiver_player_id)
+               .groupby(keys, as_index=False)
+               .agg(targets=("player_id", "size")))
+        team_tgt = (tgt.groupby(["season", "week", "posteam"], as_index=False)["targets"]
+                    .sum().rename(columns={"targets": "team_targets"}))
+        frames.append(tgt.merge(team_tgt, on=["season", "week", "posteam"], how="left")
+                      .assign(share=lambda d: d.targets / d.team_targets.replace(0, float("nan")),
+                              role="WR"))
+
+    if not frames:
+        return pd.DataFrame(columns=keys + ["opp_share"])
+
+    long = pd.concat(frames, ignore_index=True)
+    # One row per player-week: a player's PRIMARY role decides which share counts.
+    # Passers win ties (a backup QB still throws), and a player appearing in two
+    # roles -- a QB who takes a snap at RB, a WR who throws -- is scored as the
+    # passer, since that is the role his prop line depends on.
+    long = (long.assign(_role_order=long.role.map({"QB": 0, "RB": 1, "WR": 2}).fillna(9))
+            .sort_values(keys + ["_role_order"])
+            .drop_duplicates(subset=keys, keep="first")
+            .drop(columns=["_role_order"]))
+    return long[keys + ["share"]].rename(columns={"share": "opp_share"})
+
+
+def add_opportunity_share(df: pd.DataFrame, pbp: pd.DataFrame) -> pd.DataFrame:
+    """Attach a LAGGED role-opportunity share.
+
+    Lagged through `_lagged_rolling`, so week W sees only weeks before W. This is
+    the sharpest starter signal available without a lineups feed, and it is free:
+    it comes from the play-by-play already cached.
+    """
+    keys = ["player_id", "season", "week"]
+    if "opp_share" not in df.columns:
+        df = df.copy()
+        df["opp_share"] = float("nan")
+
+    shares = _role_opportunity_share(pbp)
+    if shares.empty:
+        return df
+
+    merged = df.drop(columns=["opp_share"]).merge(shares, on=keys, how="left")
+    merged = merged.sort_values(["player_id", "season", "week"])
+    merged["opp_share"] = _lagged_rolling(merged["opp_share"], merged["player_id"], _LONG_WINDOW)
+    return merged
+
+
 def _opportunity_features(weekly: pd.DataFrame, pbp: pd.DataFrame) -> pd.DataFrame:
     """Snap share and route participation, both lagged off their own history."""
     base = weekly[_KEYS].drop_duplicates(subset=_KEYS).copy()
@@ -239,6 +336,10 @@ def add_availability_features(weekly_df: pd.DataFrame, injuries_df: pd.DataFrame
                  _opportunity_features(weekly, pbp)):
         df = df.merge(part, on=_KEYS, how="left")
 
+    # Applied AFTER the merges so it lags `opp_share` off the assembled frame,
+    # exactly as `_opportunity_features` does for snap_share -- the same shift(1)
+    # discipline, applied to the sharper starter proxy.
+    df = add_opportunity_share(df, pbp)
     df = add_form_deviation(df)
 
     # Merged before the column exists locally, for the same reason as

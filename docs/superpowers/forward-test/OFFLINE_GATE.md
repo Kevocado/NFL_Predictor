@@ -27,18 +27,18 @@ Walk-forward 2018–2025, three markets pooled, **37,584 scored rows**. Proxy li
 
 | bucket | predicted | empirical | gap | n | verdict |
 |---|---|---|---|---|---|
-| 0.0–0.1 | 0.088 | 0.091 | 0.003 | 428 | ok |
-| 0.1–0.2 | 0.165 | 0.145 | 0.020 | 4378 | ok |
-| 0.2–0.3 | 0.250 | 0.241 | 0.009 | 6185 | ok |
-| 0.3–0.4 | 0.351 | 0.325 | 0.027 | 4849 | ok |
-| 0.4–0.5 | 0.452 | 0.434 | 0.019 | 4167 | ok |
-| 0.5–0.6 | 0.551 | 0.543 | 0.008 | 4468 | ok |
-| 0.6–0.7 | 0.650 | 0.653 | 0.003 | 4612 | ok |
-| 0.7–0.8 | 0.748 | 0.749 | 0.001 | 4541 | ok |
-| 0.8–0.9 | 0.840 | 0.851 | 0.010 | 3501 | ok |
-| 0.9–1.0 | 0.916 | 0.901 | 0.015 | 394 | ok |
+| 0.0–0.1 | 0.087 | 0.087 | 0.000 | 447 | ok |
+| 0.1–0.2 | 0.166 | 0.145 | 0.021 | 4423 | ok |
+| 0.2–0.3 | 0.250 | 0.240 | 0.010 | 6148 | ok |
+| 0.3–0.4 | 0.352 | 0.324 | 0.027 | 4818 | ok |
+| 0.4–0.5 | 0.453 | 0.438 | 0.014 | 4236 | ok |
+| 0.5–0.6 | 0.551 | 0.544 | 0.007 | 4334 | ok |
+| 0.6–0.7 | 0.649 | 0.647 | 0.003 | 4646 | ok |
+| 0.7–0.8 | 0.749 | 0.752 | 0.004 | 4703 | ok |
+| 0.8–0.9 | 0.839 | 0.852 | 0.013 | 3276 | ok |
+| 0.9–1.0 | 0.916 | 0.907 | 0.010 | 492 | ok |
 
-Every bucket clears, on **25 features with no closing-line information** (§3.1), trained through 2026. The largest residual is 0.027, on 4849 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
+Every bucket clears, on **26 features with no closing-line information** (§3.1), trained through 2026. The largest residual is 0.027, on 4818 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
 
 ### 1.1 Non-binding diagnostic: own-median curve
 
@@ -146,7 +146,46 @@ Found after the first merge, on review and on the first 2026 run:
 Cost of all three: **none**. Worst calibration gap 0.030 → **0.027**, and MAE
 improved on all three markets. Artifacts are now fitted on **2017–2026**.
 
-### 3.3 The Odds API event id is not an nflverse game id
+### 3.3 A starter signal, without a lineups feed
+
+The depth chart cannot be trusted for this. As of 2026-10-03 it ranked Winston
+**#1** / Dart **#3** at NYG and Darnold **#1** / Lock **#2** at SEA, while the 2026
+play-by-play shows **both** QBs starting two games each for both teams. Any starter
+logic built on that feed would be wrong for exactly the teams that need it.
+
+ESPN's public API was checked as an alternative and does not serve NFL starting
+lineups: no `rosters` on scoreboard events or `summary` (0 of 16 completed games),
+404 on the core-API roster paths, and `teams/{id}/roster` returns a roster with no
+starter flag. There is no lineups feed to consume.
+
+So the starter signal is derived from play-by-play instead, and taken **within the
+player's role** — the model previously had only `snap_share`, which is diluted (a
+starter reads ~0.49, because `team_snaps` counts every offensive play while a
+player is credited only for plays with an identified participant) and pooled
+across roles, so receivers and rushers dilute the passer further.
+
+| player | started | cameo |
+|---|---|---|
+| J. Dart | **1.00** → 230 yds | **0.15** → 20 yds |
+| S. Darnold | **0.98** → 379 yds | **0.12** → 13 yds |
+
+`opp_share` is attempts/team-attempts for a QB, carries for an RB, targets for a
+WR/TE, lagged through `_lagged_rolling` like every other post-game observable.
+
+**Measured effect: neutral on aggregate accuracy, better in the deep tail.** MAE is
+flat (passing 69.6 → 69.7, receiving 21.1, rushing 21.4) and the worst calibration
+gap is unchanged at 0.027, but the top bucket improved **0.015 → 0.010** on more
+rows (394 → 492) — the region the §5 kill rule watches. Only 5.5% of QB game-rows
+are cameo appearances, so a large aggregate move was never available; the point is
+correctness under a QB change, not accuracy, and it is free.
+
+The residual limitation is unchanged and stated rather than hidden: the model
+conditions on a player's own history and cannot know who starts on Sunday. What it
+prices is correctly conditional on that player playing — and **a book only posts a
+line for a player it expects to start**, so the prop's existence is itself the
+participation signal. Nothing in `src/` sums player projections into a team total.
+
+### 3.4 The Odds API event id is not an nflverse game id
 
 The tick passed `game["game_id"]` (`2026_05_ALB_DEN`) straight into the Odds API
 URL. Event ids there are opaque (`e91a…`), so **every real request would have
@@ -162,7 +201,7 @@ q50 against the naive trailing-mean baseline. Spec's 2025-holdout baselines in t
 
 | market | q50 MAE (mean) | naive MAE | q50 wins | spec baseline |
 |---|---|---|---|---|
-| passing_yards | 69.6 | 70.3 | 4 / 7 | 72.2 |
+| passing_yards | 69.7 | 70.3 | 4 / 7 | 72.2 |
 | rushing_yards | 21.4 | 22.7 | 7 / 7 | 20.9 |
 | receiving_yards (WR+TE) | 21.1 | 22.5 | 7 / 7 | 22.3 (WR) / 17.7 (TE) |
 
@@ -220,7 +259,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1106 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -248,9 +287,9 @@ Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | market | features | quantiles | walk-forward MAE |
 |---|---|---|---|
-| `passing_yards_quantile_2025.pkl` | 25 | 19 | 69.6 |
-| `rushing_yards_quantile_2025.pkl` | 25 | 19 | 21.4 |
-| `receiving_yards_quantile_2025.pkl` | 25 | 19 | 21.1 |
+| `passing_yards_quantile_2025.pkl` | 26 | 19 | 69.7 |
+| `rushing_yards_quantile_2025.pkl` | 26 | 19 | 21.4 |
+| `receiving_yards_quantile_2025.pkl` | 26 | 19 | 21.1 |
 
 Manifest: additive key `quantile_yardage_v1`, each artifact carrying a sha256.
 Every pre-existing manifest key is carried through byte-identical — the live site

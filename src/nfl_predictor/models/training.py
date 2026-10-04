@@ -73,7 +73,7 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
     # availability, knowable pre-kickoff
     "inj_Q", "inj_D", "inj_O", "ol_injuries_out", "depth_rank_change",
     # opportunity and form, all lagged
-    "snap_share", "snap_share_trend", "form_deviation",
+    "snap_share", "snap_share_trend", "opp_share", "form_deviation",
     "separation_avg",
 )
 
