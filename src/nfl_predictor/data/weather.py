@@ -28,7 +28,7 @@ HIGH_WIND_KPH = 15 * 1.609344
 #: nflverse stadium name -> (lat, lon).
 STADIUM_COORDS: dict[str, tuple[float, float]] = {
     "AT&T Stadium": (32.7473, -97.0945),
-    "Acrisure Stadium": (42.7738, -78.7870),
+    "Acrisure Stadium": (40.4468, -80.0158),  # Pittsburgh, NOT Orchard Park
     "Allegiant Stadium": (36.0909, -115.1833),
     "Bank of America Stadium": (35.2258, -80.8528),
     "Empower Field at Mile High": (39.7439, -105.0201),

@@ -99,3 +99,51 @@ def test_writes_one_file_per_game(tmp_path):
 
 def test_empty_cache_dir_is_not_an_error(tmp_path):
     assert load_cached_weather(tmp_path / "missing") == {}
+
+# --- CodeRabbit findings on the weather pull --------------------------------
+
+def test_kickoff_utc_uses_the_scheduled_gametime_not_midnight():
+    """`T00:00:00Z` on the game date is the evening BEFORE an afternoon US
+    kickoff, so every reading was hours off. nflverse carries `gametime` as an
+    ET clock string; Eastern is UTC-4 in summer and UTC-5 in winter."""
+    from nfl_predictor.data.weather_cache import _kickoff_utc
+
+    # September: EDT, UTC-4. An 8:20pm ET kickoff is 00:20Z the NEXT day.
+    assert _kickoff_utc({"gameday": "2025-09-04", "gametime": "20:20"}) == \
+        "2025-09-05T00:20:00Z"
+    # December: EST, UTC-5.  13:00 ET -> 18:00Z same day.
+    assert _kickoff_utc({"gameday": "2025-12-14", "gametime": "13:00"}) == \
+        "2025-12-14T18:00:00Z"
+
+
+def test_kickoff_utc_falls_back_when_gametime_is_absent():
+    from nfl_predictor.data.weather_cache import _kickoff_utc
+
+    assert _kickoff_utc({"gameday": "2025-09-04"}).endswith("Z")
+
+
+def test_the_hour_requested_is_the_kickoff_hour(tmp_path):
+    asked = []
+
+    def fetch(lat, lon, kickoff_iso):
+        asked.append(kickoff_iso)
+        return WEATHER
+
+    weather_for_games([{"game_id": "G1", "stadium": "Soldier Field",
+                        "gameday": "2025-09-04", "gametime": "20:20"}],
+                      cache_dir=tmp_path, fetch=fetch)
+
+    assert asked and asked[0] == "2025-09-05T00:20:00Z"
+
+
+def test_acrisure_stadium_is_pittsburgh_not_orchard_park():
+    """CodeRabbit: the table gave Acrisure the Orchard Park coordinates, so
+    every Pittsburgh home game was given Buffalo weather."""
+    from nfl_predictor.data.weather import STADIUM_COORDS
+
+    pittsburgh = STADIUM_COORDS["Acrisure Stadium"]
+    buffalo = STADIUM_COORDS["Highmark Stadium"]
+
+    assert pittsburgh != buffalo
+    assert 39.0 < pittsburgh[0] < 42.0, "Pittsburgh is around 40.45N"
+    assert -81.0 < pittsburgh[1] < -79.0, "Pittsburgh is around 80.02W"

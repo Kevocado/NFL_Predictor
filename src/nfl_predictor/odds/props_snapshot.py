@@ -151,29 +151,81 @@ def _response_rows(event_id: str, markets: list[str]) -> list[dict]:
     return response.json()
 
 
-def _normalize_rows(rows: list[dict]) -> list[dict]:
-    """Flatten the API's per-book/per-market nesting, dropping rows with no line.
+def _normalize_rows(payload) -> list[dict]:
+    """Flatten the API's response into one row per player/market/book.
 
-    A prop with no line is not a prop. Substituting a default would post a real
+    The single-event odds endpoint nests:
+        bookmakers[] -> markets[] -> outcomes[]
+    where each prop appears TWICE, as an `Over` and an `Under` outcome sharing a
+    `point`, and the player is in `description`. Reading that as a flat row with
+    `line`/`player_name`/`over_odds` keys -- which is what the first version of
+    this function did -- returns nothing at all against a real response, because
+    none of those keys exist at the top level.
+
+    Over and Under outcomes are paired back together on (description, point) so a
+    row carries both prices. A lone unpaired outcome yields a row with one side
+    missing rather than being dropped: the line is still a real line.
+    """
+    # The endpoint returns ONE event object; some responses and some callers
+    # hand back a list of them. Accept either rather than assuming one.
+    events = payload if isinstance(payload, list) else [payload]
+    rows = []
+    for event in events:
+        rows.extend(_rows_from_event(event))
+    return [r for r in (_prop_row(r) for r in rows) if r is not None]
+
+
+def _rows_from_event(event) -> list[dict]:
+    rows = []
+    for bookmaker in _as_list(event, "bookmakers"):
+        book = bookmaker.get("title") or bookmaker.get("key")
+        for market in _as_list(bookmaker, "markets"):
+            book_key = market.get("key", "")
+            pairs: dict[tuple, dict] = {}
+            for outcome in _as_list(market, "outcomes"):
+                point = outcome.get("point")
+                if point is None:
+                    continue
+                name = outcome.get("description") or outcome.get("player_name") or ""
+                key = (name, float(point))
+                slot = pairs.setdefault(key, {"name": name, "line": float(point),
+                                              "over_odds": None, "under_odds": None})
+                side = str(outcome.get("name", "")).strip().lower()
+                if side == "over":
+                    slot["over_odds"] = _american(outcome.get("price"))
+                elif side == "under":
+                    slot["under_odds"] = _american(outcome.get("price"))
+            for slot in pairs.values():
+                rows.append({**slot, "market": MARKET_ALIASES.get(book_key, book_key),
+                             "book": book})
+    return rows
+
+
+def _as_list(container: dict, key: str) -> list[dict]:
+    value = container.get(key) if isinstance(container, dict) else None
+    return value if isinstance(value, list) else []
+
+
+def _prop_row(row: dict) -> dict | None:
+    """One normalized prop row, or None when it carries no line.
+
+    A prop with no line is not a prop; substituting a default would post a real
     bet at a fabricated price.
     """
-    normalized: list[dict] = []
-    for row in rows:
-        line = row.get("line")
-        if line is None:
-            continue
-        name = row.get("player_name") or row.get("description", "")
-        normalized.append({
-            "player_name": name,
-            "normalized_name": normalize_player_name(name),
-            "team": row.get("team"),
-            "market": MARKET_ALIASES.get(row.get("market", ""), row.get("market")),
-            "line": float(line),
-            "over_odds": _american(row.get("over_odds")),
-            "under_odds": _american(row.get("under_odds")),
-            "book": row.get("book_title") or row.get("book"),
-        })
-    return normalized
+    line = row.get("line")
+    name = row.get("name") or ""
+    if line is None or not name:
+        return None
+    return {
+        "player_name": name,
+        "normalized_name": normalize_player_name(name),
+        "team": row.get("team"),
+        "market": row.get("market"),
+        "line": float(line),
+        "over_odds": row.get("over_odds"),
+        "under_odds": row.get("under_odds"),
+        "book": row.get("book"),
+    }
 
 
 def _american(value) -> float | None:
@@ -220,19 +272,34 @@ def probe_props_coverage(event_id: str) -> dict:
 
 
 def match_props_to_players(props: list[dict], players: list[dict]) -> list[dict]:
-    """Attach `player_id` on an exact (normalized name, team) match.
+    """Attach `player_id` to each prop.
 
-    A miss is logged and dropped. Same name on the wrong team is a miss.
+    **On the normalized name alone.** The event-odds endpoint puts the player in
+    the outcome's `description` and does not carry a team per outcome, so a
+    (name, team) key can never match against a real response.
+
+    A name that maps to more than one nflverse player is AMBIGUOUS and skipped,
+    not guessed: a near-match attaches a real price to the wrong player, and the
+    forward test would then grade a bet nobody made. Where the prop does carry a
+    team it is used to disambiguate.
     """
-    index = {(normalize_player_name(p["player_name"]), p.get("team")): p["player_id"]
-             for p in players}
+    by_name: dict[str, list[dict]] = {}
+    for player in players:
+        by_name.setdefault(normalize_player_name(player["player_name"]), []).append(player)
 
     matched = []
     for prop in props:
-        key = (prop["normalized_name"], prop.get("team"))
-        player_id = index.get(key)
-        if player_id is None:
-            logger.warning("unmatched prop, skipped: %s %s", prop["player_name"], prop.get("team"))
+        candidates = by_name.get(prop["normalized_name"], [])
+        if prop.get("team"):
+            narrowed = [c for c in candidates if c.get("team") == prop["team"]]
+            candidates = narrowed or candidates
+        if not candidates:
+            logger.warning("unmatched prop, skipped: %s", prop["player_name"])
             continue
-        matched.append({**prop, "player_id": player_id})
+        if len(candidates) > 1:
+            logger.warning("ambiguous prop name, skipped rather than guessed: %s "
+                           "(%d nflverse players share it)", prop["player_name"],
+                           len(candidates))
+            continue
+        matched.append({**prop, "player_id": candidates[0]["player_id"]})
     return matched

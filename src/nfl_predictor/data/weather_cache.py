@@ -40,6 +40,34 @@ def write_weather_cache(weather: dict[str, dict], cache_dir: Path | str) -> int:
     return len(weather)
 
 
+def _kickoff_utc(game: dict) -> str:
+    """The game's kickoff as an ISO-8601 UTC instant.
+
+    nflverse publishes `gametime` as an ET clock string ("20:20"); `gameday` is a
+    bare date. Eastern is UTC-4 from the second Sunday in March to the first in
+    November and UTC-5 either side, which is enough resolution for weather.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    raw = str(game.get("gametime") or "").strip()
+    day = str(game.get("gameday"))
+    try:
+        kickoff_et = datetime.fromisoformat(f"{day}T{raw or '13:00'}")
+    except ValueError:
+        kickoff_et = datetime.fromisoformat(f"{day}T13:00")
+
+    year = kickoff_et.year
+    dst_start = datetime(year, 3, 1)  # second Sunday, approximated below
+    dst_start += timedelta(days=(6 - dst_start.weekday()) % 7)
+    dst_end = datetime(year, 11, 1)
+    dst_end += timedelta(days=(6 - dst_end.weekday()) % 7)
+    in_dst = dst_start < kickoff_et < dst_end
+    # Eastern is BEHIND UTC, so ET -> UTC ADDS the offset. Subtracting would put a
+    # 1pm EST kickoff at 08:00Z, eight hours early.
+    return (kickoff_et + timedelta(hours=4 if in_dst else 5)).replace(
+        tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def weather_for_games(games: list[dict], cache_dir: Path | str,
                       fetch=fetch_game_weather) -> tuple[dict[str, dict], dict[str, dict]]:
     """(newly written, already cached) readings for `games`.
@@ -60,8 +88,11 @@ def weather_for_games(games: list[dict], cache_dir: Path | str,
             continue
         if game_id in cached or game_id in fresh:
             continue
+        # The KICKOFF hour, not midnight. `T00:00:00Z` on the game date is the
+        # evening before an afternoon US kickoff, so every reading was hours off.
+        # nflverse carries `gametime` as HH:MM ET; ET->UTC is +4 (EDT) or +5 (EST).
         try:
-            fresh[game_id] = fetch(coords[0], coords[1], f"{game['gameday']}T00:00:00Z")
+            fresh[game_id] = fetch(coords[0], coords[1], _kickoff_utc(game))
         except Exception as error:  # noqa: BLE001 - one bad game must not stop the rest
             logger.warning("weather unavailable for %s: %s", game_id, error)
 

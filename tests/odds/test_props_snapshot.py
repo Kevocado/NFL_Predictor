@@ -39,12 +39,39 @@ def _budget(request, monkeypatch):
 
 
 def _book(**overrides):
+    """A row in the API's REAL shape.
+
+    The single-event endpoint nests bookmakers[] -> markets[] -> outcomes[], with
+    each prop appearing twice (Over and Under) sharing a `point` and the player
+    in `description`. An earlier fixture used a flat row with `line`/`player_name`
+    keys, which the parser read happily and the API never returns -- so the whole
+    props path was green against a shape that does not exist.
+    """
     market = {
-        "player_name": "A.J. Brown Jr.", "team": "PHI", "market": "player_pass_yds",
-        "line": 87.5, "over_odds": -110, "under_odds": -110, "book": "fanduel",
+        "bookmakers": [{
+            "key": "fanduel", "title": "FanDuel",
+            "markets": [{
+                "key": "player_pass_yds",
+                "outcomes": [
+                    {"name": "Over", "description": "A.J. Brown Jr.",
+                     "point": 87.5, "price": -110},
+                    {"name": "Under", "description": "A.J. Brown Jr.",
+                     "point": 87.5, "price": -110},
+                ],
+            }],
+        }],
     }
     market.update(overrides)
     return market
+
+
+def _outcome_row(book="FanDuel", market_key="player_pass_yds", name="A.J. Brown Jr.",
+                 point=87.5, over=-110, under=-110):
+    return {"bookmakers": [{"key": book.lower(), "title": book, "markets": [{
+        "key": market_key, "outcomes": [
+            {"name": "Over", "description": name, "point": point, "price": over},
+            {"name": "Under", "description": name, "point": point, "price": under},
+        ]}]}]}
 
 
 # --- name normalization ----------------------------------------------------
@@ -106,9 +133,9 @@ def test_fetch_returns_normalized_fields(requests_mock):
     props = fetch_props_for_event("EV1", markets=["player_pass_yds"])
 
     assert props == [{
-        "player_name": "A.J. Brown Jr.", "normalized_name": "aj brown", "team": "PHI",
+        "player_name": "A.J. Brown Jr.", "normalized_name": "aj brown", "team": None,
         "market": "player_pass_yds", "line": 87.5, "over_odds": -110.0,
-        "under_odds": -110.0, "book": "fanduel",
+        "under_odds": -110.0, "book": "FanDuel",
     }]
 
 
@@ -130,8 +157,11 @@ def test_fetch_requests_american_odds_and_the_us_region(requests_mock):
 
 
 def test_a_row_missing_its_line_is_skipped_not_defaulted(requests_mock):
-    """A prop with no line is not a prop. Defaulting it to 0 would post a bet."""
-    requests_mock.get(BASE, json=[_book(), _book(player_name="Ghost", line=None)],
+    """A prop with no point is not a prop. Defaulting it to 0 would post a bet."""
+    no_point = {"bookmakers": [{"key": "fanduel", "title": "FanDuel", "markets": [{
+        "key": "player_pass_yds", "outcomes": [
+            {"name": "Over", "description": "Ghost", "price": -110}]}]}]}
+    requests_mock.get(BASE, json=[_book(), no_point],
                       headers={"x-requests-remaining": "400"})
 
     props = fetch_props_for_event("EV1", markets=["player_pass_yds"])
@@ -140,18 +170,18 @@ def test_a_row_missing_its_line_is_skipped_not_defaulted(requests_mock):
 
 
 def test_multiple_books_yield_multiple_rows(requests_mock):
-    requests_mock.get(BASE, json=[_book(book="fanduel"), _book(book="draftkings")],
+    requests_mock.get(BASE, json=[_book(), _outcome_row(book="DraftKings")],
                       headers={"x-requests-remaining": "400"})
 
     props = fetch_props_for_event("EV1", markets=["player_pass_yds"])
 
-    assert {p["book"] for p in props} == {"fanduel", "draftkings"}
+    assert {p["book"] for p in props} == {"FanDuel", "DraftKings"}
 
 
 # --- joining to nflverse players ------------------------------------------
 
 def test_unmatched_props_are_skipped_and_logged_not_guessed(requests_mock, caplog):
-    requests_mock.get(BASE, json=[_book(player_name="Nobody At All", team="ZZZ")],
+    requests_mock.get(BASE, json=[_outcome_row(name="Nobody At All")],
                       headers={"x-requests-remaining": "400"})
     players = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "PHI"}]
 
@@ -171,13 +201,15 @@ def test_matching_joins_on_normalized_name_and_team(requests_mock):
         fetch_props_for_event("EV1", markets=["player_pass_yds"]), players)
 
     assert len(matched) == 1
-    assert matched[0]["player_id"] == "00-1"
+    assert matched[0]["player_id"] == "00-1", "joined on name, which is all the API carries"
 
 
-def test_right_name_wrong_team_does_not_match(requests_mock):
-    """A name collision across teams is a miss, not a coin flip."""
+def test_an_ambiguous_name_is_skipped_rather_than_guessed(requests_mock):
+    """Two nflverse players share a normalized name. Picking either attaches a
+    real price to the wrong player, so neither is used."""
     requests_mock.get(BASE, json=[_book()], headers={"x-requests-remaining": "400"})
-    players = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "NO"}]
+    players = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "PHI"},
+               {"player_id": "00-2", "player_name": "AJ Brown", "team": "NO"}]
 
     matched = props_snapshot.match_props_to_players(
         fetch_props_for_event("EV1", markets=["player_pass_yds"]), players)
@@ -185,20 +217,32 @@ def test_right_name_wrong_team_does_not_match(requests_mock):
     assert matched == []
 
 
+def test_a_supplied_team_disambiguates(requests_mock):
+    requests_mock.get(BASE, json=[_book()], headers={"x-requests-remaining": "400"})
+    players = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "PHI"},
+               {"player_id": "00-2", "player_name": "AJ Brown", "team": "NO"}]
+    props = [{**fetch_props_for_event("EV1", markets=["player_pass_yds"])[0], "team": "NO"}]
+
+    matched = props_snapshot.match_props_to_players(props, players)
+
+    assert [m["player_id"] for m in matched] == ["00-2"]
+
+
 # --- coverage probe --------------------------------------------------------
 
 def test_probe_reports_which_markets_and_books_came_back(requests_mock):
-    requests_mock.get(BASE, json=[_book(market="player_pass_yds"),
-                                  _book(market="player_reception_yds", book="draftkings")],
+    requests_mock.get(BASE, json=[_outcome_row(market_key="player_pass_yds"),
+                                  _outcome_row(market_key="player_reception_yds",
+                                               book="DraftKings")],
                       headers={"x-requests-remaining": "400"})
 
     coverage = probe_props_coverage("EV1")
 
     # Book keys are mapped to project market names, so `player_reception_yds`
     # is reported as `player_rec_yds` -- the same name the model trains on.
-    assert coverage["markets"] == {"player_pass_yds": ["fanduel"],
-                                   "player_rec_yds": ["draftkings"]}
-    assert "fanduel" in coverage["books"]
+    assert coverage["markets"] == {"player_pass_yds": ["FanDuel"],
+                                   "player_rec_yds": ["DraftKings"]}
+    assert "FanDuel" in coverage["books"]
 
 
 def test_probe_on_an_event_with_no_props_is_empty_not_an_error(requests_mock):

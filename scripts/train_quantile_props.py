@@ -128,6 +128,13 @@ def build_feature_frame(seasons: list[int], cache_dir: Path,
     frame = add_matchup_features(frame, schedules, weather_by_game=weather)
 
     print("building availability features (this reads play-by-play)...")
+    # Checked up front: a missing season file used to raise here, AFTER the
+    # weekly, roster, injury, schedule, NGS and weather steps had all run.
+    missing = [s for s in seasons if not (cache_dir / f"pbp_{s}.parquet").exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"no cached play-by-play for {missing} in {cache_dir}; run "
+            f"season_pull.pull_pbp first")
     pbp = pd.concat([pd.read_parquet(cache_dir / f"pbp_{s}.parquet", columns=PBP_COLUMNS)
                      for s in seasons], ignore_index=True)
     frame = add_availability_features(frame, injuries, rosters, ngs_df=ngs, pbp_df=pbp)
