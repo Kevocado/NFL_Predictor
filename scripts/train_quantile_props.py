@@ -29,22 +29,17 @@ from nfl_predictor.evaluate.walk_forward import (  # noqa: E402
 #: curve is reported beside it as the tail-watch diagnostic (amended 2026-10-04).
 BINDING_COLUMNS = ("p_over_exogenous", "covered_exogenous")
 DIAGNOSTIC_COLUMNS = ("p_over_own_median", "covered_own_median")
-from nfl_predictor.models.training import train_all  # noqa: E402
+from nfl_predictor.models.training import (  # noqa: E402
+    FORWARD_FEATURE_COLUMNS, gate_feature_columns, train_all,
+)
 from nfl_predictor.features.availability import add_availability_features  # noqa: E402
 from nfl_predictor.features.matchup import add_matchup_features  # noqa: E402
 from nfl_predictor.features.player_usage import PLAYER_FEATURE_COLUMNS, _add_rolling  # noqa: E402
 
-#: Everything the quantile models are fitted on: the six existing rolling usage
-#: features plus the Task 4/5 groups.
-FEATURE_COLUMNS = [
-    *PLAYER_FEATURE_COLUMNS,
-    "opp_pass_yds_allowed_roll", "opp_rush_yds_allowed_roll", "opp_rec_yds_allowed_roll",
-    "is_home", "rest_days", "implied_team_total", "game_total",
-    "wind_kph", "temp_c", "precip_mm", "is_outdoor", "high_wind_flag",
-    "inj_Q", "inj_D", "inj_O", "ol_injuries_out", "depth_rank_change",
-    "snap_share", "snap_share_trend", "route_participation", "form_deviation",
-    "separation_avg",
-]
+#: The gate's features come from the SAME constant the artifacts are fitted on.
+#: Re-declaring the list here is what let the gate validate 28 features while the
+#: artifacts carried 30, with nothing comparing the two.
+FEATURE_COLUMNS = list(FORWARD_FEATURE_COLUMNS)
 
 
 def parse_seasons(text: str) -> list[int]:

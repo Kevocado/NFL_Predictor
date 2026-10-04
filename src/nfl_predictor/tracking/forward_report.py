@@ -34,25 +34,31 @@ _FORWARD_COLUMNS = ["game_id", "player_id", "player_name", "market", "side",
                     "actual_value", "resolved"]
 
 
-def graded_picks(season: int | None = None, week: int | None = None,
-                 week_column: str | None = None) -> pd.DataFrame:
+def graded_picks(season: int | None = None, week: int | None = None) -> pd.DataFrame:
     """Forward-test rows: those carrying a snapshot line, which is what
     distinguishes them from the pre-existing yardage projections.
 
-    The prop table has no season/week column -- `player_prop_predictions` is
-    keyed by game_id. So the caller passes the column to filter on when it has
-    one, and week-scoped reports join through `game_predictions` upstream. With
-    no such column the whole forward record is returned rather than silently
-    filtered on something absent.
+    `player_prop_predictions` has no season or week column -- it is keyed by
+    game_id -- so the scope comes from joining `game_predictions`, which carries
+    both. Skipping that join is how a weekly report ends up rendering the
+    all-time record under this week's filename, which is the worst shape of wrong
+    for the one artifact a human reads.
     """
     with contextlib.closing(store._connect()) as conn:
         frame = pd.read_sql(
-            "SELECT * FROM player_prop_predictions WHERE line_at_snapshot IS NOT NULL",
+            """
+            SELECT p.*, g.season AS season, g.week AS week
+            FROM player_prop_predictions AS p
+            LEFT JOIN game_predictions AS g ON g.game_id = p.game_id
+            WHERE p.line_at_snapshot IS NOT NULL
+            """,
             conn,
         )
-    if week_column is not None and week_column in frame.columns:
-        frame = frame[frame[week_column].notna()]
-    return frame
+    if season is not None and "season" in frame.columns:
+        frame = frame[frame["season"] == season]
+    if week is not None and "week" in frame.columns:
+        frame = frame[frame["week"] == week]
+    return frame.reset_index(drop=True)
 
 
 def _fmt(value, spec="{:.1f}") -> str:

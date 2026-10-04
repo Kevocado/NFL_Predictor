@@ -36,7 +36,7 @@ def _graded_rows(n=60, hit_rate=0.55, mean_clv=1.2):
     hits = int(round(n * hit_rate))
     for i in range(n):
         rows.append({
-            "game_id": f"G{i}", "player_id": f"00-{i}", "player_name": f"P{i}",
+            "game_id": f"G{i}", "week": 4, "player_id": f"00-{i}", "player_name": f"P{i}",
             "market": "receiving_yards", "side": "over" if i % 2 else "under",
             "predicted_value": 50.0, "snapshotted_at": "2026-09-05T00:00:00+00:00",
             "resolved": 1, "actual_value": 55.0,
@@ -54,12 +54,16 @@ def _seed(rows):
     # Reconciliation inner-joins game_predictions for the kickoff time and drops
     # any prop row whose game is absent, so the games have to exist. Its test
     # fixture had omitted this and every row silently stayed unresolved.
+    # season/week are carried on game_predictions and are what the report
+    # filters on; without them the scope join matches nothing and the report
+    # renders as an empty week.
     store.record_game_predictions([{
         "game_id": row["game_id"], "home_team": "ALB", "away_team": "DEN",
         "commence_time": "2099-09-04T20:20:00",
         "home_win_prob": 0.5, "away_win_prob": 0.5,
         "home_cover_prob": 0.5, "away_cover_prob": 0.5,
         "over_prob": 0.5, "under_prob": 0.5,
+        "season": 2026, "week": row.get("week", 4),
     } for row in rows])
 
     for row in rows:
@@ -143,7 +147,10 @@ def test_empty_week_says_so_rather_than_reporting_zero_percent(tmp_path):
 
 
 def test_thin_sample_is_labelled_as_thin(tmp_path):
-    _seed(_graded_rows(3, hit_rate=1.0, mean_clv=2.0))
+    rows = _graded_rows(3, hit_rate=1.0, mean_clv=2.0)
+    for row in rows:
+        row["week"] = 5
+    _seed(rows)
 
     text = write_weekly_report(season=2026, week=5, out_dir=tmp_path).read_text()
 
@@ -167,6 +174,13 @@ def test_hit_rate_is_measured_against_the_actual_picks_not_the_graded_ones(tmp_p
     _seed(_graded_rows(60, hit_rate=0.55))
     before = write_weekly_report(season=2026, week=4, out_dir=tmp_path).read_text()
 
+    store.record_game_predictions([{
+        "game_id": "G_NEW", "home_team": "ALB", "away_team": "DEN",
+        "commence_time": "2099-09-04T20:20:00",
+        "home_win_prob": 0.5, "away_win_prob": 0.5,
+        "home_cover_prob": 0.5, "away_cover_prob": 0.5,
+        "over_prob": 0.5, "under_prob": 0.5, "season": 2026, "week": 4,
+    }])
     store.record_player_prop_predictions([{
         "game_id": "G_NEW", "player_id": "00-new", "player_name": "Pending",
         "market": "receiving_yards", "position": "WR", "predicted_value": 50.0,

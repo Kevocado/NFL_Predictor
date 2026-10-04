@@ -32,8 +32,11 @@ MARKET_POSITIONS = {
     "receiving_yards": ("WR", "TE"),
 }
 
-#: The features the offline gate validated, and the only ones an artifact may be
-#: fitted on.
+#: THE feature list — the single authority for both the offline gate and the
+#: fitted artifact. Imported by `scripts/train_quantile_props.py` rather than
+#: re-declared: two hand-maintained lists for one purpose is exactly how the
+#: gate came to validate 28 features while the artifacts were fitted on 30, and
+#: no test compared them.
 #:
 #: **Declared, not derived.** Deriving the set from the frame -- "every numeric
 #: column that is not the label" -- silently includes the SAME-WEEK raw stats
@@ -43,24 +46,35 @@ MARKET_POSITIONS = {
 #: while an artifact fitted on the derived list would be fitted on the answer and
 #: would collapse at serving time, where those columns do not exist yet.
 #:
-#: Every entry must therefore be a lagged, shift(1)-computed feature or a
-#: pre-game fact (schedule, weather, injury). If a feature is not, it does not go
-#: in here.
+#: Every entry must be a lagged, shift(1)-computed feature or a fact knowable
+#: pre-kickoff. If a feature is not, it does not go in here.
+#:
+#: **Excluded: `spread_line`, `total_line`, `implied_team_total`, `game_total`.**
+#: nflverse's weekly `spread_line`/`total_line` are the CLOSING lines, and the
+#: latter two are derived from them (see `features/matchup.py`). A pre-kickoff
+#: snapshot has the opening line at best, so a model carrying these is fitted on
+#: information it will not have when it matters. That is a train/serve skew, and
+#: it inflates the offline calibration number it is scored by.
 FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
     # rolling usage (shift(1)-then-rolling)
     "passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll",
     "targets_roll", "carries_roll", "receptions_roll",
     # opponent defence vs position
     "opp_pass_yds_allowed_roll", "opp_rush_yds_allowed_roll", "opp_rec_yds_allowed_roll",
-    # game context, all known pre-kickoff
-    "spread_line", "total_line", "is_home", "rest_days", "implied_team_total",
-    "game_total", "is_outdoor", "temp_c", "wind_kph", "precip_mm", "high_wind_flag",
-    # availability, all known pre-kickoff
+    # game context, knowable pre-kickoff
+    "is_home", "rest_days", "is_outdoor",
+    "temp_c", "wind_kph", "precip_mm", "high_wind_flag",
+    # availability, knowable pre-kickoff
     "inj_Q", "inj_D", "inj_O", "ol_injuries_out", "depth_rank_change",
     # opportunity and form, all lagged
     "snap_share", "snap_share_trend", "route_participation", "form_deviation",
     "separation_avg",
 )
+
+
+def gate_feature_columns(market: str) -> list[str]:
+    """The gate's features for `market`: the shared list, minus its own label."""
+    return [c for c in FORWARD_FEATURE_COLUMNS if c != market]
 
 
 def _feature_columns(frame: pd.DataFrame, market: str) -> list[str]:
@@ -102,11 +116,15 @@ def train_all(frame: pd.DataFrame, trained_seasons: list[int], out_dir: Path | s
             "gate decides whether these models may exist (walkforward_mae and "
             "walkforward_calibration are both required)")
 
+    # An empty report means no bucket reached the n>=100 floor, i.e. no evidence
+    # at all. `calibration_passes` already treats that as not-a-pass; this must
+    # agree, or a run that measured nothing writes artifacts as though it had.
     failing = sorted(label for label, bucket in walkforward_calibration.items()
                      if not bucket.get("within_tolerance", False))
-    if failing:
-        raise ValueError(
-            f"refusing to write artifacts: calibration failed in {failing}")
+    if not walkforward_calibration or failing:
+        detail = "no calibration bucket met the n>=100 floor" if not walkforward_calibration \
+            else f"calibration failed in {failing}"
+        raise ValueError(f"refusing to write artifacts: {detail}")
 
     artifacts: dict[str, dict] = {}
     for market in MARKETS:

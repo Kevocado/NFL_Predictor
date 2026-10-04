@@ -22,9 +22,12 @@ from pathlib import Path
 import pandas as pd
 
 from ..models.prop_probability import american_to_breakeven, edge_vs_line, p_over_from_quantiles
-from ..models.quantile_registry import ARTIFACT_SUFFIX, load_quantile_artifact
+from ..models.quantile_registry import (
+    ARTIFACT_SUFFIX, load_quantile_artifact, verify_quantile_artifacts,
+)
+from ..models.training import FORWARD_FEATURE_COLUMNS
 from ..odds.props_snapshot import (
-    BudgetExhausted, credits_sufficient, fetch_props_for_event, probe_props_coverage,
+    BudgetExhausted, credits_sufficient, fetch_props_for_event, match_props_to_players,
 )
 from . import store
 
@@ -67,6 +70,18 @@ def predictor_for(models_dir: Path | str) -> dict[str, callable]:
             f"models/<market>{ARTIFACT_SUFFIX}.pkl from "
             f"scripts/train_quantile_props.py --write-artifacts")
 
+    # Verify before serving. `load_quantile_artifact` is a bare pickle.loads, so
+    # without this a stale artifact from an earlier fit would price picks
+    # silently -- the exact incident models/manifest.py documents at length.
+    manifest_path = models_dir / "manifest.json"
+    if manifest_path.exists():
+        import json
+
+        problems = verify_quantile_artifacts(json.loads(manifest_path.read_text()),
+                                             out_dir=models_dir)
+        if problems:
+            raise RuntimeError(f"quantile artifacts do not verify: {problems}")
+
     predictors: dict[str, callable] = {}
     for path in paths:
         # The stem already carries the market name; `load_quantile_artifact`
@@ -79,21 +94,67 @@ def predictor_for(models_dir: Path | str) -> dict[str, callable]:
 
 
 def _row_predictor(models: dict, feature_cols: list[str]) -> callable:
-    """`predict(line, feature_row) -> {level: value}` for one market.
+    """`predict(feature_row, line) -> {level: value}` for one market.
+
+    **The feature row is a required positional argument, not an optional
+    keyword.** With it optional, `predict(line)` builds an all-zero frame, every
+    player gets an identical distribution, and the 5% gate then fires off the
+    book's line alone -- the model is bypassed and nothing looks wrong. Making it
+    required turns that silent money-loser into a `TypeError`.
 
     Fitted models predict a batch, so a single row is wrapped in a one-row frame
-    and unwrapped again. NaNs are filled the same way training fills them, or a
-    missing feature would reach the model as NaN and come back as NaN.
+    and unwrapped. NaNs are filled the way training fills them.
     """
     levels = sorted(models)
 
-    def predict(line: float, feature_row=None):
+    def predict(feature_row: dict, line: float):
         import pandas as pd
 
-        frame = pd.DataFrame([feature_row or {}]).reindex(columns=feature_cols).fillna(0)
+        if not feature_row:
+            raise ValueError(
+                f"no feature row for this prop; the quantile model cannot price a "
+                f"line without one (columns expected: {feature_cols})")
+        frame = pd.DataFrame([feature_row]).reindex(columns=feature_cols).fillna(0)
         return {q: float(models[q].predict(frame)[0]) for q in levels}
 
     return predict
+
+
+def _target_season_week(game: dict) -> tuple[int, int]:
+    """The season/week a game belongs to, from whichever field carries it."""
+    try:
+        return int(game["season"]), int(game["week"])
+    except (KeyError, TypeError, ValueError):
+        return 0, 0
+
+
+def history_row_for(feature_frame, player_id: str, season: int, week: int) -> dict:
+    """The player's most recent feature row from BEFORE the target game.
+
+    Every feature in the frame is already lagged, so a row for week W-1 carries
+    only games before W-1. Using it for week W is therefore strictly LESS
+    information than the model was trained on -- it omits the player's most
+    recent game -- and it can never leak. The staleness is real and is the price
+    of not having a feature builder that can score an unplayed week; it is noted
+    in OFFLINE_GATE.md rather than hidden.
+
+    A player with no prior row cannot be priced, and returns {} -- which
+    `_row_predictor` rejects. Better a skipped prop than a zero-filled one.
+    """
+    if feature_frame is None or feature_frame.empty:
+        return {}
+    prior = feature_frame[
+        (feature_frame["player_id"] == player_id)
+        & (feature_frame["season"] < season)
+        | ((feature_frame["player_id"] == player_id)
+           & (feature_frame["season"] == season)
+           & (feature_frame["week"] < week))
+    ]
+    if prior.empty:
+        return {}
+    row = prior.sort_values(["season", "week"]).iloc[-1]
+    return {column: row[column] for column in FORWARD_FEATURE_COLUMNS
+            if column in prior.columns}
 
 
 def _has_spread(quantiles: dict) -> bool:
@@ -118,7 +179,9 @@ def _is_post_kickoff(commence_time: str) -> bool:
 
 
 def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None = None,
-                     edge_gate: float = EDGE_GATE) -> dict:
+                     edge_gate: float = EDGE_GATE,
+                     players: list[dict] | None = None,
+                     feature_frame=None) -> dict:
     """Snapshot one slate.
 
     `market_quantiles` maps a book market key to that row's predicted quantiles
@@ -148,7 +211,9 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
 
     # One props call per game per tick. The whole slate is costed up front so a
     # month that cannot afford it writes nothing rather than half a slate.
-    needed = len(live)
+    # One props call per game, plus the scores probe that asks whether we can
+    # afford them. The old estimate of 1/game was ~3x low against reality.
+    needed = len(live) + 1
     if not credits_sufficient(needed):
         logger.warning("budget: %d credits needed, not fetching anything", needed)
         result["credits_remaining"] = 0
@@ -158,16 +223,23 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
     rows: list[dict] = []
     for game in live:
         event_id = game["game_id"]
-        coverage = probe_props_coverage(event_id)
-        if not coverage.get("has_any"):
-            logger.warning("no player-prop coverage for %s; waiting, not falling back", event_id)
-            result["no_props_coverage"] = True
-            continue
         try:
             props = fetch_props_for_event(event_id, credits_needed=1)
         except BudgetExhausted:
             logger.warning("budget exhausted mid-slate at %s; stopping", event_id)
             break
+        # The Odds API returns names, not ids. Without this join every real prop
+        # row is missing `player_id` and the write raises.
+        if players is not None:
+            props = match_props_to_players(props, players)
+        if not props:
+            # The fetch's own result IS the coverage answer. A separate probe was
+            # a second full props pull per game, charged whether or not it was
+            # needed, and it spent credit even on an exhausted month.
+            logger.warning("no player-prop coverage for %s; waiting, not falling back",
+                           event_id)
+            result["no_props_coverage"] = True
+            continue
         result["props_snapshotted"] += len(props)
 
         for prop in props:
@@ -175,7 +247,16 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             predictor = (market_quantiles or {}).get(prop["market"])
             if market is None or predictor is None:
                 continue
-            quantiles = predictor(prop["line"]) if callable(predictor) else predictor
+            if callable(predictor):
+                # The feature row is mandatory. Predicting from the line alone
+                # bypasses the model entirely: every player gets the same
+                # distribution and the edge gate fires off the book's line.
+                season, week = _target_season_week(game)
+                row = (history_row_for(feature_frame, prop["player_id"], season, week)
+                       if feature_frame is not None else {})
+                quantiles = predictor(row, prop["line"])
+            else:
+                quantiles = predictor
             if not _has_spread(quantiles):
                 # A zero-width distribution cannot price a line: `p_over_from_
                 # quantiles` returns the ceiling for a line sitting on it, which
@@ -252,7 +333,13 @@ def _fetch_slate(season: int, week: int) -> list[dict]:
     from ..data import schedules as schedules_module
 
     frame = schedules_module.fetch_upcoming_games(season=season, week=week)
-    return frame.to_dict("records")
+    games = frame.to_dict("records")
+    # nflverse's schedule calls the kickoff `gameday`; the tick and the tracking
+    # store both expect `commence_time`. Without this rename every game reads as
+    # post-kickoff (unparseable -> skipped) and the tick silently does nothing.
+    for game in games:
+        game.setdefault("commence_time", game.get("gameday"))
+    return games
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -44,13 +44,11 @@ def _game(game_id: str, commence: str):
     }
 
 
-def _stub(monkeypatch, props_by_event, coverage=None, credits=500):
-    """Replace the network seam. `_pick` below supplies quantiles."""
+def _stub(monkeypatch, props_by_event, props=None, coverage=None, credits=500):
+    """Replace the network seam. Quantiles come from `market_quantiles=`."""
     from nfl_predictor.tracking import forward_tick
 
     monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: credits >= needed)
-    monkeypatch.setattr(forward_tick, "probe_props_coverage",
-                        lambda event_id: coverage or {"has_any": True, "markets": {}, "books": []})
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda event_id, markets=None, credits_needed=1: props_by_event.get(event_id, []))
 
@@ -157,9 +155,10 @@ def test_budget_exhaustion_writes_nothing(monkeypatch):
 
 
 def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
-    """Spec: if the free tier has no player props, the tick waits."""
+    """Spec: if the free tier has no player props, the tick waits. The fetch
+    returning nothing IS the coverage signal -- there is no separate probe."""
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {}, coverage={"has_any": False, "markets": {}, "books": []})
+    _stub(monkeypatch, {})
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})

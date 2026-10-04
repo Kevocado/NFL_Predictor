@@ -13,7 +13,7 @@
 | gate | result |
 |---|---|
 | MAE (spec §1.3, "necessary but not sufficient") | **PASS** — q50 beats the naive baseline in 20 of 21 market-seasons |
-| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.035** |
+| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.030** |
 
 Both gates pass, so per the plan's Task 14 Step 3 the forward test may start. Worth stating plainly: **this authorises a $0, no-bet observation.** No credit has been spent, no artifact committed, nothing published or placed. The first live tick is Kevin's to start.
 
@@ -27,18 +27,18 @@ Walk-forward 2018–2025, three markets pooled, **37,584 scored rows**. Proxy li
 
 | bucket | predicted | empirical | gap | n | verdict |
 |---|---|---|---|---|---|
-| 0.0–0.1 | 0.089 | 0.077 | 0.012 | 457 | ok |
-| 0.1–0.2 | 0.166 | 0.146 | 0.021 | 4505 | ok |
-| 0.2–0.3 | 0.250 | 0.239 | 0.010 | 6261 | ok |
-| 0.3–0.4 | 0.352 | 0.342 | 0.010 | 4989 | ok |
-| 0.4–0.5 | 0.450 | 0.441 | 0.010 | 4161 | ok |
-| 0.5–0.6 | 0.552 | 0.570 | 0.018 | 4806 | ok |
-| 0.6–0.7 | 0.649 | 0.659 | 0.010 | 4475 | ok |
-| 0.7–0.8 | 0.750 | 0.752 | 0.002 | 4155 | ok |
-| 0.8–0.9 | 0.838 | 0.851 | 0.012 | 3383 | ok |
-| 0.9–1.0 | 0.920 | 0.885 | 0.035 | 331 | ok |
+| 0.0–0.1 | 0.090 | 0.095 | 0.005 | 430 | ok |
+| 0.1–0.2 | 0.166 | 0.142 | 0.024 | 4418 | ok |
+| 0.2–0.3 | 0.250 | 0.242 | 0.008 | 6329 | ok |
+| 0.3–0.4 | 0.351 | 0.346 | 0.005 | 5061 | ok |
+| 0.4–0.5 | 0.451 | 0.438 | 0.013 | 4148 | ok |
+| 0.5–0.6 | 0.552 | 0.568 | 0.016 | 4917 | ok |
+| 0.6–0.7 | 0.649 | 0.658 | 0.008 | 4459 | ok |
+| 0.7–0.8 | 0.750 | 0.758 | 0.008 | 4230 | ok |
+| 0.8–0.9 | 0.839 | 0.849 | 0.010 | 3106 | ok |
+| 0.9–1.0 | 0.919 | 0.889 | 0.030 | 425 | ok |
 
-Every bucket clears. The largest residual is the top bucket at 0.035, on 331 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
+Every bucket clears, on **26 features with no closing-line information** (§3.1). The largest residual is the top bucket at 0.030, on 425 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
 
 ### 1.1 Non-binding diagnostic: own-median curve
 
@@ -99,6 +99,31 @@ This was not gate-shopping; it was the one remaining bucket failing for a mechan
 
 That bucket now reads predicted 0.089 / empirical 0.077 — the model expressing a real tail probability instead of saturating. The `[0.02, 0.98]` clamp remains as a backstop; it is no longer the common case. Pinned by `test_default_quantiles_cover_the_clamp_range`.
 
+### 3.1 Closing-line features removed (found in review)
+
+`spread_line` and `total_line` came from nflverse's weekly schedule, where they
+are the **closing** lines — unknowable at snapshot time. `implied_team_total` and
+`game_total` are derived from them (`features/matchup.py`), and both were in the
+gate's feature list, so **the offline calibration number above had been measured
+partly on information the model will not have when it matters.** It flattered the
+gate.
+
+All four are removed. Measured cost of the honesty:
+
+| | with closing lines | without |
+|---|---|---|
+| worst calibration gap | 0.042 | **0.030** |
+| passing MAE | 69.7 | 70.5 |
+| receiving MAE | 21.2 | 21.2 |
+| rushing MAE | 21.3 | 21.5 |
+| features | 30 (28 gated + 2 ungated) | 26 |
+
+Roughly a yard of passing MAE, and calibration got *better*. The gate and the
+artifacts now share one constant (`FORWARD_FEATURE_COLUMNS`), asserted by
+`test_the_gate_and_the_artifacts_share_one_feature_list` — the previous two
+hand-maintained lists are how the drift survived a suite written to catch
+feature drift.
+
 ---
 
 ## 4. MAE vs the three baselines
@@ -107,8 +132,8 @@ q50 against the naive trailing-mean baseline. Spec's 2025-holdout baselines in t
 
 | market | q50 MAE (mean) | naive MAE | q50 wins | spec baseline |
 |---|---|---|---|---|
-| passing_yards | 69.7 | 70.3 | 5 / 7 | 72.2 |
-| rushing_yards | 21.3 | 22.7 | 7 / 7 | 20.9 |
+| passing_yards | 70.5 | 70.3 | 4 / 7 | 72.2 |
+| rushing_yards | 21.5 | 22.7 | 7 / 7 | 20.9 |
 | receiving_yards (WR+TE) | 21.2 | 22.5 | 7 / 7 | 22.3 (WR) / 17.7 (TE) |
 
 - **Passing** beats the spec's 72.2 but loses to naive in 2018 and 2023, and is the weakest market by ratio (≈0.99× naive). ~650 QB-weeks per season is thin. Watch this one.
@@ -165,7 +190,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1054 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1082 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -176,7 +201,7 @@ Tasks 1–14 complete; **1054 passed, 20 skipped**; ruff clean at CI's rule set.
 | 6 | `models/player_props.py` | `fit_yardage_quantile_models`, deep-tail grid (§3) |
 | 7 | `models/prop_probability.py` | P(over\|line), edge math |
 | 8 | `evaluate/walk_forward.py`, `scripts/train_quantile_props.py` | walk-forward, both curves, tail watch |
-| 9 | `models/quantile_registry.py`, `models/training.py` | versioned artifacts, sha256, additive manifest, gated writes |
+| 9 | `models/quantile_registry.py`, `models/training.py` | versioned artifacts, sha256, additive manifest, gate-gated writes, one shared feature list |
 | 10 | `tracking/store.py` | 7 forward columns, ALTER TABLE, `hit`/`clv` |
 | 11 | `odds/props_snapshot.py` | budget-guarded live fetcher |
 | 12 | `tracking/forward_tick.py` | 5% edge gate, pre-kickoff only; `main()` is the CLI |
@@ -193,9 +218,9 @@ Tasks 1–14 complete; **1054 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | market | features | quantiles | walk-forward MAE |
 |---|---|---|---|
-| `passing_yards_quantile_2025.pkl` | 30 | 19 | 69.5 |
-| `rushing_yards_quantile_2025.pkl` | 30 | 19 | 21.4 |
-| `receiving_yards_quantile_2025.pkl` | 30 | 19 | 21.2 |
+| `passing_yards_quantile_2025.pkl` | 26 | 19 | 70.5 |
+| `rushing_yards_quantile_2025.pkl` | 26 | 19 | 21.5 |
+| `receiving_yards_quantile_2025.pkl` | 26 | 19 | 21.2 |
 
 Manifest: additive key `quantile_yardage_v1`, each artifact carrying a sha256.
 Every pre-existing manifest key is carried through byte-identical — the live site
@@ -212,30 +237,42 @@ python scripts/train_quantile_props.py --seasons 2017-2025 \
 any calibration bucket fails. The gate deciding whether an artifact may exist is
 the whole point of Task 9 following Task 14.
 
-**Two bugs caught while writing these**, both worth recording:
+**Three bugs caught while writing these**, all worth recording:
 
 1. The first artifact had **71 features**, because the feature set was *derived*
    ("every numeric column that is not the label") and so swept in the same-week
    raw stats — `passing_yards`, `targets`, `completions`, `attempts`,
    `fantasy_points`. The offline gate is scored against the declared list, so it
    passed, while the artifact would have been fitted on the answer and would
-   collapse at serving, where those columns do not exist. The set is now
-   `FORWARD_FEATURE_COLUMNS` — declared, gate-validated — and a test asserts the
-   artifact's features are a **subset** of it. The 71-feature artifact was
-   discarded and rewritten at 30.
+   collapse at serving. Now a declared list, with a test asserting the artifact's
+   features are a **subset** of it.
 2. All three artifacts recorded the same MAE (37.4): the pooled mean, which hid
-   that passing (69.5) and receiving (21.2) differ by 3×. Per-market now.
+   that passing and receiving differ by 3×. Per-market now.
+3. The artifacts carried **two features the gate never validated**
+   (`spread_line`, `total_line`), and two more the gate *did* validate that are
+   derived from closing lines. One shared constant now; see §3.1.
+
+### Known limitation in the serving path
+
+`history_row_for` prices a prop from the player's most recent *observed* feature
+row. Every feature there is already lagged, so it is strictly **less** information
+than the model was trained on — it omits the player's most recent game — and it
+cannot leak. It is not a substitute for a builder that scores an unplayed week,
+which would use games through the week before. Expect a small degradation versus
+the offline numbers above, and read the first weeks of the forward test with that
+in mind rather than as a clean read on the model.
 
 ### Next step
 
 ```
 python -m nfl_predictor.tracking.forward_tick --models-dir models \
-    --slate 2026:<week> --report-dir docs/superpowers/forward-test
+    --slate 2026:<week> --season 2026 --week <week> \
+    --report-dir docs/superpowers/forward-test --dry-run
 ```
 
-Add `--dry-run` first: it prints the estimated credit cost and spends nothing.
-A tick costs one `scores` probe plus one props call per pre-kickoff game. Still
-Kevin's word to give — this build has made no request and spent no credit.
+`--dry-run` prints the credit estimate and spends nothing. A tick costs one
+`scores` probe plus one props call per pre-kickoff game. Still Kevin's word to
+give — this build has made no request and spent no credit.
 
 ## 9. Plan deviations
 

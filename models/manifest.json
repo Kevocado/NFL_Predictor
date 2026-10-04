@@ -133,12 +133,8 @@
       "opp_pass_yds_allowed_roll",
       "opp_rush_yds_allowed_roll",
       "opp_rec_yds_allowed_roll",
-      "spread_line",
-      "total_line",
       "is_home",
       "rest_days",
-      "implied_team_total",
-      "game_total",
       "is_outdoor",
       "temp_c",
       "wind_kph",
@@ -158,8 +154,8 @@
     "markets": {
       "passing_yards": {
         "path": "passing_yards_quantile_2025.pkl",
-        "sha256": "5b50a05c42e840203c60be01f8c39daef8918bd58367eb4232a0ab92ef40e1c5",
-        "walkforward_mae": 69.50198990053495,
+        "sha256": "b7ee272b3cc30ca3122dccda5540bf851c40a90d63854b73fd8cec4dd7ed4242",
+        "walkforward_mae": 70.45861177430666,
         "trained_seasons": [
           2017,
           2018,
@@ -171,13 +167,13 @@
           2024,
           2025
         ],
-        "n_features": 30,
+        "n_features": 26,
         "n_quantiles": 19
       },
       "rushing_yards": {
         "path": "rushing_yards_quantile_2025.pkl",
-        "sha256": "37fc6a55a4588dedce6099cf991a36db84d431cf6b79eb422beb1a62cab0ecf5",
-        "walkforward_mae": 21.436036055294363,
+        "sha256": "8acfe18057eb4fc35119bed1d2b297c372dc8bf5b23e8ac7feaddc22d9b26d14",
+        "walkforward_mae": 21.457207373976654,
         "trained_seasons": [
           2017,
           2018,
@@ -189,13 +185,13 @@
           2024,
           2025
         ],
-        "n_features": 30,
+        "n_features": 26,
         "n_quantiles": 19
       },
       "receiving_yards": {
         "path": "receiving_yards_quantile_2025.pkl",
-        "sha256": "58242db7f728c8b552b0d02a4490bba48be3d8f0cc2c445985aaf1c0d34c4722",
-        "walkforward_mae": 21.188249287212987,
+        "sha256": "4c5b669b8acca41f4e4d1582ad2cc0b4f440d24e79a4f39eb3680398d5133f9b",
+        "walkforward_mae": 21.22892809442039,
         "trained_seasons": [
           2017,
           2018,
@@ -207,10 +203,10 @@
           2024,
           2025
         ],
-        "n_features": 30,
+        "n_features": 26,
         "n_quantiles": 19
       }
     },
-    "created_at": "2026-10-04T08:33:04.236397+00:00"
+    "created_at": "2026-10-04T12:13:39.742569+00:00"
   }
 }

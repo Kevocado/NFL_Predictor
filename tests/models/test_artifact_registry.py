@@ -412,3 +412,54 @@ def test_a_frame_without_the_declared_features_writes_nothing(tmp_path):
     assert artifacts == {}
     assert list(tmp_path.glob("*.pkl")) == []
 
+
+
+# --- the gate and the artifact must fit the SAME features -------------------
+
+def test_the_gate_and_the_artifacts_share_one_feature_list():
+    """The drift this pins: the gate validated 28 features while the artifacts
+    were fitted on 30, with nothing comparing the two lists. They are now one
+    constant, and this asserts the script actually imports it rather than
+    re-declaring."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+    import train_quantile_props
+
+    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS
+
+    assert set(train_quantile_props.FEATURE_COLUMNS) == set(FORWARD_FEATURE_COLUMNS), (
+        "the gate and the artifacts must be scored on the same features")
+
+
+def test_closing_line_features_are_excluded():
+    """nflverse's weekly spread_line/total_line are CLOSING lines, and
+    implied_team_total/game_total are derived from them. A pre-kickoff snapshot
+    has the opening line at best, so carrying these fits the model on
+    information it will not have when it matters -- and it is the number the
+    offline calibration is scored by, so the skew flatters the gate."""
+    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS
+
+    closing = {"spread_line", "total_line", "implied_team_total", "game_total"}
+
+    assert not (closing & set(FORWARD_FEATURE_COLUMNS))
+
+
+def test_gate_feature_columns_drops_only_the_models_own_label():
+    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS, gate_feature_columns
+
+    for market in ("passing_yards", "rushing_yards", "receiving_yards"):
+        columns = gate_feature_columns(market)
+        assert market not in columns
+        assert set(columns) == set(FORWARD_FEATURE_COLUMNS) - {market}
+
+
+def test_train_all_refuses_on_an_empty_calibration_report(tmp_path):
+    """Zero buckets means no bucket reached the n>=100 floor: no evidence at all.
+    `calibration_passes` treats that as not-a-pass and train_all must agree, or a
+    run that measured nothing writes artifacts as though it had."""
+    with pytest.raises(ValueError, match="no calibration bucket"):
+        train_all(frame=_training_frame(), trained_seasons=[2017], out_dir=tmp_path,
+                  manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
+                  walkforward_mae=20.0, walkforward_calibration={})

@@ -26,6 +26,7 @@ def _isolated_db(monkeypatch, tmp_path):
 
 GAME = {
     "game_id": "G1", "home_team": "ALB", "away_team": "DEN",
+    "season": 2026, "week": 4,
     "commence_time": "2099-09-04T20:20:00",
     "home_win_prob": 0.5, "away_win_prob": 0.5,
     "home_cover_prob": 0.5, "away_cover_prob": 0.5,
@@ -41,8 +42,6 @@ PROP = {
 
 def _stub(monkeypatch, credits=500, props=None):
     monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: credits >= needed)
-    monkeypatch.setattr(forward_tick, "probe_props_coverage",
-                        lambda e: {"has_any": True, "markets": {}, "books": []})
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda e, markets=None, credits_needed=1: (props if props is not None else [PROP]))
 
@@ -58,11 +57,10 @@ def test_loads_an_artifact_into_a_per_market_predictor(tmp_path, monkeypatch):
     predictor = forward_tick.predictor_for(models_dir)
 
     assert set(predictor) == {"player_rec_yds"}
-    quantiles = predictor["player_rec_yds"](50.0)
+    quantiles = predictor["player_rec_yds"]({"passing_yards_roll": 0.0}, 50.0)
     assert set(quantiles) == set(QUANTILES)
     values = [quantiles[q] for q in QUANTILES]
     assert values == sorted(values), "quantile predictions must ascend with level"
-    assert len(set(values)) > 1, "a flat set would be the degenerate case"
 
 
 def test_missing_artifact_directory_is_an_error_not_an_empty_tick(tmp_path, monkeypatch):
@@ -84,10 +82,46 @@ def test_predictor_expands_a_single_row_to_every_quantile(tmp_path, monkeypatch)
     models_dir = _artifacts(tmp_path, monkeypatch)
     predictor = forward_tick.predictor_for(models_dir)
 
-    row = {"f1": 0.5}
-    quantiles = predictor["player_rec_yds"](50.0, row)
+    quantiles = predictor["player_rec_yds"]({"passing_yards_roll": 0.5}, 50.0)
 
     assert set(quantiles) == set(QUANTILES)
+
+
+def test_the_prediction_actually_moves_with_the_feature_row(tmp_path, monkeypatch):
+    """The pin for the model-bypass bug.
+
+    The stub is a function of its first feature, so discarding the row shifts
+    every quantile. When `predict` built an all-zero frame instead of using the
+    row it was given, both calls returned the same numbers and nothing failed --
+    the 5% gate would then have fired off the book's line alone.
+    """
+    models_dir = _artifacts(tmp_path, monkeypatch)
+    predictor = forward_tick.predictor_for(models_dir)
+
+    low = predictor["player_rec_yds"]({"passing_yards_roll": 0.0}, 50.0)
+    high = predictor["player_rec_yds"]({"passing_yards_roll": 10.0}, 50.0)
+
+    assert low[0.5] != high[0.5]
+    assert high[0.5] > low[0.5]
+
+
+def test_predict_refuses_an_empty_feature_row(tmp_path, monkeypatch):
+    """An absent row must raise, not silently become zeros."""
+    models_dir = _artifacts(tmp_path, monkeypatch)
+    predictor = forward_tick.predictor_for(models_dir)
+
+    with pytest.raises(ValueError, match="feature row"):
+        predictor["player_rec_yds"]({}, 50.0)
+
+
+def test_two_players_get_different_predictions(tmp_path, monkeypatch):
+    models_dir = _artifacts(tmp_path, monkeypatch)
+    predictor = forward_tick.predictor_for(models_dir)
+
+    a = predictor["player_rec_yds"]({"passing_yards_roll": 1.0}, 50.0)
+    b = predictor["player_rec_yds"]({"passing_yards_roll": 9.0}, 50.0)
+
+    assert a[0.5] != b[0.5], "the model is being consulted, not bypassed"
 
 
 def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
@@ -98,6 +132,7 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
     result = forward_tick.run_forward_tick(
         games=[GAME],
         market_quantiles=forward_tick.predictor_for(models_dir),
+        feature_frame=_feature_frame(),
     )
 
     assert result["props_snapshotted"] == 1
@@ -178,7 +213,7 @@ def test_cli_writes_nothing_when_the_budget_is_insufficient(monkeypatch, tmp_pat
 
     result = forward_tick.run_forward_tick(
         games=[GAME], market_quantiles=forward_tick.predictor_for(
-            _artifacts(tmp_path, monkeypatch)))
+            _artifacts(tmp_path, monkeypatch)), feature_frame=_feature_frame())
 
     assert result["picks_logged"] == 0
     assert _logged() == []
@@ -198,6 +233,19 @@ def test_main_writes_a_weekly_report_when_asked(monkeypatch, tmp_path):
     assert (out_dir / "2026-W4.md").exists()
 
 
+def _feature_frame():
+    """One prior week for player 00-1, so `history_row_for` has a row to return."""
+    import pandas as pd
+
+    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS
+
+    row = {c: 0.0 for c in FORWARD_FEATURE_COLUMNS}
+    row["player_id"] = "00-1"
+    row["season"] = 2026
+    row["week"] = 1
+    return pd.DataFrame([row])
+
+
 def _games_file(tmp_path):
     path = tmp_path / "games.json"
     path.write_text(json.dumps([GAME]))
@@ -212,3 +260,87 @@ def _logged() -> list[dict]:
         conn.row_factory = sqlite3.Row
         return [dict(r) for r in conn.execute(
             "SELECT * FROM player_prop_predictions WHERE line_at_snapshot IS NOT NULL")]
+
+# --- the slate must be loadable, and the scope must be real ----------------
+
+def test_slate_rows_carry_commence_time(monkeypatch):
+    """nflverse's schedule names the kickoff `gameday`; the tick reads
+    `commence_time`. Without the rename every game reads as post-kickoff
+    (unparseable -> skipped) and the tick silently does nothing."""
+    from nfl_predictor.tracking import forward_tick
+
+    monkeypatch.setattr("nfl_predictor.data.schedules.fetch_upcoming_games",
+                        lambda season, week: _schedule_frame())
+
+    games = forward_tick._fetch_slate(2026, 5)
+
+    assert games and all(g.get("commence_time") for g in games)
+
+
+def _schedule_frame():
+    import pandas as pd
+
+    return pd.DataFrame([{
+        "game_id": "G1", "season": 2026, "week": 5,
+        "gameday": "2026-10-11T18:00:00+00:00",
+        "home_team": "ALB", "away_team": "DEN",
+    }])
+
+
+def test_weekly_report_is_scoped_to_its_week(monkeypatch, tmp_path):
+    """Two weeks of picks, two reports. Each must show only its own."""
+    from nfl_predictor.tracking.forward_report import graded_picks
+
+    for week, game in ((4, "GW4"), (5, "GW5")):
+        store.record_game_predictions([{
+            "game_id": game, "home_team": "ALB", "away_team": "DEN",
+            "commence_time": "2099-09-04T20:20:00", "season": 2026, "week": week,
+            "home_win_prob": 0.5, "away_win_prob": 0.5, "home_cover_prob": 0.5,
+            "away_cover_prob": 0.5, "over_prob": 0.5, "under_prob": 0.5,
+        }])
+        store.record_player_prop_predictions([{
+            "game_id": game, "player_id": f"00-{week}", "player_name": "P",
+            "market": "receiving_yards", "position": "WR", "predicted_value": 50.0,
+            "side": "over", "line_at_snapshot": 52.5, "odds_at_snapshot": -110.0,
+            "model_p_over": 0.60, "edge_vs_breakeven": 0.076,
+        }])
+
+    assert len(graded_picks(season=2026, week=4)) == 1
+    assert len(graded_picks(season=2026, week=5)) == 1
+    assert len(graded_picks(season=2026)) == 2
+
+
+def test_a_verified_artifact_is_served_and_a_corrupt_one_is_not(tmp_path, monkeypatch):
+    """`load_quantile_artifact` is a bare pickle.loads, so a stale pickle would
+    price picks silently -- the incident models/manifest.py documents."""
+    import json
+    import sqlite3
+
+    from nfl_predictor.models import quantile_registry
+
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",))
+    # No manifest: predictor_for verifies only when one exists.
+    assert forward_tick.predictor_for(models_dir)
+
+    # Now write a manifest whose recorded digest does not match the file.
+    manifest = {"quantile_yardage_v1": {"markets": {
+        "receiving_yards": {"path": "receiving_yards_quantile_2025.pkl",
+                            "sha256": "0" * 64}}}}
+    (models_dir / "manifest.json").write_text(json.dumps(manifest))
+
+    with pytest.raises(RuntimeError, match="do not verify"):
+        forward_tick.predictor_for(models_dir)
+
+
+def test_a_matching_manifest_verifies(tmp_path, monkeypatch):
+    import json
+    import hashlib
+
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",))
+    digest = hashlib.sha256(
+        (models_dir / "receiving_yards_quantile_2025.pkl").read_bytes()).hexdigest()
+    (models_dir / "manifest.json").write_text(json.dumps({"quantile_yardage_v1": {
+        "markets": {"receiving_yards": {
+            "path": "receiving_yards_quantile_2025.pkl", "sha256": digest}}}}))
+
+    assert forward_tick.predictor_for(models_dir)

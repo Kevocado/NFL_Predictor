@@ -25,16 +25,25 @@ ARTIFACT_SUFFIX = "_quantile_2025"
 
 
 class FixedQuantileModel:
-    """Module-level so it pickles, like a fitted estimator does."""
+    """Module-level so it pickles, like a fitted estimator does.
 
-    def __init__(self, value: float):
+    **Responds to its input.** An earlier version returned a constant regardless
+    of X, which made every serving-path test pass while the production code fed
+    it an all-zero feature row and bypassed the model entirely -- the stub was
+    incapable of noticing. `value + first feature` means a test that discards the
+    feature row now fails.
+    """
+
+    def __init__(self, value: float, feature_index: int = 0):
         self.value = float(value)
+        self.feature_index = int(feature_index)
 
     def predict(self, X):
-        return np.full(len(X), self.value)
+        frame = X.iloc[:, self.feature_index].to_numpy(dtype=float)
+        return self.value + frame
 
     def get_params(self, deep: bool = True):
-        return {"value": self.value}
+        return {"value": self.value, "feature_index": self.feature_index}
 
 
 def write_artifact(directory: Path | str, market: str = "receiving_yards",
@@ -45,7 +54,7 @@ def write_artifact(directory: Path | str, market: str = "receiving_yards",
     payload = {
         "quantile_models": {q: FixedQuantileModel(v)
                             for q, v in zip(QUANTILE_GRID, QUANTILE_VALUES)},
-        "feature_cols": feature_cols or ["f1"],
+        "feature_cols": feature_cols or ["passing_yards_roll"],
         "trained_seasons": [2017, 2018],
         "walkforward_mae": 20.0,
         "walkforward_calibration": {"0.5-0.6": {"predicted": 0.55, "empirical": 0.56,
