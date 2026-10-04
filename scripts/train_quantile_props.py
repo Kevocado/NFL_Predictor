@@ -121,7 +121,7 @@ def build_feature_frame(seasons: list[int], cache_dir: Path,
     frame = _add_rolling(weekly)
 
     print("building matchup + game-context features...")
-    weather = build_weather(schedules, cache_dir, fetch_weather=args.fetch_weather)
+    weather = build_weather(schedules, cache_dir, fetch_weather=fetch_weather)
     frame = add_matchup_features(frame, schedules, weather_by_game=weather)
 
     print("building availability features (this reads play-by-play)...")
