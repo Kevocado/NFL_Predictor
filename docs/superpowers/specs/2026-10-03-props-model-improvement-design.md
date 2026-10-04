@@ -99,8 +99,14 @@ market if D8 coverage allows).
 ## 5. Modeling
 
 **The structural change:** replace XGBoost point regression with **quantile
-regression** (gradient boosting with quantile loss, quantiles 0.1–0.9 in 0.1
-steps) per market. P(over | line) is interpolated from the predicted quantiles —
+regression** (gradient boosting with quantile loss) per market. Quantile grid:
+0.01–0.05, 0.1–0.9 in 0.1 steps, 0.95–0.99 — extended 2026-10-04 after the
+offline gate showed the [0.02, 0.98] output clamp saturated the tails: with
+q0.1 as the lowest fitted level, every line beyond q0.9 reported a flat 0.02
+while the true tail over-rate was 7.7% (0.0% of those rows were genuinely
+beyond the data). The tails are where far under/over prices live, so a model
+that can't express them misprices exactly the bets the edge gate would take.
+P(over | line) is interpolated from the predicted quantiles —
 no normality assumption, no residual-variance hack. This directly serves the
 betting decision: edge = P(over) − breakeven(line odds).
 
