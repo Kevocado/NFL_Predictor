@@ -150,6 +150,12 @@ immutably and reconciles vs. actuals. Extend it — no new infrastructure:
    negative, stop betting consideration and write up what the data says (likely:
    variance too high for yardage props at these edges — the TD model's calibration
    suggests pivoting to mispriced TD markets instead).
+   **Early tail check (added 2026-10-04):** at 4 weeks, slice calibration by
+   |line − model median| distance. If picks in the outer third show systematic
+   overconfidence (empirical hit rate > 5 points below mean predicted P), stop
+   early — do not wait for week 10. The offline gate's own-median diagnostic
+   says this region is where the model is weakest, and it is also where the 5%
+   edge gate fires most.
 
 ## 8. CFB phase 2 (out of scope for this spec, noted for continuity)
 
