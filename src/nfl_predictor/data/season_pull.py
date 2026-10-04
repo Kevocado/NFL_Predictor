@@ -75,5 +75,102 @@ def pull_ngs(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+#: Per-role pbp columns: (player id column, player name column).
+_ROLES = (
+    ("passer_player_id", "passer_player_name"),
+    ("rusher_player_id", "rusher_player_name"),
+    ("receiver_player_id", "receiver_player_name"),
+)
+
+#: Output stat -> pbp column, split because the two aggregate differently:
+#: yardage sums, flags count.
+_YARDAGE_SOURCES = {
+    "passing_yards": "passing_yards",
+    "rushing_yards": "rushing_yards",
+    "receiving_yards": "receiving_yards",
+}
+_FLAG_SOURCES = {
+    "carries": "rush_attempt",
+    "receptions": "complete_pass",
+    "targets": "pass_attempt",
+}
+
+#: Which stats each role owns. A completed pass is one row for the passer *and*
+#: one for the receiver, so without this a QB would be credited with his
+#: receiver's yardage and a WR with his quarterback's attempts.
+_ROLE_STATS = {
+    "passer_player_id": ("passing_yards",),
+    "rusher_player_id": ("rushing_yards", "carries"),
+    "receiver_player_id": ("receiving_yards", "receptions", "targets"),
+}
+
+_ALL_STATS = tuple(_YARDAGE_SOURCES) + tuple(_FLAG_SOURCES)
+
+WEEKLY_COLUMNS = ["player_id", "player_name", "position", "season", "week",
+                  "recent_team", "opponent_team", "passing_yards", "rushing_yards",
+                  "receiving_yards", "targets", "carries", "receptions"]
+
+
+def _role_frame(games: pd.DataFrame, id_column: str, name_column: str) -> pd.DataFrame:
+    """One row per (player, week) appearance in this role, with only this role's
+    stats populated and every other stat zeroed."""
+    sub = games[games[id_column].notna()].reset_index(drop=True)
+    owned = _ROLE_STATS[id_column]
+    frame = pd.DataFrame({
+        "player_id": sub[id_column].to_numpy(),
+        "player_name": sub[name_column].to_numpy(),
+        "season": sub["season"].to_numpy(),
+        "week": sub["week"].to_numpy(),
+        "posteam": sub["posteam"].to_numpy(),
+        "defteam": sub["defteam"].to_numpy(),
+    })
+    for stat, source in _YARDAGE_SOURCES.items():
+        frame[stat] = sub[source].fillna(0) if stat in owned else 0
+    for stat, source in _FLAG_SOURCES.items():
+        frame[stat] = sub[source].fillna(False).astype(bool).astype(int) if stat in owned else 0
+    return frame
+
+
+def weekly_from_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
+    """Derive weekly player yardage stats from nflverse play-by-play.
+
+    Needed because nflverse's `player_stats` release ends at 2024 while its pbp
+    release runs to the current season. Measured against the official 2024
+    weekly stats: passing yards and receptions match exactly, rushing and
+    receiving yards agree on >=99.6% of player-weeks with correlation >0.999
+    (the residual is laterals, which nflverse folds into the official totals).
+
+    `position` is left as NA: pbp carries no roster, and the training script
+    fills it from the depth-chart cache.
+    """
+    if pbp.empty:
+        return pd.DataFrame(columns=WEEKLY_COLUMNS)
+
+    games = pbp[pbp["season_type"].astype(str).str.upper() == "REG"]
+    keys = ["player_id", "season", "week"]
+
+    numeric_parts, identity_parts = [], []
+    for id_column, name_column in _ROLES:
+        frame = _role_frame(games, id_column, name_column)
+        if frame.empty:
+            continue
+        numeric_parts.append(frame.groupby(keys, as_index=False)[list(_ALL_STATS)].sum())
+        identity_parts.append(frame[[*keys, "player_name", "posteam", "defteam"]])
+
+    if not numeric_parts:
+        return pd.DataFrame(columns=WEEKLY_COLUMNS)
+
+    # Identity comes from every role, not just one: a running back never appears
+    # in the passer frame, so taking it from there leaves his team blank.
+    identity = (pd.concat(identity_parts, ignore_index=True).drop_duplicates(subset=keys)
+                .rename(columns={"posteam": "recent_team", "defteam": "opponent_team"}))
+
+    weekly = pd.concat(numeric_parts, ignore_index=True).groupby(keys, as_index=False)[list(_ALL_STATS)].sum()
+    weekly = weekly.merge(identity[[*keys, "player_name", "recent_team", "opponent_team"]],
+                          on=keys, how="left")
+    weekly["position"] = pd.NA
+    return weekly.sort_values(keys)[WEEKLY_COLUMNS].reset_index(drop=True)
+
+
 def pull_schedules(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     return _cached_pull("schedules", seasons, Path(cache_dir), nfl.import_schedules)
