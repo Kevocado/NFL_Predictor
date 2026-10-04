@@ -83,3 +83,83 @@ jobs:
         # branch (M11) in tests/mutation_check.py still typechecks clean, and both
         # mutations are caught only here.
         run: node props_state_check.mjs
+
+  mutation-harness:
+    # The only thing here that answers "do these tests bite?". It edits a source
+    # file in a copy of the tree, re-runs the suite, and requires every one of 35
+    # edits to be caught. Without it in CI the answer was a file nobody executed:
+    # the harness had already stopped judging anything twice -- once for a copy
+    # manifest missing `scripts/` (#33) and once for a copy with no git repository
+    # in it, found by putting it here -- and every push was green both times.
+    #
+    # Sharded because a serial pass is 19 minutes. Measured, one full pass on a
+    # 2026 workstation: 19m17s wall, of which 27 `pytest -q -m "not network" tests`
+    # runs in the copy at ~40s each (26 python-arm mutations plus the baseline) and
+    # 10 `node props_state_check.mjs` runs. So this is not a per-push job as one
+    # serial leg, and the alternative -- a nightly cron -- would mean a mutant could
+    # land on a Friday and sit undetected until Monday.
+    #
+    # Four legs, ~8 min of suite time each (the legs get 9, 10, 11 and 9 of those 27
+    # runs), in parallel with each other and with the `pytest` job. Not more legs:
+    # `MUTATIONS[i::n]` splits evenly, so a fifth leg saves ~90s of suite time and
+    # spends a fresh venv and an `npm ci` to do it -- which is most of what a leg is.
+    #
+    # No `if:`, no `paths:` filter and no `continue-on-error`, deliberately. A
+    # condition-skipped job reports `skipped`, which counts as satisfied for a
+    # required check, and `continue-on-error` turns the conclusion into `success`
+    # whatever the harness printed -- both are a skip that reports green, which is
+    # the defect this job exists to remove. tests/test_mutation_harness_ci.py
+    # asserts all three against this file and red-checks each one.
+    name: mutation harness (${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # Not for speed. A red leg is red either way, and this costs every other leg
+      # its remaining minutes only on the runs where something is actually broken
+      # -- which is exactly when you want to know which mutations it was.
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+        shards: [4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          # 20.19, the floor jsdom 29 declares -- same reason, and the same
+          # version, as the `frontend` job above.
+          node-version: "20.19"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -e ".[dev]"
+
+      - name: Frontend dependencies
+        # The frontend arm runs `node props_state_check.mjs` against the copy, and
+        # `build_tree` symlinks `frontend/node_modules` rather than copying it.
+        working-directory: frontend
+        run: npm ci
+
+      - name: Every mutation must be caught
+        # `.venv/bin/python`, not `python`: `mutation_check.PYTHON` is
+        # `ROOT/.venv/bin/python` because the copy has to be judged by the
+        # interpreter that installed the package, and `assert_copy_is_under_test`
+        # exists to prove the copy is the thing under test. Installing into the
+        # runner's interpreter instead would leave that path absent and every
+        # subprocess call in the harness raising FileNotFoundError.
+        #
+        # No `PYTHONPATH` here, unlike the steps above: the harness sets it per
+        # subprocess to the *copy's* src, and a job-level one would be a second,
+        # wrong answer to the same question.
+        run: |
+          .venv/bin/python tests/mutation_check.py --shard=${{ matrix.shard }}/${{ matrix.shards }}
