@@ -1070,11 +1070,58 @@ def _games_to_snapshot(season: int, week: int, now: datetime, lead_hours: float 
     return games[kickoff.notna() & (kickoff <= horizon)].drop_duplicates("game_id").reset_index(drop=True)
 
 
+def _passing_td_prop_row(prop: dict, game_id: str) -> dict | None:
+    """The `passing_tds` pick row for one QB prop, or None when there is no call.
+
+    `predict_props` has already done the work: a QB whose passing-TD model ran
+    carries `passing_td_*` on the same row the yardage markets use, and a QB whose
+    did not (no `qb_passing_td` in the artefact, or no mu to project from) carries
+    none of them. So this is a shape adapter, not a second prediction -- the line
+    recorded here is the line that was served, which is the whole point: a
+    re-derived one could differ from what a reader acted on.
+
+    `predicted_value` is the probability of the side called, which is what it means
+    for `anytime_td` too, so `_prop_markets` can grade both markets' confidence the
+    same way. The line is NOT `predicted_value`; it is an over/under, so it travels
+    in its own column beside its `line_source`.
+
+    Subscript, not `.get`, for every field after the `passing_td_line` presence
+    check. A payload carrying a line but no side is a broken contract, and this
+    raises rather than quietly storing half a call that could not be graded. The
+    tick catches it per player, so one malformed payload costs that QB its pick and
+    nothing else -- see the comment at the call site.
+    """
+    if prop["position"] != "QB" or prop.get("passing_td_line") is None:
+        return None
+    return {
+        "game_id": game_id, "player_id": prop["player_id"], "player_name": prop["player_name"],
+        "position": prop["position"],
+        "market": player_props.qb_passing_td.PASSING_TD_MARKET,
+        "predicted_value": float(prop["passing_td_prob"]),
+        # Provenance travels with the number, in the row itself. The line is
+        # derived from the model's own projection, so it is a model line and NOT a
+        # sportsbook price -- there is no book here to have an edge against.
+        "line": float(prop["passing_td_line"]),
+        "line_source": prop["passing_td_line_source"],
+        "side": prop["passing_td_side"],
+        "mu": float(prop["passing_td_mu"]),
+        "call_prob": float(prop["passing_td_prob"]),
+    }
+
+
 def background_tracking_tick(season: int, week: int) -> None:
     """Snapshot this week's upcoming-game (and player-prop) predictions,
     then reconcile anything now resolved. Called on a timer from
     api/main.py's lifespan the same way PL_Predictor's own
-    background_tracking_tick is."""
+    background_tracking_tick is.
+
+    **This is the only writer of `player_prop_predictions`, and it writes the QB
+    passing-TD market alongside the others**, through `_passing_td_prop_row`, with
+    the report on the other side in `store._prop_markets`. It is written HERE, in
+    the tick, and nowhere else: for a season the market is a prediction a reader can
+    make a decision on and cannot be graded, which is worse than not shipping it.
+    The prop table's primary key is `(game_id, player_id, market)`, so
+    `market="passing_tds"` needs no migration and no weakening of that key."""
     games = _games_to_snapshot(season, week, datetime.now(timezone.utc))
     if not games.empty:
         models = _load_models_cached()
@@ -1113,6 +1160,11 @@ def background_tracking_tick(season: int, week: int) -> None:
                 team_to_game[g["home_team"]] = g["game_id"]
                 team_to_game[g["away_team"]] = g["game_id"]
             prop_rows = []
+            # QBs whose passing-TD call could not be turned into a row. Counted and
+            # logged rather than dropped: an absent row is indistinguishable from a
+            # QB nobody picked, and this is the one gap in the prop record that no
+            # reader of the track record could otherwise see.
+            uncalled_qbs: list[str] = []
             for prop in _get_player_props_live(season, week):
                 game_id = team_to_game.get(prop["recent_team"])
                 if game_id is None:
@@ -1130,7 +1182,42 @@ def background_tracking_tick(season: int, week: int) -> None:
                             "position": prop["position"],
                             "market": market, "predicted_value": value,
                         })
+                if prop["position"] != "QB":
+                    continue
+                try:
+                    call_row = _passing_td_prop_row(prop, game_id)
+                except Exception:  # noqa: BLE001 - one QB must not cost the whole prop record
+                    # A payload with a line and no side, or a side that is not one.
+                    # `_passing_td_prop_row` raises on that rather than storing half
+                    # a call, and catching it HERE rather than at the block's own
+                    # `except` is what keeps the blast radius one QB: without it a
+                    # malformed payload would take down the anytime-TD and yardage
+                    # rows too, which have nothing to do with this market.
+                    logger.exception(
+                        "malformed passing-TD payload for player_id=%s in season=%s "
+                        "week=%s; this pick is not recorded and the others are",
+                        prop.get("player_id"), season, week,
+                    )
+                    call_row = None
+                if call_row is None:
+                    uncalled_qbs.append(str(prop["player_id"]))
+                    continue
+                prop_rows.append(call_row)
             store.record_player_prop_predictions(prop_rows)
+            if uncalled_qbs:
+                # WARNING, not INFO, and named: the same reasoning as the empty
+                # `actual_stats` block lower down in this tick. The likely cause is
+                # an artefact directory with no `qb_passing_td` model in it, which
+                # makes `predict_props` omit every `passing_td_*` key -- so the
+                # market would otherwise record nothing at all and read on the
+                # track record as "no picks yet" forever.
+                logger.warning(
+                    "no passing-TD call for %d QB prop(s) in season=%s week=%s "
+                    "(first=%s); their passing_tds picks were NOT recorded, so the "
+                    "passing-TD record is short by that many -- is "
+                    "models/manifest.json missing qb_passing_td?",
+                    len(uncalled_qbs), season, week, uncalled_qbs[:3],
+                )
         except Exception:
             logger.exception("player prop snapshot failed for season=%s week=%s", season, week)
 

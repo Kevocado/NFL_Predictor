@@ -9,6 +9,7 @@ only fills outcome columns on existing, unresolved rows.
 from __future__ import annotations
 
 import contextlib
+import math
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -124,16 +125,18 @@ def _ensure_schema(conn: sqlite3.Connection) -> list[str]:
 #: they are migrated. Declared once, beside the game-side list, so the migration
 #: and the writer cannot grow a column in one place and forget it in the other.
 #:
-#: **These are the only columns the writer accepts from the caller for a market
-#: this build never writes.** `routes.background_tracking_tick` snapshots
-#: `market="anytime_td"` plus `POSITION_MARKETS`; it writes no `passing_tds` row
-#: and fills none of these five, so on the live database they are all NULL. The
-#: writer still round-trips them and the grader still routes `passing_tds`
-#: through `passing_tds` -- that behaviour is real and tested -- but nothing in
-#: serving reaches it today. `tracking/qb_passing_td_record.py`, the report that
-#: read them, was deleted for having no consumer; see that module's removal note
-#: in the PR. They stay because a future writer in `api/routes.py` needs no
-#: migration, not because anything currently fills them.
+#: **All five are now filled in production.** `routes.background_tracking_tick`
+#: snapshots `market="anytime_td"`, every market in `POSITION_MARKETS`, and
+#: `market="passing_tds"` via `routes._passing_td_prop_row`, and `record_player_
+#: prop_predictions` round-trips all five for it. They stayed through the era when
+#: nothing wrote the market (`tracking/qb_passing_td_record.py` was deleted in PR
+#: #31 for reporting rows nothing wrote) precisely so that wiring the writer up
+#: would need no migration.
+#:
+#: `line_source` is stored rather than assumed, and it is the reason the line can
+#: never be misread as a price: the line is derived from the model's own
+#: projection (`models/qb_passing_td.model_line`), so it is a MODEL line and not a
+#: sportsbook line -- there is no book here to have an edge against.
 _PASSING_TD_PROP_COLUMNS = (
     ("line", "REAL"),
     ("line_source", "TEXT"),
@@ -1602,6 +1605,152 @@ def _anytime_td_by_label_version(anytime_td_all: pd.DataFrame, current_version: 
     return buckets
 
 
+#: The market the QB passing-TD call is recorded under. Spelled as a literal
+#: rather than imported from `models.qb_passing_td` so the tracking layer does not
+#: pull the models package (and xgboost) in for one constant -- and
+#: `_MARKET_TO_STAT_COLUMN` keys the same market the same way.
+PASSING_TD_MARKET = "passing_tds"
+
+
+def _line_is_half_point(line: float) -> bool:
+    """Whether `line` ends in .5, which is what makes a push impossible against it.
+
+    The actual count is an integer and the line a half point, so `actual == line`
+    is unreachable and over/under is exhaustive over the outcomes.
+    `models.qb_passing_td.model_line` only ever produces x.5, so this is a backstop
+    on a STORED row rather than the rule that makes it true: a whole-number line
+    means a push is reachable, and `_passing_td_metrics` reports such a row as
+    ungradeable instead of guessing a side for it.
+    """
+    value = float(line)
+    return math.isfinite(value) and abs(value - math.floor(value) - 0.5) < 1e-9
+
+
+def _passing_td_hit(row: pd.Series) -> bool | None:
+    """Whether the recorded call hit, or None when the row cannot be graded.
+
+    `actual > line` for over and `actual < line` for under -- the stored line and
+    side, never a re-derived one, so the record grades the call that was actually
+    made. Three ways to be ungradeable, all of them defects rather than outcomes:
+    no line, no actual, a side that is neither over nor under, or a line a push is
+    reachable against. None is reported, never guessed and never raised: a raise
+    here would take down `get_track_record` for the whole site over one bad row,
+    which is the lesson `_label_version_sort_key` exists for.
+    """
+    line, side, actual = row.get("line"), row.get("side"), row.get("actual_value")
+    if line is None or pd.isna(line) or actual is None or pd.isna(actual):
+        return None
+    if side not in ("over", "under") or not _line_is_half_point(line):
+        return None
+    return float(actual) > float(line) if side == "over" else float(actual) < float(line)
+
+
+def _qb_pick_rows(resolved: pd.DataFrame) -> pd.DataFrame:
+    """Every counted QB pick in the frame -- the denominator for the passing-TD record.
+
+    A QB the tick recorded gets an `anytime_td` row whether or not a passing-TD
+    call could be produced for it, so this frame is "the QBs we picked" read off
+    the table rather than from a counter somebody has to remember to increment.
+    That is what lets `_passing_td_metrics` name a QB whose call is missing instead
+    of reporting a short record as if it were complete.
+
+    A row whose `position` is NULL -- recorded before that column existed -- is not
+    counted, because "is this a QB" is exactly what the NULL leaves unknown.
+    """
+    if resolved.empty or "position" not in resolved.columns:
+        return resolved.iloc[0:0]
+    return resolved[(resolved["market"] == "anytime_td") & (resolved["position"] == "QB")]
+
+
+def _pairs(frame: pd.DataFrame) -> set[tuple]:
+    """The `(game_id, player_id)` keys of a frame, as a set for set arithmetic."""
+    if frame.empty:
+        return set()
+    return set(zip(frame["game_id"].tolist(), frame["player_id"].tolist()))
+
+
+def _passing_td_metrics(rows: pd.DataFrame, qb_picks: pd.DataFrame) -> dict:
+    """The passing-TD call's own record: how many calls hit, and how wrong they were.
+
+    `rows` are the counted `passing_tds` rows (`_counted_prop_picks` has already
+    kept the earliest per `(game_id, player_id, market)`), and `qb_picks` the
+    counted QB `anytime_td` rows of the same frame. Both come from one frame, so
+    `n_served` and `n_resolved` are measured over the same picks and the gap
+    between them means something.
+
+    **Absence is reported, not absorbed.** `n_served_without_a_graded_call` is the
+    set difference, so a QB the tick picked with no passing-TD call written for it
+    shows up as a named gap instead of silently not being in the record. The writer
+    logs the same gap at WARNING (see `routes.background_tracking_tick`); this is
+    the half a reader of the track record sees.
+
+    `n_resolved` counts the rows this block was handed, and every one of them was
+    written by the grader with the real `passing_tds` stat column as `actual_value`
+    (`_MARKET_TO_STAT_COLUMN`) -- so every row here is graded against an outcome that
+    exists. `n_ungradeable` is separate and non-zero only for a corrupt row; it is
+    never folded into the hit rate, so the rate is always a rate over gradeable
+    calls and its denominator is published beside it.
+
+    **The line is a MODEL line.** It comes from `qb_passing_td.model_line(mu)` --
+    the nearest half point to the model's own expectation -- so there is no
+    sportsbook price in this block and nothing to have an edge against.
+    `line_sources` publishes the provenance found on the stored rows as a list
+    rather than a constant, so a real book line wired in later shows up here
+    instead of being read as a model line. A row with no provenance at all reads
+    `unstated`, which is the one value that must never be mistaken for a model line.
+    """
+    served, recorded = _pairs(qb_picks), _pairs(rows)
+    graded: list[bool] = []
+    per_pick: list[dict] = []
+    ungradeable = 0
+    for _, row in rows.iterrows():
+        hit = _passing_td_hit(row)
+        if hit is None:
+            ungradeable += 1
+            continue
+        graded.append(hit)
+        per_pick.append({
+            "game_id": row["game_id"],
+            "player_name": row.get("player_name"),
+            "line": float(row["line"]),
+            "line_source": row.get("line_source"),
+            "side": row["side"],
+            "mu": _optional_float(row.get("mu")),
+            "call_prob": _optional_float(row.get("call_prob")),
+            "actual_passing_tds": float(row["actual_value"]),
+            "hit": hit,
+        })
+
+    by_side: dict[str, dict] = {}
+    for entry in per_pick:
+        bucket = by_side.setdefault(entry["side"], {"n": 0, "hits": 0})
+        bucket["n"] += 1
+        bucket["hits"] += int(entry["hit"])
+    for bucket in by_side.values():
+        bucket["hit_rate"] = bucket["hits"] / bucket["n"]
+
+    # Brier on the binary outcome the call was about: p = the called side's
+    # probability, y = whether it hit. Rows with no stored probability are left out
+    # rather than scored at 0, which would be a fabricated confidence.
+    brier = [(e["call_prob"] - float(e["hit"])) ** 2
+             for e in per_pick if e["call_prob"] is not None]
+    n = len(graded)
+    return {
+        "line_sources": sorted({"unstated" if e["line_source"] is None or pd.isna(e["line_source"])
+                                else str(e["line_source"]) for e in per_pick}),
+        "n_served": len(served),
+        "n_resolved": int(len(rows)),
+        "n_served_without_a_graded_call": len(served - recorded),
+        "n_gradeable": n,
+        "n_ungradeable": ungradeable,
+        "n_called": n,
+        "hit_rate_when_called": (sum(graded) / n) if n else None,
+        "brier_score": (sum(brier) / len(brier)) if brier else None,
+        "by_side": by_side,
+        "per_pick": per_pick,
+    }
+
+
 def _prop_markets(resolved: pd.DataFrame) -> dict:
     """Every prop market's own metrics over exactly the rows handed in, and nothing else.
 
@@ -1623,6 +1772,12 @@ def _prop_markets(resolved: pd.DataFrame) -> dict:
 
     The yardage markets are untouched and carry no `label_version`: their `actual_value` is a raw
     nflverse stat column read straight off the box score, so there is no definition to have moved.
+
+    **`passing_tds` is graded against that same kind of raw stat column** -- the real `passing_tds`
+    count from the box score -- so it carries no `label_version` either, and it is NOT folded into
+    `_YARDAGE_MARKETS`, which grades a yardage point estimate and has no line or side to grade. It
+    is an over/under, so it gets its own block, and it carries both the line's provenance and the
+    count of QB picks that never got a call recorded. See `_passing_td_metrics`.
     """
     result: dict[str, dict] = {}
 
@@ -1647,6 +1802,9 @@ def _prop_markets(resolved: pd.DataFrame) -> dict:
         **_anytime_td_metrics(anytime_td),
         "by_label_version": by_version,
     }
+
+    td_rows = resolved[resolved["market"] == PASSING_TD_MARKET] if not resolved.empty else resolved
+    result[PASSING_TD_MARKET] = _passing_td_metrics(td_rows, _qb_pick_rows(resolved))
 
     for market in _YARDAGE_MARKETS:
         rows = resolved[resolved["market"] == market] if not resolved.empty else resolved
@@ -1753,19 +1911,20 @@ _MARKET_TO_STAT_COLUMN = {
     # which is this column directly -- not the anytime-TD roll-up, which also
     # counts rushing and receiving touchdowns. So this market routes through the
     # ordinary stat-column path: `actual_value` becomes the real passing TD count,
-    # ready for a line-and-side comparison against the recorded `line`.
+    # ready for a line-and-side comparison against the recorded `line`, which
+    # `_passing_td_metrics` does.
     #
-    # **Nothing in serving writes this market.** `routes.background_tracking_tick`
-    # snapshots `market="anytime_td"` plus `player_props.POSITION_MARKETS`, and
-    # `"passing_tds"` is in neither, so no `passing_tds` row exists on the live
-    # database and this entry is currently unreachable from serving. It is kept
-    # because the grader is real code with real behaviour, and because removing it
-    # would silently drop any such row if a writer were ever added -- but it is
-    # not a claim that the market is tracked today. The report that used to read
-    # those rows, `tracking/qb_passing_td_record.py`, was DELETED for exactly
-    # that reason: it read rows nothing wrote, and wrapped the read in a bare
-    # `except Exception` that would have reported a permanently empty record.
-    # `tests/test_passing_td_record_absence.py` pins that the module is gone.
+    # **This market is now written, graded and reported.** `routes.background_
+    # tracking_tick` emits it through `routes._passing_td_prop_row`, and
+    # `_prop_markets` reports it. It was unreachable from serving until that
+    # writer landed; the report that used to read these rows,
+    # `tracking/qb_passing_td_record.py`, had already been DELETED in PR #31
+    # because it read rows nothing wrote and swallowed every error, which is
+    # exactly the "permanently empty record that looks like no picks yet" failure.
+    # The rewrite keeps that module deleted -- the report is a block in
+    # `_prop_markets` instead, where no bare `except` can hide it -- and
+    # `tests/test_passing_td_record_absence.py` still pins the module's absence
+    # and now also pins that the writer and the slot both exist.
     "passing_tds": "passing_tds",
 }
 
