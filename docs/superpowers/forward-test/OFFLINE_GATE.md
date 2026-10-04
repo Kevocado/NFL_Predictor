@@ -298,7 +298,48 @@ tick exits 2 and records nothing. A tick costs one props call per pre-kickoff
 game; the credit probe is free. Still Kevin's word to give — this build has made
 no request and spent no credit.
 
-## 9. Plan deviations
+## 9. Review outcomes
+
+Recorded per the org's standing rule: no commit reaches `main` without a review,
+and the outcome belongs in the record.
+
+### `superpowers:requesting-code-review` — 3 passes, all findings fixed
+
+| pass | verdict | criticals raised | status |
+|---|---|---|---|
+| 1 | not ready | model bypassed from an all-zero feature row; unloadable slate; gate validated 28 features while artifacts were fitted on 30, two of them closing lines; weekly report rendered the all-time record; `player_id` had no producer | all fixed |
+| 2 | not ready | fixes were wired into functions but not into `main()`; `history_row_for` took `is_home`/`rest_days` from the previous game | all fixed |
+| 3 | not ready | the context columns were still never supplied at the call site, so 7 of 26 features went to zero — worse than the state it replaced | all fixed |
+
+Every finding is pinned by a mutation that previously left the suite green and
+now fails: `history_row_for` `<`→`<=`; the tick dropped from `main()`; `players`
+never passed; `game_context` unwired; the budget guard removed.
+
+### CodeRabbit (PR #39) — 6 findings, all fixed
+
+| finding | status |
+|---|---|
+| props parser read a flat row; the API nests `bookmakers→markets→outcomes` | fixed — a flat row now provably yields nothing |
+| `match_props_to_players` joined on `(name, team)`; outcomes carry no team | fixed — joins on name, skips ambiguous rather than guessing |
+| weather requested `T00:00:00Z`, the evening before an afternoon kickoff | fixed — built from the schedule's `gametime`, ET→UTC |
+| `Acrisure Stadium` given the Orchard Park coordinates (it is Pittsburgh) | fixed |
+| a missing `pbp_{season}.parquet` failed late, after five other stages | fixed — checked up front |
+| `requests-mock` undeclared; collection failed on CI | fixed — added to the dev extra |
+
+Fixing the weather hour surfaced a sign error in the repair itself: Eastern is
+behind UTC, so the conversion adds. An intermediate version put a 1pm EST kickoff
+at 08:00Z.
+
+Then a second CodeRabbit pass added two more, both fixed: forward picks collided
+with the yardage projections on `(game_id, player_id, market)` — now namespaced
+`fwd_*` — and `_forward_verdict` tested `is None` on values that arrive from
+`pd.read_sql` as **NaN**, grading a snapshot-less row as a fabricated miss.
+
+### CI
+
+`pytest` pass · mutation harness **4/4 pass** · frontend pass.
+
+## 10. Plan deviations
 
 - **Task 1–2 tests stub `nfl_data_py`** rather than hitting the network. `tests/conftest.py` blocks connects suite-wide — the guard exists because this exact mistake already caused an incident here.
 - **Task 9's registry tests use `tmp_path`.** Requiring committed production artifacts would make a unit test depend on a multi-minute training run.
