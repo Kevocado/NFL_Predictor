@@ -580,3 +580,26 @@ def test_a_missing_key_names_both_variables(monkeypatch, tmp_path):
     exit_code = forward_tick.main(["--models-dir", str(tmp_path)])
 
     assert exit_code == 2
+
+
+def test_an_event_list_fetch_failure_exits_cleanly(monkeypatch, tmp_path):
+    """A transport failure must be one line and exit 2, not a traceback from
+    `raise_for_status()` buried inside the tick."""
+    import requests
+
+    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+
+    def boom():
+        raise requests.ConnectionError("no route to host")
+
+    monkeypatch.setattr(forward_tick, "fetch_event_index", boom)
+
+    exit_code = forward_tick.main([
+        "--models-dir", str(_artifacts(tmp_path, monkeypatch)),
+        "--games-json", _games_file(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+    ])
+
+    assert exit_code == 2
+    assert _logged() == [], "nothing snapshotted after a failed index fetch"

@@ -220,7 +220,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1099 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -259,8 +259,9 @@ reads them and `models/manifest.py` verifies its fingerprint against them on loa
 Reproduce with:
 
 ```
-python scripts/train_quantile_props.py --seasons 2017-2025 \
-    --validate 2018-2025 --train-seasons 2017-2025 --write-artifacts
+python scripts/train_quantile_props.py --seasons 2017-2026 \
+    --validate 2018-2025 --train-seasons 2017-2026 --write-artifacts \
+    --fetch-weather --dump-feature-frame data/cache/feature_frame.parquet
 ```
 
 `train_all` refuses to write without a walk-forward verdict, and refuses again if

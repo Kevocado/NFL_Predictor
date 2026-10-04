@@ -487,6 +487,8 @@ def main(argv: list[str] | None = None) -> int:
     """
     import argparse
 
+    from requests import RequestException
+
     from ..config import ODDS_API_KEY
     from .forward_report import write_weekly_report
 
@@ -558,11 +560,20 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: cannot read --feature-frame {args.feature_frame}: {error}")
         return 2
 
+    # Fetched outside the tick so a transport failure is reported like every
+    # other misconfiguration (exit 2, one line) instead of a traceback from
+    # `raise_for_status()` deep inside the request.
+    try:
+        event_index = fetch_event_index()
+    except RequestException as error:
+        print(f"error: cannot fetch the Odds event list: {error}")
+        return 2
+
     try:
         result = run_forward_tick(games=games, market_quantiles=predictors,
                                   edge_gate=args.edge_gate,
                                   players=players, feature_frame=feature_frame,
-                                  event_index=fetch_event_index())
+                                  event_index=event_index)
     except (MissingPlayerIndex, MissingEventIndex) as error:
         print(f"error: {error}")
         return 2
