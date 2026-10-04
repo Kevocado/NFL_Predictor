@@ -438,9 +438,17 @@ def test_the_gate_and_the_artifacts_share_one_feature_list():
     assert set(entry["feature_cols"]) <= set(FORWARD_FEATURE_COLUMNS), (
         "the registered artifact carries features outside the shared list")
 
+    # The market is the model's own LABEL, not a feature, so it is absent from
+    # the shared list and every artifact carries len(FORWARD_FEATURE_COLUMNS).
+    # (An earlier version spelled this `len(...) - (1 if market in
+    # FORWARD_FEATURE_COLUMNS else 0)`; the condition is never true, so it was a
+    # decorative no-op that would have kept passing if the arithmetic were wrong.)
     for market, meta in entry["markets"].items():
-        assert meta["n_features"] == len(FORWARD_FEATURE_COLUMNS) - (1 if market in FORWARD_FEATURE_COLUMNS else 0), (
-            f"{market} was fitted on a different feature count than the gate validates")
+        assert market not in FORWARD_FEATURE_COLUMNS, (
+            f"{market} is the label, so it cannot also be a feature")
+        assert meta["n_features"] == len(FORWARD_FEATURE_COLUMNS), (
+            f"{market} was fitted on {meta['n_features']} features; the gate "
+            f"validates {len(FORWARD_FEATURE_COLUMNS)}")
 
 
 def test_closing_line_features_are_excluded():

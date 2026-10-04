@@ -95,6 +95,75 @@ def normalize_player_name(name: str) -> str:
     return " ".join(words)
 
 
+#: nflverse abbreviations -> the full team names The Odds API returns.
+#:
+#: Data, not logic: 32 rows. The `/events` endpoint is free and returns full
+#: names, while the slate carries abbreviations, so something has to bridge them
+#: or the two never join. Every nflverse abbreviation in the 2026 schedule is
+#: covered, and `test_every_scheduled_abbreviation_is_mapped` keeps it that way.
+TEAM_NAMES: dict[str, str] = {
+    "ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons",
+    "BAL": "Baltimore Ravens", "BUF": "Buffalo Bills",
+    "CAR": "Carolina Panthers", "CHI": "Chicago Bears",
+    "CIN": "Cincinnati Bengals", "CLE": "Cleveland Browns",
+    "DAL": "Dallas Cowboys", "DEN": "Denver Broncos",
+    "DET": "Detroit Lions", "GB": "Green Bay Packers",
+    "HOU": "Houston Texans", "IND": "Indianapolis Colts",
+    "JAX": "Jacksonville Jaguars", "KC": "Kansas City Chiefs",
+    "LA": "Los Angeles Rams", "LAC": "Los Angeles Chargers",
+    "LV": "Las Vegas Raiders", "MIA": "Miami Dolphins",
+    "MIN": "Minnesota Vikings", "NE": "New England Patriots",
+    "NO": "New Orleans Saints", "NYG": "New York Giants",
+    "NYJ": "New York Jets", "PHI": "Philadelphia Eagles",
+    "PIT": "Pittsburgh Steelers", "SEA": "Seattle Seahawks",
+    "SF": "San Francisco 49ers", "TB": "Tampa Bay Buccaneers",
+    "TEN": "Tennessee Titans", "WAS": "Washington Commanders",
+}
+
+
+def events_url() -> str:
+    return f"{ODDS_API_BASE_URL}/{ODDS_API_SPORT_KEY}/events"
+
+
+def fetch_event_index() -> dict[tuple[str, str], str]:
+    """{(home, away): odds_event_id} from the FREE `/events` list.
+
+    Free: The Odds API does not charge for the events list, only for odds. This
+    is what makes the mapping affordable -- without it a tick would have to spend
+    a credit per game just to discover the event id.
+
+    The event id is an opaque string (`e91a...`), NOT an nflverse `game_id`
+    (`2026_05_ALB_DEN`), so it cannot be derived and must be looked up.
+    """
+    response = requests.get(
+        events_url(),
+        params={"apiKey": ODDS_API_KEY, "regions": "us"}, timeout=30,
+    )
+    response.raise_for_status()
+    index: dict[tuple[str, str], str] = {}
+    for event in response.json() or []:
+        key = (event.get("home_team"), event.get("away_team"))
+        event_id = event.get("id")
+        if all(key) and event_id:
+            index[key] = event_id
+    return index
+
+
+def match_event_id(game: dict, index: dict[tuple[str, str], str]) -> str | None:
+    """The Odds API event id for a slate game, or None if it is not offered.
+
+    None means the book is not listing that game -- it is NOT a reason to guess,
+    and the caller must skip rather than spend a credit discovering it.
+    """
+    home = TEAM_NAMES.get(game.get("home_team"))
+    away = TEAM_NAMES.get(game.get("away_team"))
+    if home is None or away is None:
+        logger.warning("unmapped team in %s: %s at %s", game.get("game_id"),
+                       game.get("away_team"), game.get("home_team"))
+        return None
+    return index.get((home, away))
+
+
 def event_odds_url(event_id: str) -> str:
     return f"{ODDS_API_BASE_URL}/{ODDS_API_SPORT_KEY}/events/{event_id}/odds"
 

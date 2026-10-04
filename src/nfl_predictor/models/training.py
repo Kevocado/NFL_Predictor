@@ -49,6 +49,12 @@ MARKET_POSITIONS = {
 #: Every entry must be a lagged, shift(1)-computed feature or a fact knowable
 #: pre-kickoff. If a feature is not, it does not go in here.
 #:
+#: **Excluded: `route_participation`.** nflverse dropped the `route` column from
+#: the 2026 play-by-play while 2017-2025 all carry it. The feature is a lagged
+#: rolling mean, so a 2026 row's window is drawn entirely from 2026 weeks and is
+#: therefore always missing at serving -- a feature present in training and absent
+#: in production, which is the same train/serve skew the closing lines were.
+#:
 #: **Excluded: `spread_line`, `total_line`, `implied_team_total`, `game_total`.**
 #: nflverse's weekly `spread_line`/`total_line` are the CLOSING lines, and the
 #: latter two are derived from them (see `features/matchup.py`). A pre-kickoff
@@ -67,7 +73,7 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
     # availability, knowable pre-kickoff
     "inj_Q", "inj_D", "inj_O", "ol_injuries_out", "depth_rank_change",
     # opportunity and form, all lagged
-    "snap_share", "snap_share_trend", "route_participation", "form_deviation",
+    "snap_share", "snap_share_trend", "form_deviation",
     "separation_avg",
 )
 

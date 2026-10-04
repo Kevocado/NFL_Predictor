@@ -34,9 +34,21 @@ def _isolated_db(monkeypatch, tmp_path):
     yield
 
 
+#: The Odds API's event ids are opaque strings with no relationship to nflverse
+#: game_ids, so every live test game has to be mapped through one.
+#: The Odds API id the tick will actually call with, after mapping the slate's
+#: nflverse game_id through EVENT_INDEX.
+EVENT_ID = "e-bal-den"
+
+EVENT_INDEX = {
+    ("Baltimore Ravens", "Denver Broncos"): "e-bal-den",
+    ("Kansas City Chiefs", "Las Vegas Raiders"): "e-kc-lv",
+}
+
+
 def _game(game_id: str, commence: str):
     return {
-        "game_id": game_id, "home_team": "ALB", "away_team": "DEN",
+        "game_id": game_id, "home_team": "BAL", "away_team": "DEN",
         "commence_time": commence,
         "home_win_prob": 0.5, "away_win_prob": 0.5,
         "home_cover_prob": 0.5, "away_cover_prob": 0.5,
@@ -71,7 +83,7 @@ def _pick(monkeypatch, p_over_by_market):
 
 def test_tick_rejects_post_kickoff_game(monkeypatch):
     store.record_game_predictions([_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)])
-    _stub(monkeypatch, {"G_LIVE": [{"player_name": "Test", "normalized_name": "test",
+    _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
                                     "market": "player_rec_yds", "line": 50.0,
                                     "over_odds": -110, "under_odds": -110,
                                     "book": "fanduel", "team": "A"}]})
@@ -79,6 +91,7 @@ def test_tick_rejects_post_kickoff_game(monkeypatch):
 
     result = run_forward_tick(games=[_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)],
                               market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                                  event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     assert result["games_skipped_post_kickoff"] == 1
@@ -94,7 +107,7 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
         {"player_name": "Meh", "normalized_name": "meh", "market": "player_rec_yds",
          "line": 90.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "A"},
     ]
-    _stub(monkeypatch, {"G1": props})
+    _stub(monkeypatch, {EVENT_ID: props})
     # A flat distribution around 60: the 50 line is a clear over, the 90 a clear under,
     # and the distribution says nothing about either being +5%.
     quantiles = {0.1: 52.0, 0.2: 54.0, 0.3: 56.0, 0.4: 58.0, 0.5: 60.0,
@@ -102,6 +115,7 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": quantiles},
+                                event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     assert result["props_snapshotted"] == 2
@@ -120,7 +134,7 @@ def test_a_prop_the_model_is_indifferent_about_is_not_logged(monkeypatch):
     turn that into a pick -- a 98% confidence from a flat distribution is a
     fabricated edge, and the 5% gate would wave it through."""
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
+    _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 60.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
@@ -128,6 +142,7 @@ def test_a_prop_the_model_is_indifferent_about_is_not_logged(monkeypatch):
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": quantiles},
+                                  event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     assert result["picks_logged"] == 0
@@ -150,14 +165,15 @@ def test_a_degenerate_distribution_is_rejected_before_pricing(monkeypatch):
 
 def test_budget_exhaustion_writes_nothing(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_id": "00-1", "player_name": "P",
+    _stub(monkeypatch, {EVENT_ID: [{"player_id": "00-1", "player_name": "P",
                                 "market": "player_rec_yds", "line": 50.0,
                                 "over_odds": -110, "under_odds": -110,
-                                "book": "fanduel", "team": "ALB"}]},
+                                "book": "fanduel", "team": "BAL"}]},
             credits=0)
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                                event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     assert result["picks_logged"] == 0
@@ -174,6 +190,7 @@ def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                                  event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     assert result["picks_logged"] == 0
@@ -185,7 +202,7 @@ def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
 
 def test_tick_returns_the_documented_counters(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
+    _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 50.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
@@ -193,6 +210,7 @@ def test_tick_returns_the_documented_counters(monkeypatch):
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
                               market_quantiles={"player_rec_yds": quantiles},
+                                event_index=EVENT_INDEX,
                               players=PLAYERS)
 
     for key in ("games", "props_snapshotted", "picks_logged", "credits_remaining"):
@@ -201,7 +219,7 @@ def test_tick_returns_the_documented_counters(monkeypatch):
 
 def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
+    _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 50.0,
                                 "over_odds": -115, "under_odds": -105,
                                 "book": "fanduel", "team": "A"}]})
@@ -209,6 +227,7 @@ def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
 
     run_forward_tick(games=[_game("G1", FUTURE)],
                      market_quantiles={"player_rec_yds": quantiles},
+                       event_index=EVENT_INDEX,
                      players=PLAYERS)
 
     row = next(r for r in _logged() if r["side"] == "over")
@@ -219,7 +238,7 @@ def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
 
 def test_under_pick_records_its_own_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
-    _stub(monkeypatch, {"G1": [{"player_name": "Test", "normalized_name": "test",
+    _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
                                 "market": "player_rec_yds", "line": 90.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
@@ -227,6 +246,7 @@ def test_under_pick_records_its_own_odds(monkeypatch):
 
     run_forward_tick(games=[_game("G1", FUTURE)],
                      market_quantiles={"player_rec_yds": quantiles},
+                         event_index=EVENT_INDEX,
                      players=PLAYERS)
 
     # model_p_over stores the probability of the side TAKEN, so the under's 0.98

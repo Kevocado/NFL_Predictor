@@ -121,7 +121,8 @@
       2022,
       2023,
       2024,
-      2025
+      2025,
+      2026
     ],
     "feature_cols": [
       "passing_yards_roll",
@@ -147,15 +148,14 @@
       "depth_rank_change",
       "snap_share",
       "snap_share_trend",
-      "route_participation",
       "form_deviation",
       "separation_avg"
     ],
     "markets": {
       "passing_yards": {
         "path": "passing_yards_quantile_2025.pkl",
-        "sha256": "b7ee272b3cc30ca3122dccda5540bf851c40a90d63854b73fd8cec4dd7ed4242",
-        "walkforward_mae": 70.45861177430666,
+        "sha256": "edf0c2d8ebdb8408637250d74aba8d50083327a87d04f84d65d09902b33e347f",
+        "walkforward_mae": 69.63767891947028,
         "trained_seasons": [
           2017,
           2018,
@@ -165,15 +165,16 @@
           2022,
           2023,
           2024,
-          2025
+          2025,
+          2026
         ],
-        "n_features": 26,
+        "n_features": 25,
         "n_quantiles": 19
       },
       "rushing_yards": {
         "path": "rushing_yards_quantile_2025.pkl",
-        "sha256": "8acfe18057eb4fc35119bed1d2b297c372dc8bf5b23e8ac7feaddc22d9b26d14",
-        "walkforward_mae": 21.457207373976654,
+        "sha256": "9fcd9726d9fad74846a648de7830f18316fce2ba974682276184fc5ab276598a",
+        "walkforward_mae": 21.436065396213742,
         "trained_seasons": [
           2017,
           2018,
@@ -183,15 +184,16 @@
           2022,
           2023,
           2024,
-          2025
+          2025,
+          2026
         ],
-        "n_features": 26,
+        "n_features": 25,
         "n_quantiles": 19
       },
       "receiving_yards": {
         "path": "receiving_yards_quantile_2025.pkl",
-        "sha256": "4c5b669b8acca41f4e4d1582ad2cc0b4f440d24e79a4f39eb3680398d5133f9b",
-        "walkforward_mae": 21.22892809442039,
+        "sha256": "8c73b5d721c816702597bd72ba95421c7fe689101bd74be6441792d36c1f301f",
+        "walkforward_mae": 21.118979107740078,
         "trained_seasons": [
           2017,
           2018,
@@ -201,12 +203,13 @@
           2022,
           2023,
           2024,
-          2025
+          2025,
+          2026
         ],
-        "n_features": 26,
+        "n_features": 25,
         "n_quantiles": 19
       }
     },
-    "created_at": "2026-10-04T12:13:39.742569+00:00"
+    "created_at": "2026-10-04T16:22:45.383583+00:00"
   }
 }

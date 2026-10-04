@@ -25,7 +25,7 @@ def _isolated_db(monkeypatch, tmp_path):
 
 
 GAME = {
-    "game_id": "G1", "home_team": "ALB", "away_team": "DEN",
+    "game_id": "G1", "home_team": "BAL", "away_team": "DEN",
     "season": 2026, "week": 4,
     "commence_time": "2099-09-04T20:20:00",
     "home_win_prob": 0.5, "away_win_prob": 0.5,
@@ -39,16 +39,27 @@ GAME = {
 PROP = {
     "player_name": "A.J. Brown Jr.", "normalized_name": "aj brown",
     "market": "player_rec_yds", "line": 50.0,
-    "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "ALB",
+    "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "BAL",
 }
 
-PLAYERS = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "ALB"}]
+PLAYERS = [{"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "BAL"}]
+
+
+#: The Odds API's event ids are opaque strings with no relationship to nflverse
+#: game_ids, so every live test game has to be mapped through one.
+EVENT_INDEX = {
+    ("Baltimore Ravens", "Denver Broncos"): "e-bal-den",
+    ("Kansas City Chiefs", "Las Vegas Raiders"): "e-kc-lv",
+}
 
 
 def _stub(monkeypatch, credits=500, props=None):
     monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: credits >= needed)
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda e, markets=None, credits_needed=1: (props if props is not None else [PROP]))
+    # The events list is a real HTTP call in main(); stubbed here rather than at
+    # the socket, per tests/conftest.py.
+    monkeypatch.setattr(forward_tick, "fetch_event_index", lambda: EVENT_INDEX)
 
 
 def _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",)):
@@ -138,6 +149,7 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
         games=[GAME],
         market_quantiles=forward_tick.predictor_for(models_dir),
         feature_frame=_feature_frame(), players=PLAYERS,
+        event_index=EVENT_INDEX,
     )
 
     assert result["props_snapshotted"] == 1
@@ -220,7 +232,8 @@ def test_cli_writes_nothing_when_the_budget_is_insufficient(monkeypatch, tmp_pat
 
     result = forward_tick.run_forward_tick(
         games=[GAME], market_quantiles=forward_tick.predictor_for(
-            _artifacts(tmp_path, monkeypatch)), feature_frame=_feature_frame())
+            _artifacts(tmp_path, monkeypatch)), feature_frame=_feature_frame(),
+        event_index=EVENT_INDEX)
 
     assert result["picks_logged"] == 0
     assert _logged() == []
@@ -292,7 +305,7 @@ def _schedule_frame():
     return pd.DataFrame([{
         "game_id": "G1", "season": 2026, "week": 5,
         "gameday": "2026-10-11T18:00:00+00:00",
-        "home_team": "ALB", "away_team": "DEN",
+        "home_team": "BAL", "away_team": "DEN",
     }])
 
 
@@ -302,7 +315,7 @@ def test_weekly_report_is_scoped_to_its_week(monkeypatch, tmp_path):
 
     for week, game in ((4, "GW4"), (5, "GW5")):
         store.record_game_predictions([{
-            "game_id": game, "home_team": "ALB", "away_team": "DEN",
+            "game_id": game, "home_team": "BAL", "away_team": "DEN",
             "commence_time": "2099-09-04T20:20:00", "season": 2026, "week": week,
             "home_win_prob": 0.5, "away_win_prob": 0.5, "home_cover_prob": 0.5,
             "away_cover_prob": 0.5, "over_prob": 0.5, "under_prob": 0.5,
@@ -368,7 +381,7 @@ def _feature_frame_path(tmp_path):
 def _players_file(tmp_path):
     path = tmp_path / "players.json"
     path.write_text(json.dumps([
-        {"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "ALB"},
+        {"player_id": "00-1", "player_name": "A.J. Brown Jr.", "team": "BAL"},
     ]))
     return str(path)
 
@@ -485,10 +498,10 @@ def test_context_columns_come_from_the_game_being_played(monkeypatch, tmp_path):
     """
     import pandas as pd
 
-    game = {"home_team": "ALB", "away_team": "DEN",
+    game = {"home_team": "BAL", "away_team": "DEN",
             "home_rest": 3, "away_rest": 8}
     away_prop = {**PROP, "team": "DEN"}
-    home_prop = {**PROP, "team": "ALB"}
+    home_prop = {**PROP, "team": "BAL"}
 
     away = forward_tick.game_context_for(game, away_prop)
     home = forward_tick.game_context_for(game, home_prop)
@@ -506,7 +519,7 @@ def test_unknown_weather_is_imputed_from_the_frame_not_set_to_zero():
 
     frame = pd.DataFrame({"temp_c": [10.0, 20.0, 15.0], "wind_kph": [8.0, 12.0, 10.0]})
 
-    context = forward_tick.game_context_for({"home_team": "ALB"}, PROP, frame)
+    context = forward_tick.game_context_for({"home_team": "BAL"}, PROP, frame)
 
     assert context["temp_c"] == 15.0
     assert context["wind_kph"] == 10.0
@@ -541,3 +554,29 @@ def test_a_real_tick_does_not_force_the_context_columns_to_zero(monkeypatch, tmp
 
     unknown = [c for c in TARGET_GAME_COLUMNS if c not in seen or seen[c] != seen[c]]
     assert "is_home" not in unknown, "is_home is exactly derivable and was not supplied"
+
+
+def test_the_sportsbook_key_is_accepted_as_an_alias(monkeypatch):
+    """`vps-stack/.env.example` declares BOTH `ODDS_API_KEY` and
+    `SPORTSBOOK_API_KEY`. Reading only one means a key that is genuinely present
+    reads as absent -- which surfaces as an empty slate, not an error."""
+    import importlib
+
+    import nfl_predictor.config as config
+
+    monkeypatch.setenv("ODDS_API_KEY", "")
+    monkeypatch.setenv("SPORTSBOOK_API_KEY", "from-the-stack")
+
+    reloaded = importlib.reload(config)
+
+    assert reloaded.ODDS_API_KEY == "from-the-stack"
+
+
+def test_a_missing_key_names_both_variables(monkeypatch, tmp_path):
+    """A credential problem must not be reported as an exhausted budget."""
+    # main() imports the name at call time, so patching config is the seam.
+    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", None)
+
+    exit_code = forward_tick.main(["--models-dir", str(tmp_path)])
+
+    assert exit_code == 2
