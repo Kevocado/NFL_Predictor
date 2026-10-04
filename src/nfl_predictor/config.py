@@ -24,7 +24,11 @@ DEPTH_CHARTS_CACHE_DIR = CACHE_DIR / "depth_charts"
 
 CURRENT_SEASON = 2026  # bump each new NFL league year (typically March)
 
-ODDS_API_KEY = os.getenv("ODDS_API_KEY")
+#: The Odds API key. Accepts either name because the sibling stack declares both
+#: `ODDS_API_KEY` and `SPORTSBOOK_API_KEY` in its .env.example, and reading only
+#: one of them means a key that is present in the environment still silently
+#: reads as absent -- which surfaces as an empty slate, not an error.
+ODDS_API_KEY = os.getenv("ODDS_API_KEY") or os.getenv("SPORTSBOOK_API_KEY")
 ODDS_API_SPORT_KEY = "americanfootball_nfl"
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 

@@ -13,7 +13,7 @@
 | gate | result |
 |---|---|
 | MAE (spec §1.3, "necessary but not sufficient") | **PASS** — q50 beats the naive baseline in 20 of 21 market-seasons |
-| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.030** |
+| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.027** |
 
 Both gates pass, so per the plan's Task 14 Step 3 the forward test may start. Worth stating plainly: **this authorises a $0, no-bet observation.** No credit has been spent, no artifact committed, nothing published or placed. The first live tick is Kevin's to start.
 
@@ -27,18 +27,18 @@ Walk-forward 2018–2025, three markets pooled, **37,584 scored rows**. Proxy li
 
 | bucket | predicted | empirical | gap | n | verdict |
 |---|---|---|---|---|---|
-| 0.0–0.1 | 0.090 | 0.095 | 0.005 | 430 | ok |
-| 0.1–0.2 | 0.166 | 0.142 | 0.024 | 4418 | ok |
-| 0.2–0.3 | 0.250 | 0.242 | 0.008 | 6329 | ok |
-| 0.3–0.4 | 0.351 | 0.346 | 0.005 | 5061 | ok |
-| 0.4–0.5 | 0.451 | 0.438 | 0.013 | 4148 | ok |
-| 0.5–0.6 | 0.552 | 0.568 | 0.016 | 4917 | ok |
-| 0.6–0.7 | 0.649 | 0.658 | 0.008 | 4459 | ok |
-| 0.7–0.8 | 0.750 | 0.758 | 0.008 | 4230 | ok |
-| 0.8–0.9 | 0.839 | 0.849 | 0.010 | 3106 | ok |
-| 0.9–1.0 | 0.919 | 0.889 | 0.030 | 425 | ok |
+| 0.0–0.1 | 0.088 | 0.091 | 0.003 | 428 | ok |
+| 0.1–0.2 | 0.165 | 0.145 | 0.020 | 4378 | ok |
+| 0.2–0.3 | 0.250 | 0.241 | 0.009 | 6185 | ok |
+| 0.3–0.4 | 0.351 | 0.325 | 0.027 | 4849 | ok |
+| 0.4–0.5 | 0.452 | 0.434 | 0.019 | 4167 | ok |
+| 0.5–0.6 | 0.551 | 0.543 | 0.008 | 4468 | ok |
+| 0.6–0.7 | 0.650 | 0.653 | 0.003 | 4612 | ok |
+| 0.7–0.8 | 0.748 | 0.749 | 0.001 | 4541 | ok |
+| 0.8–0.9 | 0.840 | 0.851 | 0.010 | 3501 | ok |
+| 0.9–1.0 | 0.916 | 0.901 | 0.015 | 394 | ok |
 
-Every bucket clears, on **26 features with no closing-line information** (§3.1). The largest residual is the top bucket at 0.030, on 425 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
+Every bucket clears, on **25 features with no closing-line information** (§3.1), trained through 2026. The largest residual is 0.027, on 4849 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
 
 ### 1.1 Non-binding diagnostic: own-median curve
 
@@ -124,6 +124,36 @@ artifacts now share one constant (`FORWARD_FEATURE_COLUMNS`), asserted by
 hand-maintained lists are how the drift survived a suite written to catch
 feature drift.
 
+### 3.2 Weather re-read at the kickoff hour, and three schema/API corrections
+
+Found after the first merge, on review and on the first 2026 run:
+
+1. **Every weather reading was taken at `T00:00:00Z`** — for an afternoon US
+   kickoff that is *the evening before the game*. Now built from the schedule's
+   `gametime` and converted ET→UTC. Fixing this surfaced a sign error in the
+   repair: Eastern is behind UTC, so the conversion **adds**; an intermediate
+   version put a 1pm EST kickoff at 08:00Z.
+2. **`Acrisure Stadium` carried the Orchard Park coordinates.** Acrisure is
+   Pittsburgh; the Bills' venue is Highmark. Every Pittsburgh home game was
+   reading Buffalo weather. The full cache (1257 files) was re-fetched.
+3. **`route` was dropped from nflverse's 2026 play-by-play** while 2017–2025 all
+   carry it. The fixed column list crashed the whole run. The read now tolerates
+   an absent column, and `route_participation` was **removed from the feature
+   list**: it is a lagged rolling mean, so a 2026 row's window is drawn entirely
+   from 2026 and would be permanently missing at serving — the same train/serve
+   skew the closing lines were.
+
+Cost of all three: **none**. Worst calibration gap 0.030 → **0.027**, and MAE
+improved on all three markets. Artifacts are now fitted on **2017–2026**.
+
+### 3.3 The Odds API event id is not an nflverse game id
+
+The tick passed `game["game_id"]` (`2026_05_ALB_DEN`) straight into the Odds API
+URL. Event ids there are opaque (`e91a…`), so **every real request would have
+404'd** — invisible to the suite, because the tests stubbed the fetch. Now mapped
+through the free `/events` list (which does not consume a props credit) plus a
+32-team abbreviation table, asserted complete against the 2026 schedule.
+
 ---
 
 ## 4. MAE vs the three baselines
@@ -132,9 +162,9 @@ q50 against the naive trailing-mean baseline. Spec's 2025-holdout baselines in t
 
 | market | q50 MAE (mean) | naive MAE | q50 wins | spec baseline |
 |---|---|---|---|---|
-| passing_yards | 70.5 | 70.3 | 4 / 7 | 72.2 |
-| rushing_yards | 21.5 | 22.7 | 7 / 7 | 20.9 |
-| receiving_yards (WR+TE) | 21.2 | 22.5 | 7 / 7 | 22.3 (WR) / 17.7 (TE) |
+| passing_yards | 69.6 | 70.3 | 4 / 7 | 72.2 |
+| rushing_yards | 21.4 | 22.7 | 7 / 7 | 20.9 |
+| receiving_yards (WR+TE) | 21.1 | 22.5 | 7 / 7 | 22.3 (WR) / 17.7 (TE) |
 
 - **Passing** beats the spec's 72.2 but loses to naive in 2018 and 2023, and is the weakest market by ratio (≈0.99× naive). ~650 QB-weeks per season is thin. Watch this one.
 - **Rushing** is 21.3 vs the spec's 20.9 — slightly worse in absolute terms, though it beats naive in every season. The spec's number came from `holdout_2025.py`, which is not in this repo, so it is not directly comparable.
@@ -190,7 +220,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1097 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -218,9 +248,9 @@ Tasks 1–14 complete; **1097 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | market | features | quantiles | walk-forward MAE |
 |---|---|---|---|
-| `passing_yards_quantile_2025.pkl` | 26 | 19 | 70.5 |
-| `rushing_yards_quantile_2025.pkl` | 26 | 19 | 21.5 |
-| `receiving_yards_quantile_2025.pkl` | 26 | 19 | 21.2 |
+| `passing_yards_quantile_2025.pkl` | 25 | 19 | 69.6 |
+| `rushing_yards_quantile_2025.pkl` | 25 | 19 | 21.4 |
+| `receiving_yards_quantile_2025.pkl` | 25 | 19 | 21.1 |
 
 Manifest: additive key `quantile_yardage_v1`, each artifact carrying a sha256.
 Every pre-existing manifest key is carried through byte-identical — the live site
@@ -229,8 +259,9 @@ reads them and `models/manifest.py` verifies its fingerprint against them on loa
 Reproduce with:
 
 ```
-python scripts/train_quantile_props.py --seasons 2017-2025 \
-    --validate 2018-2025 --train-seasons 2017-2025 --write-artifacts
+python scripts/train_quantile_props.py --seasons 2017-2026 \
+    --validate 2018-2025 --train-seasons 2017-2026 --write-artifacts \
+    --fetch-weather --dump-feature-frame data/cache/feature_frame.parquet
 ```
 
 `train_all` refuses to write without a walk-forward verdict, and refuses again if

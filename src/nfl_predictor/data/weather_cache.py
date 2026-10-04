@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 
 from .weather import STADIUM_COORDS, fetch_game_weather, is_outdoor
@@ -38,6 +39,11 @@ def write_weather_cache(weather: dict[str, dict], cache_dir: Path | str) -> int:
     for game_id, reading in weather.items():
         (cache_dir / f"{game_id}.json").write_text(json.dumps(reading))
     return len(weather)
+
+
+#: Open-Meteo's free tier is generous but not unbounded. ~2/s stays under it and
+#: costs ~4 minutes over a full rebuild, against ~14 minutes of requests.
+REQUEST_INTERVAL_SECONDS = 0.2
 
 
 def _kickoff_utc(game: dict) -> str:
@@ -94,7 +100,14 @@ def weather_for_games(games: list[dict], cache_dir: Path | str,
         try:
             fresh[game_id] = fetch(coords[0], coords[1], _kickoff_utc(game))
         except Exception as error:  # noqa: BLE001 - one bad game must not stop the rest
+            # NOT cached, so a re-run retries it -- which is only safe because a
+            # failure must never be mistaken for "no weather signal".
             logger.warning("weather unavailable for %s: %s", game_id, error)
+        # Paced. A full rebuild is ~1.3k requests; unpaced it trips Open-Meteo's
+        # rate limit, and every 429 becomes a silent miss -- the same shape as the
+        # wrong-endpoint bug that left all weather columns NaN and read as "no
+        # weather signal".
+        time.sleep(REQUEST_INTERVAL_SECONDS)
 
     write_weather_cache(fresh, cache_dir)
     return fresh, {g: cached[g] for g in cached if any(x["game_id"] == g for x in games)}

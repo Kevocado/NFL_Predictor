@@ -135,8 +135,24 @@ def build_feature_frame(seasons: list[int], cache_dir: Path,
         raise FileNotFoundError(
             f"no cached play-by-play for {missing} in {cache_dir}; run "
             f"season_pull.pull_pbp first")
-    pbp = pd.concat([pd.read_parquet(cache_dir / f"pbp_{s}.parquet", columns=PBP_COLUMNS)
-                     for s in seasons], ignore_index=True)
+    # Read only the columns a season actually has. nflverse DROPPED `route` from
+    # the 2026 file while 2017-2025 all carry it, so a fixed column list crashes
+    # the whole run on the current season. A missing column becomes NaN, which is
+    # what an absent observation is; the alternative -- skipping the season --
+    # would silently train on a stale era.
+    import pyarrow.parquet as _pq
+
+    frames = []
+    for season in seasons:
+        path = cache_dir / f"pbp_{season}.parquet"
+        available = set(_pq.ParquetFile(path).schema_arrow.names)
+        columns = [c for c in PBP_COLUMNS if c in available]
+        absent = [c for c in PBP_COLUMNS if c not in available]
+        if absent:
+            print(f"  {season}: no {absent} in play-by-play; those columns are NaN")
+        frames.append(pd.read_parquet(path, columns=columns).assign(
+            **{c: float("nan") for c in absent}))
+    pbp = pd.concat(frames, ignore_index=True)
     frame = add_availability_features(frame, injuries, rosters, ngs_df=ngs, pbp_df=pbp)
 
     return frame.sort_values(["player_id", "season", "week"]).reset_index(drop=True)

@@ -27,7 +27,8 @@ from ..models.quantile_registry import (
 )
 from ..models.training import FORWARD_FEATURE_COLUMNS
 from ..odds.props_snapshot import (
-    BudgetExhausted, credits_sufficient, fetch_props_for_event, match_props_to_players,
+    BudgetExhausted, credits_sufficient, fetch_event_index, fetch_props_for_event,
+    match_event_id, match_props_to_players,
 )
 from . import store
 
@@ -38,6 +39,14 @@ EDGE_GATE = 0.05
 
 class MissingPlayerIndex(RuntimeError):
     """No player index: prop names cannot be joined to nflverse ids."""
+
+
+class MissingEventIndex(RuntimeError):
+    """No Odds event index: a slate game_id is not an Odds event id.
+
+    Raised rather than defaulting to an empty mapping, which would skip every
+    game and report a clean, empty, wrong week.
+    """
 
 
 #: Book market key -> the market name the quantile models were trained on.
@@ -122,7 +131,13 @@ def _row_predictor(models: dict, feature_cols: list[str]) -> callable:
     required turns that silent money-loser into a `TypeError`.
 
     Fitted models predict a batch, so a single row is wrapped in a one-row frame
-    and unwrapped. NaNs are filled the way training fills them.
+    and unwrapped.
+
+    A column still missing here is filled with 0, which is NOT what training did:
+    training fills `rest_days` with a league-typical 7.0. That is why the tick
+    supplies the game's context from the slate rather than relying on this fill
+    -- `game_context_for` is the only place `is_home` and `rest_days` can get
+    values that are right rather than merely present.
     """
     levels = sorted(models)
 
@@ -248,7 +263,8 @@ def _is_post_kickoff(commence_time: str) -> bool:
 def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None = None,
                      edge_gate: float = EDGE_GATE,
                      players: list[dict] | None = None,
-                     feature_frame=None) -> dict:
+                     feature_frame=None,
+                     event_index: dict | None = None) -> dict:
     """Snapshot one slate.
 
     `market_quantiles` maps a book market key to that row's predicted quantiles
@@ -288,9 +304,27 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
         result["no_props_coverage"] = True
         return result
 
+    if event_index is None:
+        raise MissingEventIndex(
+            "no Odds event index supplied; an nflverse game_id is not an Odds "
+            "event id. Build one with props_snapshot.fetch_event_index() "
+            "(a free call) and pass it in.")
+
     rows: list[dict] = []
     for game in live:
-        event_id = game["game_id"]
+        # The Odds API's event id is an opaque string (`e91a...`), NOT the
+        # nflverse game_id. Passing the game_id straight into the URL 404s on
+        # every game -- and no test could see it, because the tests stub the
+        # fetch. Looked up from the FREE events list instead.
+        event_id = match_event_id(game, event_index)
+        if event_id is None:
+            # The book is not listing this game. Not a reason to spend a credit
+            # finding out, and never a reason to fall back to another market.
+            logger.warning("no Odds event for %s (%s at %s); skipping",
+                           game.get("game_id"), game.get("away_team"),
+                           game.get("home_team"))
+            result["games_not_listed"] = result.get("games_not_listed", 0) + 1
+            continue
         try:
             props = fetch_props_for_event(event_id, credits_needed=1)
         except BudgetExhausted:
@@ -453,6 +487,8 @@ def main(argv: list[str] | None = None) -> int:
     """
     import argparse
 
+    from requests import RequestException
+
     from ..config import ODDS_API_KEY
     from .forward_report import write_weekly_report
 
@@ -478,7 +514,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if not ODDS_API_KEY:
-        print("ODDS_API_KEY is not set: no request made, nothing snapshotted.")
+        print("error: no Odds API key. Set ODDS_API_KEY (or SPORTSBOOK_API_KEY, "
+              "which config accepts as an alias) in the environment or a .env "
+              "file. No request was made and no credit was spent.")
         return 2
 
     games = _load_games(args.games_json, slate=args.slate, season=args.season,
@@ -497,6 +535,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {error}")
         return 2
     print(f"loaded markets: {sorted(predictors)}")
+
+    # (A missing key is guarded above, before any request: without that check the
+    # credit probe 401s, `credits_sufficient` reports False, and the tick would
+    # log "budget exhausted" -- a credential problem reported as a money problem,
+    # which is the most misleading way round.)
 
     if not args.feature_frame:
         print("error: --feature-frame is required. The tick consumes the assembled "
@@ -517,11 +560,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: cannot read --feature-frame {args.feature_frame}: {error}")
         return 2
 
+    # Fetched outside the tick so a transport failure is reported like every
+    # other misconfiguration (exit 2, one line) instead of a traceback from
+    # `raise_for_status()` deep inside the request.
+    try:
+        event_index = fetch_event_index()
+    except RequestException as error:
+        print(f"error: cannot fetch the Odds event list: {error}")
+        return 2
+
     try:
         result = run_forward_tick(games=games, market_quantiles=predictors,
                                   edge_gate=args.edge_gate,
-                                  players=players, feature_frame=feature_frame)
-    except MissingPlayerIndex as error:
+                                  players=players, feature_frame=feature_frame,
+                                  event_index=event_index)
+    except (MissingPlayerIndex, MissingEventIndex) as error:
         print(f"error: {error}")
         return 2
     for key in ("games", "games_skipped_post_kickoff", "props_snapshotted",
