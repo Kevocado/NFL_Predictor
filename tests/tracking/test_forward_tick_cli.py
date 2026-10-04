@@ -392,9 +392,9 @@ def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
     assert logged[0]["edge_vs_breakeven"] >= 0.05
 
 
-def test_main_reports_rather_than_crashes_when_no_player_index_is_given(monkeypatch, tmp_path):
-    """The Odds API returns names, not ids. Without the join there is nothing to
-    write, so say so instead of raising KeyError mid-slate after spending."""
+def test_main_reports_a_missing_player_index_as_a_misconfiguration(monkeypatch, tmp_path):
+    """A missing flag is not "the book had no props this week". It exits
+    non-zero and says so, so it cannot be filed as a clean no-coverage week."""
     monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
     _stub(monkeypatch, props=[PROP])
 
@@ -404,8 +404,7 @@ def test_main_reports_rather_than_crashes_when_no_player_index_is_given(monkeypa
         "--feature-frame", _feature_frame_path(tmp_path),
     ])
 
-    # No join means no player_id, so nothing is writable. Reported, not raised.
-    assert exit_code == 0
+    assert exit_code == 2
     assert _logged() == []
 
 
@@ -469,3 +468,72 @@ def test_history_row_for_has_no_row_for_an_unknown_player():
                            "receiving_yards_roll": 30.0}])
 
     assert forward_tick.history_row_for(frame, "00-1", 2026, 4) == {}
+
+
+# --- the context must come from the TARGET game, not the history row --------
+
+def test_context_columns_come_from_the_game_being_played(monkeypatch, tmp_path):
+    """Mutation showed wiring `game_context` had zero coverage.
+
+    Taking `is_home` from the player's last observed row supplies the PREVIOUS
+    game's home flag. The prop's team against the game's home_team is exact, and
+    the schedule carries `away_rest`/`home_rest`, so both are derivable.
+    """
+    import pandas as pd
+
+    game = {"home_team": "ALB", "away_team": "DEN",
+            "home_rest": 3, "away_rest": 8}
+    away_prop = {**PROP, "team": "DEN"}
+    home_prop = {**PROP, "team": "ALB"}
+
+    away = forward_tick.game_context_for(game, away_prop)
+    home = forward_tick.game_context_for(game, home_prop)
+
+    assert away["is_home"] == 0
+    assert home["is_home"] == 1
+    assert away["rest_days"] == 8
+    assert home["rest_days"] == 3
+
+
+def test_unknown_weather_is_imputed_from_the_frame_not_set_to_zero():
+    """Weather is genuinely unknown at snapshot time. Filling 0 asserts a
+    freezing, windless game every week; the frame's median is neutral."""
+    import pandas as pd
+
+    frame = pd.DataFrame({"temp_c": [10.0, 20.0, 15.0], "wind_kph": [8.0, 12.0, 10.0]})
+
+    context = forward_tick.game_context_for({"home_team": "ALB"}, PROP, frame)
+
+    assert context["temp_c"] == 15.0
+    assert context["wind_kph"] == 10.0
+    assert context["temp_c"] != 0.0
+
+
+def test_a_real_tick_does_not_force_the_context_columns_to_zero(monkeypatch, tmp_path):
+    """The end-to-end version: after the tick's own fillna, no context column may
+    be 0 purely because it was unknown."""
+    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    _stub(monkeypatch, props=[PROP])
+
+    seen = {}
+    original = forward_tick.history_row_for
+
+    def spy(*args, **kwargs):
+        row = original(*args, **kwargs)
+        seen.update(row)
+        return row
+
+    monkeypatch.setattr(forward_tick, "history_row_for", spy)
+
+    forward_tick.main([
+        "--models-dir", str(_artifacts(tmp_path, monkeypatch)),
+        "--games-json", _games_file(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+    ])
+
+    assert seen, "the row was never built"
+    from nfl_predictor.tracking.forward_tick import TARGET_GAME_COLUMNS
+
+    unknown = [c for c in TARGET_GAME_COLUMNS if c not in seen or seen[c] != seen[c]]
+    assert "is_home" not in unknown, "is_home is exactly derivable and was not supplied"

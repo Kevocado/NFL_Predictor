@@ -71,14 +71,15 @@ def _pick(monkeypatch, p_over_by_market):
 
 def test_tick_rejects_post_kickoff_game(monkeypatch):
     store.record_game_predictions([_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)])
-    _stub(monkeypatch, {"G_LIVE": [{"player_id": "00-1", "player_name": "P",
+    _stub(monkeypatch, {"G_LIVE": [{"player_name": "Test", "normalized_name": "test",
                                     "market": "player_rec_yds", "line": 50.0,
                                     "over_odds": -110, "under_odds": -110,
                                     "book": "fanduel", "team": "A"}]})
     _pick(monkeypatch, {"player_rec_yds": lambda line: {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
 
     result = run_forward_tick(games=[_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
+                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              players=PLAYERS)
 
     assert result["games_skipped_post_kickoff"] == 1
     assert result["games"] == 1
@@ -156,7 +157,8 @@ def test_budget_exhaustion_writes_nothing(monkeypatch):
             credits=0)
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
+                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              players=PLAYERS)
 
     assert result["picks_logged"] == 0
     assert result["credits_remaining"] == 0
@@ -165,14 +167,19 @@ def test_budget_exhaustion_writes_nothing(monkeypatch):
 
 def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
     """Spec: if the free tier has no player props, the tick waits. The fetch
-    returning nothing IS the coverage signal -- there is no separate probe."""
+    returning nothing IS the coverage signal -- there is no separate probe, and
+    nothing falls back to game lines."""
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {})
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
+                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              players=PLAYERS)
 
     assert result["picks_logged"] == 0
+    assert result["no_props_coverage"] is True, (
+        "an empty fetch must be reported as absent coverage -- distinct from a "
+        "misconfiguration, and with no fallback to game lines")
     assert _logged() == []
 
 

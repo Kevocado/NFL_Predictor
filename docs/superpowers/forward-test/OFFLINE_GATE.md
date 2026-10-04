@@ -190,7 +190,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1082 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1090 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -254,25 +254,49 @@ the whole point of Task 9 following Task 14.
 
 ### Known limitation in the serving path
 
-`history_row_for` prices a prop from the player's most recent *observed* feature
-row. Every feature there is already lagged, so it is strictly **less** information
-than the model was trained on — it omits the player's most recent game — and it
-cannot leak. It is not a substitute for a builder that scores an unplayed week,
-which would use games through the week before. Expect a small degradation versus
-the offline numbers above, and read the first weeks of the forward test with that
-in mind rather than as a clean read on the model.
+`history_row_for` builds a prop's features from two sources, because they are
+not interchangeable:
+
+- **Lagged history** — the player's most recent observed row, strictly before the
+  target week. Already lagged, so it carries strictly *less* information than
+  training used (it omits the most recent game) and cannot leak.
+- **The game's own context** — `is_home` and `rest_days`, derived exactly from
+  the slate (the schedule carries `home_rest`/`away_rest`, and home/away follows
+  from the prop's team against the game's). These describe the game being played.
+  Taking them from the history row would supply the *previous* game's home flag
+  and rest days: wrong values rather than stale ones, and `is_home` is a material
+  yardage driver.
+
+Weather is the honest gap: it is genuinely unknown at snapshot time, so it is
+imputed from the feature frame's own median for that column. Filling it with 0
+would assert a freezing, windless game every week. A forecast source at tick
+time would be better and is not built.
 
 ### Next step
 
+Two steps: emit the feature frame, then tick against it. `src/` must not import
+from `scripts/` (scripts/ is absent from the Docker image), so the handoff is a
+file.
+
 ```
+# 1. emit the frame (~5 min; also refreshes the artifacts)
+python scripts/train_quantile_props.py --seasons 2017-2026 \
+    --validate 2018-2025 --write-artifacts \
+    --dump-feature-frame data/cache/feature_frame.parquet
+
+# 2. tick (add --dry-run first: prints the cost, spends nothing)
 python -m nfl_predictor.tracking.forward_tick --models-dir models \
     --slate 2026:<week> --season 2026 --week <week> \
+    --feature-frame data/cache/feature_frame.parquet \
+    --players-path data/cache/players.json \
     --report-dir docs/superpowers/forward-test --dry-run
 ```
 
-`--dry-run` prints the credit estimate and spends nothing. A tick costs one
-`scores` probe plus one props call per pre-kickoff game. Still Kevin's word to
-give — this build has made no request and spent no credit.
+`--players-path` is a JSON list of `{player_id, player_name, team}`; the Odds API
+returns names, and every snapshot row is keyed by `player_id`, so without it the
+tick exits 2 and records nothing. A tick costs one props call per pre-kickoff
+game; the credit probe is free. Still Kevin's word to give — this build has made
+no request and spent no credit.
 
 ## 9. Plan deviations
 
