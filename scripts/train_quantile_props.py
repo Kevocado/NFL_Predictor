@@ -18,6 +18,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from nfl_predictor.data import season_pull  # noqa: E402
+from nfl_predictor.data.weather_cache import load_cached_weather, weather_for_games  # noqa: E402
 from nfl_predictor.evaluate.walk_forward import (  # noqa: E402
     QUANTILE_MARKETS, calibration_passes, calibration_report, walk_forward_quantile,
 )
@@ -75,7 +76,35 @@ PBP_COLUMNS = ["season", "week", "posteam", "receiver_player_id",
                "rusher_player_id", "passer_player_id", "route"]
 
 
-def build_feature_frame(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
+def build_weather(schedules: pd.DataFrame, cache_dir: Path, fetch_weather: bool = False) -> dict:
+    """Per-game weather, `{game_id: reading}`.
+
+    Off unless asked for: it is one HTTP call per outdoor game (about 2.3k for
+    2017-2025, all free), and the matchup builder is NaN-tolerant without it, so
+    a training run should not quietly spend ten minutes on the network. The cache
+    is on disk either way, so a second run is free.
+    """
+    weather_dir = cache_dir.parent / "weather"
+    games = (schedules.dropna(subset=["gameday"])
+             .drop_duplicates(subset=["game_id"])[["game_id", "stadium", "gameday"]]
+             .to_dict("records"))
+    if not fetch_weather:
+        cached = load_cached_weather(weather_dir)
+        print(f"weather: {len(cached)} cached readings, not fetching "
+              f"(pass --fetch-weather to refresh)")
+        return {g: cached[g] for g in (row["game_id"] for row in games) if g in cached}
+
+    print(f"weather: fetching for {len(games)} games (cached ones are free)...")
+    fresh, cached = weather_for_games(games, cache_dir=weather_dir)
+    combined = {row["game_id"]: cached[row["game_id"]] for row in games
+                if row["game_id"] in cached}
+    combined.update(fresh)
+    print(f"weather: {len(fresh)} fetched, {len(cached)} cached, {len(combined)} usable")
+    return combined
+
+
+def build_feature_frame(seasons: list[int], cache_dir: Path,
+                        fetch_weather: bool = False) -> pd.DataFrame:
     """Assemble the model frame: weekly labels + usage rolls + matchup + availability."""
     print("loading weekly labels...")
     weekly = load_weekly(seasons, cache_dir)
@@ -92,7 +121,8 @@ def build_feature_frame(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     frame = _add_rolling(weekly)
 
     print("building matchup + game-context features...")
-    frame = add_matchup_features(frame, schedules)
+    weather = build_weather(schedules, cache_dir, fetch_weather=args.fetch_weather)
+    frame = add_matchup_features(frame, schedules, weather_by_game=weather)
 
     print("building availability features (this reads play-by-play)...")
     pbp = pd.concat([pd.read_parquet(cache_dir / f"pbp_{s}.parquet", columns=PBP_COLUMNS)
@@ -123,13 +153,15 @@ def main() -> int:
     parser.add_argument("--seasons", default="2017-2026")
     parser.add_argument("--validate", default="2019-2025")
     parser.add_argument("--out-dir", default="data/cache/nflverse")
+    parser.add_argument("--fetch-weather", action="store_true",
+                        help="pull Open-Meteo readings for uncached games (free, ~2.3k calls)")
     args = parser.parse_args()
 
     cache_dir = Path(args.out_dir)
     seasons = parse_seasons(args.seasons)
     validation = parse_seasons(args.validate)
 
-    frame = build_feature_frame(seasons, cache_dir)
+    frame = build_feature_frame(seasons, cache_dir, fetch_weather=args.fetch_weather)
     print(f"feature frame: {frame.shape[0]} rows, {frame['player_id'].nunique()} players")
 
     mae_table, buckets = report(frame, validation)
