@@ -44,11 +44,11 @@ POSITION_MARKETS: dict[str, list[str]] = {
 #: a true rate of 0.077 -- the single failing bucket, and entirely an artifact.
 #: Fitting the tails lets the model express the real probability instead of
 #: saturating, which moved that bucket to a 0.012 gap.
-QUANTILES: list[float] = [
-    0.01, 0.02, 0.05,
-    0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
-    0.95, 0.98, 0.99,
-]
+QUANTILES: list[float] = (
+    [round(q, 2) for q in (0.01, 0.02, 0.03, 0.04, 0.05)]
+    + [round(q, 1) for q in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)]
+    + [round(q, 2) for q in (0.95, 0.96, 0.97, 0.98, 0.99)]
+)
 
 #: Shared with fit_yardage_regressor so the q50 model and the production point
 #: regressor differ only in objective.

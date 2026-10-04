@@ -10,6 +10,7 @@ read before any pickle is committed.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -28,6 +29,7 @@ from nfl_predictor.evaluate.walk_forward import (  # noqa: E402
 #: curve is reported beside it as the tail-watch diagnostic (amended 2026-10-04).
 BINDING_COLUMNS = ("p_over_exogenous", "covered_exogenous")
 DIAGNOSTIC_COLUMNS = ("p_over_own_median", "covered_own_median")
+from nfl_predictor.models.training import train_all  # noqa: E402
 from nfl_predictor.features.availability import add_availability_features  # noqa: E402
 from nfl_predictor.features.matchup import add_matchup_features  # noqa: E402
 from nfl_predictor.features.player_usage import PLAYER_FEATURE_COLUMNS, _add_rolling  # noqa: E402
@@ -192,6 +194,13 @@ def main() -> int:
     parser.add_argument("--out-dir", default="data/cache/nflverse")
     parser.add_argument("--fetch-weather", action="store_true",
                         help="pull Open-Meteo readings for uncached games (free, ~2.3k calls)")
+    parser.add_argument("--train-seasons", default=None,
+                        help="seasons to FIT on for the artifacts (default: --seasons)")
+    parser.add_argument("--models-dir", default="models",
+                        help="where to write *_quantile_2025.pkl")
+    parser.add_argument("--write-artifacts", action="store_true",
+                        help="fit on --train-seasons and write the versioned artifacts; "
+                             "requires the walk-forward gate to PASS")
     args = parser.parse_args()
 
     cache_dir = Path(args.out_dir)
@@ -215,7 +224,38 @@ def main() -> int:
 
     passed = calibration_passes(binding)
     print(f"\ncalibration gate (exogenous line): {'PASS' if passed else 'FAIL'}")
-    return 0 if passed else 1
+
+    if not args.write_artifacts:
+        print("\n(dry run: pass --write-artifacts to fit and write)")
+        return 0 if passed else 1
+
+    if not passed:
+        print("refusing to write artifacts: the calibration gate failed")
+        return 1
+
+    train_seasons = parse_seasons(args.train_seasons) if args.train_seasons else seasons
+    models_dir = Path(args.models_dir)
+    manifest_path = models_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+
+    # Per-market MAE: the pooled mean would record the same number against all
+    # three artifacts, hiding that passing (69.7) and receiving (21.2) differ.
+    per_market_mae = (mae_table.groupby("market")["mae_q50"].mean().to_dict()
+                      if not mae_table.empty else {})
+
+    artifacts = train_all(
+        frame=frame, trained_seasons=train_seasons, out_dir=models_dir,
+        manifest=manifest, manifest_path=manifest_path,
+        walkforward_mae=per_market_mae,
+        walkforward_calibration=binding,
+    )
+    print(f"\nwrote {len(artifacts)} artifacts to {models_dir}/ and extended the manifest")
+    for market in sorted(artifacts):
+        mae = per_market_mae.get(market)
+        mae_text = "n/a" if mae is None else f"MAE {mae:.1f}"
+        print(f"  {market}_quantile_2025.pkl  {len(artifacts[market]['feature_cols'])} "
+              f"features, {len(artifacts[market]['quantile_models'])} quantiles, {mae_text}")
+    return 0
 
 
 if __name__ == "__main__":

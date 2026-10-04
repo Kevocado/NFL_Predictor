@@ -17,10 +17,12 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 
 from ..models.prop_probability import american_to_breakeven, edge_vs_line, p_over_from_quantiles
+from ..models.quantile_registry import ARTIFACT_SUFFIX, load_quantile_artifact
 from ..odds.props_snapshot import (
     BudgetExhausted, credits_sufficient, fetch_props_for_event, probe_props_coverage,
 )
@@ -39,11 +41,59 @@ MARKET_MAP = {
     "player_receptions": "receptions",
 }
 
+#: Reverse of `MARKET_MAP`, for loading artifacts named after the model market.
+BOOK_MARKET_BY_MODEL = {model: book for book, model in MARKET_MAP.items()}
+
 
 def quantiles_for(market: str) -> dict[float, float]:
     """Predicted quantiles for one prop row. Replaced at the call site by the
     trained model; named here so the tick's seam is one function."""
     raise NotImplementedError("wire a trained quantile artifact in via quantiles_for")
+
+
+def predictor_for(models_dir: Path | str) -> dict[str, callable]:
+    """Load the versioned artifacts into `{book market: predict(quantiles)}`.
+
+    Raises FileNotFoundError when the directory holds no quantile artifact.
+    Silently ticking with no model would price every prop as "no edge" and
+    report a clean week having looked at nothing -- the failure would look like
+    a good result, which is the worst shape a failure can take.
+    """
+    models_dir = Path(models_dir)
+    paths = sorted(models_dir.glob(f"*{ARTIFACT_SUFFIX}.pkl")) if models_dir.exists() else []
+    if not paths:
+        raise FileNotFoundError(
+            f"no quantile artifacts in {models_dir}. Expected "
+            f"models/<market>{ARTIFACT_SUFFIX}.pkl from "
+            f"scripts/train_quantile_props.py --write-artifacts")
+
+    predictors: dict[str, callable] = {}
+    for path in paths:
+        # The stem already carries the market name; `load_quantile_artifact`
+        # re-joins the suffix itself, so do not add it a second time.
+        market = path.name.removesuffix(".pkl").removesuffix(ARTIFACT_SUFFIX)
+        payload = load_quantile_artifact(market, out_dir=models_dir)
+        models, feature_cols = payload["quantile_models"], payload["feature_cols"]
+        predictors[BOOK_MARKET_BY_MODEL[market]] = _row_predictor(models, feature_cols)
+    return predictors
+
+
+def _row_predictor(models: dict, feature_cols: list[str]) -> callable:
+    """`predict(line, feature_row) -> {level: value}` for one market.
+
+    Fitted models predict a batch, so a single row is wrapped in a one-row frame
+    and unwrapped again. NaNs are filled the same way training fills them, or a
+    missing feature would reach the model as NaN and come back as NaN.
+    """
+    levels = sorted(models)
+
+    def predict(line: float, feature_row=None):
+        import pandas as pd
+
+        frame = pd.DataFrame([feature_row or {}]).reindex(columns=feature_cols).fillna(0)
+        return {q: float(models[q].predict(frame)[0]) for q in levels}
+
+    return predict
 
 
 def _has_spread(quantiles: dict) -> bool:
@@ -82,7 +132,7 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
     result = {
         "games": 0, "games_skipped_post_kickoff": 0,
         "props_snapshotted": 0, "picks_logged": 0, "credits_remaining": 0,
-        "no_props_coverage": False,
+        "no_props_coverage": False, "degenerate_rows": 0,
     }
 
     live = []
@@ -132,6 +182,7 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
                 # would clear the 5% gate on a fabricated 98% edge.
                 logger.warning("degenerate quantiles for %s %s; skipped",
                                prop["player_name"], prop["market"])
+                result["degenerate_rows"] += 1
                 continue
             p_over = p_over_from_quantiles(quantiles, prop["line"])
 
@@ -163,3 +214,103 @@ def _row(game, prop, market, side, p_side, edge, odds) -> dict:
         "model_p_over": float(p_side),
         "edge_vs_breakeven": float(edge),
     }
+
+# --- the CLI ---------------------------------------------------------------
+
+def _load_games(path: str | None, slate: str | None = None,
+                season: int | None = None, week: int | None = None) -> list[dict]:
+    """The games to tick, from a JSON file or the schedules feed.
+
+    An empty slate is an error rather than a quiet zero. "No games today" and
+    "looked at nothing" produce the same empty result, and the second one would
+    be reported as a clean week.
+    """
+    if path:
+        import json
+
+        with open(path) as handle:
+            games = json.load(handle)
+        if not isinstance(games, list):
+            raise ValueError(f"{path}: expected a list of games")
+    elif slate:
+        target_season, target_week = (int(part) for part in slate.split(":", 1))
+        games = _fetch_slate(target_season, target_week)
+    elif season is not None and week is not None:
+        games = _fetch_slate(season, week)
+    else:
+        raise ValueError(
+            "no games to tick: pass --games-json, or --slate SEASON:WEEK, "
+            "or both --season and --week")
+
+    if not games:
+        raise ValueError("the slate is empty; refusing to report a clean week "
+                         "having looked at nothing")
+    return games
+
+
+def _fetch_slate(season: int, week: int) -> list[dict]:
+    from ..data import schedules as schedules_module
+
+    frame = schedules_module.fetch_upcoming_games(season=season, week=week)
+    return frame.to_dict("records")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """One forward-test tick.
+
+    Refuses to run without an API key: no key means no request, no snapshot and
+    no credit spent, which is the correct outcome rather than an error to route
+    around.
+    """
+    import argparse
+
+    from ..config import ODDS_API_KEY
+    from .forward_report import write_weekly_report
+
+    parser = argparse.ArgumentParser(
+        description="Snapshot a slate and log edge-qualifying picks.")
+    parser.add_argument("--models-dir", default="models")
+    parser.add_argument("--games-json", default=None,
+                        help="games to tick; omit to use --season/--week from the schedules")
+    parser.add_argument("--slate", default=None,
+                        help="fetch the slate for SEASON:WEEK, e.g. 2026:5")
+    parser.add_argument("--season", type=int, default=None)
+    parser.add_argument("--week", type=int, default=None)
+    parser.add_argument("--edge-gate", type=float, default=EDGE_GATE)
+    parser.add_argument("--report-dir", default=None,
+                        help="write the weekly markdown report here")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="report what a tick would cost and record; spend nothing")
+    args = parser.parse_args(argv)
+
+    if not ODDS_API_KEY:
+        print("ODDS_API_KEY is not set: no request made, nothing snapshotted.")
+        return 2
+
+    games = _load_games(args.games_json, slate=args.slate, season=args.season,
+                        week=args.week)
+    live = [g for g in games if not _is_post_kickoff(g.get("commence_time", ""))]
+    cost = len(live) + 1  # one scores probe, then one props call per game
+    print(f"{len(games)} games, {len(live)} pre-kickoff, ~{cost} credits estimated")
+
+    if args.dry_run:
+        print("--dry-run: no request made, nothing snapshotted.")
+        return 0
+
+    try:
+        predictors = predictor_for(args.models_dir)
+    except FileNotFoundError as error:
+        print(f"error: {error}")
+        return 2
+    print(f"loaded markets: {sorted(predictors)}")
+
+    result = run_forward_tick(games=games, market_quantiles=predictors,
+                              edge_gate=args.edge_gate)
+    for key in ("games", "games_skipped_post_kickoff", "props_snapshotted",
+                "picks_logged", "degenerate_rows", "no_props_coverage"):
+        print(f"  {key}: {result[key]}")
+
+    if args.report_dir and args.season and args.week:
+        path = write_weekly_report(season=args.season, week=args.week, out_dir=args.report_dir)
+        print(f"report: {path}")
+    return 0
