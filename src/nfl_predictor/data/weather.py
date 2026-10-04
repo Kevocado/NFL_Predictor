@@ -10,6 +10,9 @@ import requests
 
 URL = "https://api.open-meteo.com/v1/forecast"
 
+#: 15 mph, the plan's high-wind threshold, in the km/h Open-Meteo reports.
+HIGH_WIND_KPH = 15 * 1.609344
+
 #: nflverse stadium name -> (lat, lon).
 STADIUM_COORDS: dict[str, tuple[float, float]] = {
     "AT&T Stadium": (32.7473, -97.0945),
