@@ -495,7 +495,12 @@ Expected: FAIL with ImportError/AttributeError
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-QUANTILES = [round(q, 1) for q in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)]
+# Extended 2026-10-04: the [0.02, 0.98] output clamp saturated the tails when
+# the grid stopped at 0.1/0.9 (every line beyond q0.9 reported a flat 0.02 vs a
+# true 7.7% tail rate). The model must be able to express tail probabilities.
+QUANTILES = ([round(q, 2) for q in (0.01, 0.02, 0.03, 0.04, 0.05)] +
+             [round(q, 1) for q in (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)] +
+             [round(q, 2) for q in (0.95, 0.96, 0.97, 0.98, 0.99)])
 
 def fit_yardage_quantile_models(X_train: pd.DataFrame, y_train: pd.Series,
                                quantiles: list[float] | None = None
