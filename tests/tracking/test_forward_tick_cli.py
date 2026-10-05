@@ -721,3 +721,28 @@ def test_an_artifact_with_no_book_market_is_skipped_not_fatal(tmp_path, monkeypa
 
     assert set(predictor) == {"player_pass_yds"}, (
         "an unquotable market must be absent, not invented")
+
+
+def test_the_dry_run_estimate_counts_only_priceable_markets(monkeypatch, tmp_path, capsys):
+    """The printed estimate must equal what the tick will actually reserve.
+
+    It read the artifact list with the glob `*_quantile_2025`, which matches none
+    of `passing_yards_quantile_2025.pkl`, so it silently fell through to a
+    fallback and reported 3 markets where 2 were priceable."""
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
+    _stub(monkeypatch)
+
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("passing_yards", "rushing_yards"))
+
+    exit_code = forward_tick.main([
+        "--models-dir", str(models_dir),
+        "--games-json", _games_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--dry-run",
+    ])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    # 1 game in the fixture, 2 priceable markets.
+    assert "~2 credits estimated" in out, out

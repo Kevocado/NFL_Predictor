@@ -311,3 +311,31 @@ def test_an_unpriceable_market_is_not_fetched(monkeypatch):
 
     assert seen["markets"] == ["player_pass_yds"], (
         f"requested only the loaded market; got {seen['markets']}")
+
+
+def test_the_precheck_and_the_per_event_request_agree(monkeypatch):
+    """The pre-flight budget and the per-event reservation must use the SAME
+    market count. Sizing the pre-check off PROP_MARKETS while requesting only
+    markets with artifacts over-reserves, refusing a slate that was affordable --
+    the mirror image of the 5x under-estimate this replaced."""
+    checked = []
+    reserved = []
+
+    store.record_game_predictions([_game("G1", FUTURE)])
+
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.credits_sufficient",
+                        lambda needed: checked.append(needed) or True)
+
+    def capture(event_id, markets=None, credits_needed=1):
+        reserved.append(credits_needed)
+        return []
+
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.fetch_props_for_event", capture)
+
+    run_forward_tick(games=[_game("G1", FUTURE)],
+                     market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                     players=PLAYERS, event_index=EVENT_INDEX)
+
+    assert checked == [1], f"pre-check reserved {checked}, but only one market loads"
+    assert reserved == [1], f"per-event reserved {reserved}"
+    assert checked == reserved, "the two must not drift apart"
