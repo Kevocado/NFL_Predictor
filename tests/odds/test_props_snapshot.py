@@ -34,7 +34,7 @@ def _budget(request, monkeypatch):
     remaining = getattr(request, "param", 400)
     if isinstance(remaining, str):
         remaining = int(remaining)
-    monkeypatch.setattr(props_snapshot, "ODDS_API_KEY", "test-key")
+    monkeypatch.setattr(props_snapshot, "SPORTSBOOK_API_KEY", "test-key")
     monkeypatch.setattr(props_snapshot, "_probe_credits", lambda: remaining)
 
 

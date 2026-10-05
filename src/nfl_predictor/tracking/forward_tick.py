@@ -526,7 +526,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from requests import RequestException
 
-    from ..config import ODDS_API_KEY
+    from ..config import SPORTSBOOK_API_KEY
     from .forward_report import write_weekly_report
 
     parser = argparse.ArgumentParser(
@@ -550,10 +550,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="report what a tick would cost and record; spend nothing")
     args = parser.parse_args(argv)
 
-    if not ODDS_API_KEY:
-        print("error: no Odds API key. Set ODDS_API_KEY (or SPORTSBOOK_API_KEY, "
-              "which config accepts as an alias) in the environment or a .env "
-              "file. No request was made and no credit was spent.")
+    if not SPORTSBOOK_API_KEY:
+        print("error: no sportsbook API key. Set SPORTSBOOK_API_KEY (ODDS_API_KEY "
+              "is still accepted) in the environment or a .env file. No request was "
+              "made and no credit was spent.")
         return 2
 
     games = _load_games(args.games_json, slate=args.slate, season=args.season,

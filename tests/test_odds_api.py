@@ -37,7 +37,7 @@ def _raw_odds_response():
 
 
 def test_fetch_game_odds_flattens_bookmaker_markets(monkeypatch):
-    monkeypatch.setattr(odds_api, "ODDS_API_KEY", "fake-key")
+    monkeypatch.setattr(odds_api, "SPORTSBOOK_API_KEY", "fake-key")
     monkeypatch.setattr(odds_api, "_fetch_raw_odds", lambda: _raw_odds_response())
 
     df = odds_api.fetch_game_odds()
@@ -48,7 +48,7 @@ def test_fetch_game_odds_flattens_bookmaker_markets(monkeypatch):
 
 
 def test_fetch_game_odds_returns_empty_frame_without_api_key(monkeypatch):
-    monkeypatch.setattr(odds_api, "ODDS_API_KEY", None)
+    monkeypatch.setattr(odds_api, "SPORTSBOOK_API_KEY", None)
 
     df = odds_api.fetch_game_odds()
 
@@ -56,7 +56,7 @@ def test_fetch_game_odds_returns_empty_frame_without_api_key(monkeypatch):
 
 
 def test_fetch_game_odds_returns_empty_frame_on_request_error(monkeypatch):
-    monkeypatch.setattr(odds_api, "ODDS_API_KEY", "fake-key")
+    monkeypatch.setattr(odds_api, "SPORTSBOOK_API_KEY", "fake-key")
 
     def _raise():
         raise RuntimeError("network error")
