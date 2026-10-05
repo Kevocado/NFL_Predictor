@@ -234,9 +234,38 @@ def history_row_for(feature_frame, player_id: str, season: int, week: int,
     for column in FORWARD_FEATURE_COLUMNS:
         if column in TARGET_GAME_COLUMNS:
             result[column] = context.get(column, float("nan"))
+        elif column == "opp_share":
+            # Recomputed rather than copied. `opp_share` on the previous row is
+            # already lagged, so copying it would price this game on
+            # mean(raw .. week-2) while training's row for THIS week uses
+            # mean(raw .. week-1) -- one game stale on the one feature that
+            # detects a QB change. `_opp_share_for` closes that skew.
+            result[column] = _opp_share_for(prior, season, week)
         elif column in prior.columns:
             result[column] = row[column]
     return result
+
+
+#: Matches the training window in `features.availability`.
+_OPP_SHARE_WINDOW = 4
+
+
+def _opp_share_for(prior: pd.DataFrame, season: int, week: int) -> float:
+    """The lagged role share a training row for (season, week) would carry.
+
+    Training computes `shift(1).rolling(window)` on `opp_share_raw`, so the value
+    attached to week W is the mean of the raw shares of the weeks strictly before
+    W. Serving rebuilds exactly that from the raw column, rather than inheriting a
+    lagged value that stopped one week short.
+    """
+    raw = "opp_share_raw"
+    if raw not in prior.columns or prior.empty:
+        return float("nan")
+
+    history = prior[prior[raw].notna()].sort_values(["season", "week"]).tail(_OPP_SHARE_WINDOW)
+    if history.empty:
+        return float("nan")
+    return float(history[raw].mean())
 
 
 def _has_spread(quantiles: dict) -> bool:

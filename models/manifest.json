@@ -155,8 +155,8 @@
     "markets": {
       "passing_yards": {
         "path": "passing_yards_quantile_2025.pkl",
-        "sha256": "e71679ba2c28dc0a4c4d34831fd4957ce7d1a89ccbd653aa05e5cf519c55c67e",
-        "walkforward_mae": 69.67353832770088,
+        "sha256": "7d1207db2603be9f3dba739b3e6ef583754f139b0312b26a229dc7499796e623",
+        "walkforward_mae": 70.10820994086458,
         "trained_seasons": [
           2017,
           2018,
@@ -174,8 +174,8 @@
       },
       "rushing_yards": {
         "path": "rushing_yards_quantile_2025.pkl",
-        "sha256": "c19e50eb38d4d1d5148f589e353709250dd60df06da5f6a1e91877db56f4164c",
-        "walkforward_mae": 21.422853509014807,
+        "sha256": "5c8b68daa3d8ef80cfd1900acb4ad81b4b09f8f29b0e4edc78a046fb9e3c6ec8",
+        "walkforward_mae": 21.46655737063104,
         "trained_seasons": [
           2017,
           2018,
@@ -193,8 +193,8 @@
       },
       "receiving_yards": {
         "path": "receiving_yards_quantile_2025.pkl",
-        "sha256": "1e4d8803ab0a2986547b4df1222ebe9169ea7795672e95740b19571e34bf8022",
-        "walkforward_mae": 21.10419496245524,
+        "sha256": "9a7d8987edba9de08c21c74c2724a804d94d083701ae5e8556890c40d7bdfb5e",
+        "walkforward_mae": 21.07288503627927,
         "trained_seasons": [
           2017,
           2018,
@@ -211,6 +211,6 @@
         "n_quantiles": 19
       }
     },
-    "created_at": "2026-10-04T20:52:48.991127+00:00"
+    "created_at": "2026-10-05T01:20:35.966794+00:00"
   }
 }
