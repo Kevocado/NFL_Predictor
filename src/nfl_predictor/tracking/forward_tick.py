@@ -25,6 +25,7 @@ from ..models.prop_probability import american_to_breakeven, edge_vs_line, p_ove
 from ..models.quantile_registry import (
     ARTIFACT_SUFFIX, load_quantile_artifact, verify_quantile_artifacts,
 )
+from ..features.availability import _LONG_WINDOW
 from ..models.training import FORWARD_FEATURE_COLUMNS
 from ..odds.props_snapshot import (
     BudgetExhausted, credits_sufficient, fetch_event_index, fetch_props_for_event,
@@ -234,9 +235,45 @@ def history_row_for(feature_frame, player_id: str, season: int, week: int,
     for column in FORWARD_FEATURE_COLUMNS:
         if column in TARGET_GAME_COLUMNS:
             result[column] = context.get(column, float("nan"))
+        elif column == "opp_share":
+            # Recomputed rather than copied. `opp_share` on the previous row is
+            # already lagged, so copying it would price this game on
+            # mean(raw .. week-2) while training's row for THIS week uses
+            # mean(raw .. week-1) -- one game stale on the one feature that
+            # detects a QB change. `_opp_share_for` closes that skew.
+            result[column] = _opp_share_for(prior, season, week)
         elif column in prior.columns:
             result[column] = row[column]
     return result
+
+
+#: The training window, imported rather than restated. Hardcoding it as 4 when
+#: `_LONG_WINDOW` is 5 reproduced a stale-skew bug in miniature -- the same
+#: train/serve mismatch this function exists to eliminate.
+_OPP_SHARE_WINDOW = _LONG_WINDOW
+
+
+def _opp_share_for(prior: pd.DataFrame, season: int, week: int) -> float:
+    """The lagged role share a training row for (season, week) would carry.
+
+    Training computes `shift(1).rolling(_LONG_WINDOW, min_periods=1).mean()` on
+    `opp_share_raw`, so the value attached to week W is the mean of the raw shares
+    of the **five rows immediately preceding W**, with NaN skipped inside the mean.
+
+    Both details matter. Taking the last five rows positionally and only then
+    dropping NaN is not the same as taking the last five *non-null* rows: filtering
+    first reaches further back and folds an older week into the window. And if all
+    five are NaN the answer is NaN, not a shorter average.
+    """
+    raw = "opp_share_raw"
+    if raw not in prior.columns or prior.empty:
+        return float("nan")
+
+    window = prior.sort_values(["season", "week"]).tail(_OPP_SHARE_WINDOW)
+    observed = window[raw].dropna()
+    if observed.empty:
+        return float("nan")
+    return float(observed.mean())
 
 
 def _has_spread(quantiles: dict) -> bool:

@@ -603,3 +603,70 @@ def test_an_event_list_fetch_failure_exits_cleanly(monkeypatch, tmp_path):
 
     assert exit_code == 2
     assert _logged() == [], "nothing snapshotted after a failed index fetch"
+
+
+def test_serving_uses_the_same_window_as_training():
+    """Training is `shift(1).rolling(_LONG_WINDOW, min_periods=1).mean()` on
+    `opp_share_raw`, so serving must average the same number of POSTERIOR rows.
+
+    A previous version hardcoded 4 when the training window is 5, and dropped NaN
+    rows before taking the tail -- so a gap in the record reached further back and
+    folded an older week into the window."""
+    import pandas as pd
+
+    from nfl_predictor.features.availability import _LONG_WINDOW
+    from nfl_predictor.tracking import forward_tick
+
+    assert forward_tick._OPP_SHARE_WINDOW == _LONG_WINDOW, (
+        "serving window must track training, not restate it")
+
+    # Five prior weeks: the target week must average exactly these.
+    frame = pd.DataFrame(
+        [{"player_id": "00-1", "season": 2026, "week": w,
+          "opp_share_raw": float(w)} for w in range(1, 7)]
+        + [{"player_id": "00-1", "season": 2026, "week": 7}])
+
+    row = forward_tick.history_row_for(frame, "00-1", 2026, 7)
+
+    # Weeks 2..6 -> mean 4.0. Including week 1 (mean 3.0) would mean 6 rows.
+    assert row["opp_share"] == pytest.approx(4.0)
+
+
+def test_a_gap_in_the_record_does_not_reach_further_back():
+    """NaN rows still occupy a position in the training window -- pandas skips
+    them inside the mean, it does not close the gap.
+
+    The gap is placed in the MOST RECENT row, and the oldest row is given a
+    distinct value, so filtering NaN out first pulls week 1 into the window and
+    changes the answer. An earlier version of this test put the gap outside the
+    window, where both implementations agree, and so caught nothing."""
+    import pandas as pd
+
+    frame = pd.DataFrame([
+        {"player_id": "00-1", "season": 2026, "week": 1, "opp_share_raw": 7.0},
+        {"player_id": "00-1", "season": 2026, "week": 2, "opp_share_raw": 1.0},
+        {"player_id": "00-1", "season": 2026, "week": 3, "opp_share_raw": 1.0},
+        {"player_id": "00-1", "season": 2026, "week": 4, "opp_share_raw": 1.0},
+        {"player_id": "00-1", "season": 2026, "week": 5, "opp_share_raw": 1.0},
+        {"player_id": "00-1", "season": 2026, "week": 6, "opp_share_raw": float("nan")},
+        {"player_id": "00-1", "season": 2026, "week": 7},
+    ])
+
+    row = forward_tick.history_row_for(frame, "00-1", 2026, 7)
+
+    # Positional window is weeks 2..6 = [1,1,1,1,NaN] -> 1.0.
+    # Filtering NaN first would reach back to week 7's 1.0 and give (7+1+1+1+1)/5.
+    assert row["opp_share"] == pytest.approx(1.0)
+
+
+def test_no_history_yields_unknown_not_zero():
+    """A player with no observed share is unknown. Zero would assert a benched
+    player and train on it."""
+    import pandas as pd
+
+    frame = pd.DataFrame([{"player_id": "00-1", "season": 2026, "week": 6,
+                           "opp_share_raw": float("nan")}])
+
+    row = forward_tick.history_row_for(frame, "00-1", 2026, 7)
+
+    assert row["opp_share"] != row["opp_share"], "must be NaN, not 0.0"

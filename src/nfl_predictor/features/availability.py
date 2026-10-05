@@ -171,6 +171,134 @@ def _participation(pbp: pd.DataFrame) -> pd.DataFrame:
     return merged.rename(columns={"gsis_id": "player_id"}).fillna({"snaps": 0, "routes": 0})
 
 
+#: Which opportunity share a position is measured on.
+_POSITION_ROLE = {"QB": "QB", "RB": "RB"}
+
+
+def _role_opportunity_share(pbp: pd.DataFrame) -> pd.DataFrame:
+    """Per (player, season, week): shares on EVERY role the player touched.
+
+    `snap_share` cannot answer "does this player start". A starting QB reads
+    about 0.49 there, because `team_snaps` counts every offensive play while the
+    player's own count only credits plays with an identified participant -- and
+    worse, a share pooled across roles is diluted by the receivers and rushers
+    who touch the very same snaps.
+
+    So the share is taken within a role, against a team total drawn from the SAME
+    population:
+
+    * QB    -- passing attempts / team passing attempts
+    * RB    -- carries / team carries
+    * WR/TE -- targets / team targets
+
+    That is sharp where `snap_share` is vague: on 2026, J. Dart reads 1.00 in the
+    game he started and 0.15 in the one he came in relief, and S. Darnold 0.98
+    against 0.12.
+
+    **Every role is returned, not one.** Which share applies depends on the prop
+    being priced, and only the caller knows that: a WR who throws a trick pass
+    still needs his TARGET share for a receiving-yards prop. Reducing to a single
+    row here is what made a trick-pass thrower look like a quarterback.
+
+    Raw post-game observation; the caller lags it.
+    """
+    keys = ["player_id", "season", "week", "posteam"]
+    out = keys + ["role", "own", "team_total", "share"]
+    if pbp.empty:
+        return pd.DataFrame(columns=out)
+
+    frames = []
+
+    def _role_counts(frame: pd.DataFrame, id_column: str, label: str, role: str,
+                     *, exclude_passer: bool = False) -> None:
+        subset = frame[frame[id_column].notna()]
+        if exclude_passer and "passer_player_id" in subset.columns:
+            subset = subset[subset[id_column].ne(subset.passer_player_id)]
+        if subset.empty:
+            return
+        own = (subset.assign(player_id=subset[id_column])
+               .groupby(keys, as_index=False)
+               .agg(own=("player_id", "size")))
+        total = (own.groupby(["season", "week", "posteam"], as_index=False)["own"]
+                 .sum().rename(columns={"own": "team_total"}))
+        merged = own.merge(total, on=["season", "week", "posteam"], how="left")
+        frames.append(merged.assign(role=role, label=label,
+                                    share=lambda d: d.own / d.team_total.replace(0, float("nan"))))
+
+    if "passer_player_id" in pbp:
+        _role_counts(pbp, "passer_player_id", "attempts", "QB")
+    if "rusher_player_id" in pbp:
+        _role_counts(pbp, "rusher_player_id", "carries", "RB")
+    if "receiver_player_id" in pbp:
+        _role_counts(pbp, "receiver_player_id", "targets", "WR", exclude_passer=True)
+
+    if not frames:
+        return pd.DataFrame(columns=out)
+
+    long = pd.concat(frames, ignore_index=True)
+    # Collapse a multi-team week to ONE player-week value per role. A player traded
+    # mid-week appears under two `posteam`s, and leaving both would duplicate the
+    # weekly row on merge -- after which `shift(1)` could hand a player their own
+    # same-week value as their lagged feature. Counts are summed rather than
+    # shares averaged, so the numerator and denominator stay consistent.
+    per_role = (long.groupby(["player_id", "season", "week", "role"], as_index=False)
+                [["own", "team_total"]].sum())
+    per_role["share"] = per_role["own"] / per_role["team_total"].replace(0, float("nan"))
+    return per_role[["player_id", "season", "week", "role", "share"]]
+
+
+def add_opportunity_share(df: pd.DataFrame, pbp: pd.DataFrame) -> pd.DataFrame:
+    """Attach the role share for the player's OWN position, plus its raw form.
+
+    Three columns, and the distinction matters:
+
+    * `opp_share_raw` -- this week's observed share, NOT lagged. Excluded from
+      `FORWARD_FEATURE_COLUMNS` and must stay so; it exists only so forward
+      serving can build the target week's lagged value itself.
+    * `opp_share` -- the LAGGED feature the models are fitted on. Week W sees only
+      weeks before W.
+
+    The raw column is what makes serving correct. `tracking.forward_tick.
+    history_row_for` used to copy the previous row's already-lagged `opp_share`,
+    which means a week-3 prop saw `mean(raw wk1)` while training's week-3 row saw
+    `mean(raw wk1, raw wk2)` -- one game stale on exactly the feature meant to
+    catch a QB change. Computing the target week's lag from the raw column closes
+    that skew.
+    """
+    keys = ["player_id", "season", "week"]
+    out = df.copy()
+    for column in ("opp_share", "opp_share_raw"):
+        if column not in out.columns:
+            out[column] = float("nan")
+
+    shares = _role_opportunity_share(pbp)
+    if shares.empty:
+        # Unknown, not zero and not a stale leftover: an empty pbp means the share
+        # could not be observed, and retaining a previous calculation would carry
+        # a value forward that no longer has an observation behind it.
+        out["opp_share"] = float("nan")
+        out["opp_share_raw"] = float("nan")
+        return out
+
+    # Role comes from the player's own `position`, joined on keys. Assigning a
+    # Series instead would align on INDEX -- two different frames -- and quietly
+    # produce NaN for every row but the first.
+    position = out[keys + ["position"]] if "position" in out.columns else None
+    if position is None:
+        chosen = shares[shares.role == "WR"].drop(columns=["role"])
+    else:
+        position = position.assign(_role=position.position.map(
+            lambda p: _POSITION_ROLE.get(p, "WR")))
+        chosen = shares.merge(position[keys + ["_role"]], on=keys, how="inner")
+        chosen = chosen[chosen.role == chosen._role].drop(columns=["role", "_role"])
+    chosen = chosen.rename(columns={"share": "opp_share_raw"})
+
+    merged = out.drop(columns=["opp_share", "opp_share_raw"]).merge(chosen, on=keys, how="left")
+    merged = merged.sort_values(["player_id", "season", "week"])
+    merged["opp_share"] = _lagged_rolling(merged["opp_share_raw"], merged["player_id"], _LONG_WINDOW)
+    return merged
+
+
 def _opportunity_features(weekly: pd.DataFrame, pbp: pd.DataFrame) -> pd.DataFrame:
     """Snap share and route participation, both lagged off their own history."""
     base = weekly[_KEYS].drop_duplicates(subset=_KEYS).copy()
@@ -239,6 +367,10 @@ def add_availability_features(weekly_df: pd.DataFrame, injuries_df: pd.DataFrame
                  _opportunity_features(weekly, pbp)):
         df = df.merge(part, on=_KEYS, how="left")
 
+    # Applied AFTER the merges so it lags `opp_share` off the assembled frame,
+    # exactly as `_opportunity_features` does for snap_share -- the same shift(1)
+    # discipline, applied to the sharper starter proxy.
+    df = add_opportunity_share(df, pbp)
     df = add_form_deviation(df)
 
     # Merged before the column exists locally, for the same reason as

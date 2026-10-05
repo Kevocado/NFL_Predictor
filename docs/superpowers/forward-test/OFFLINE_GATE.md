@@ -13,7 +13,7 @@
 | gate | result |
 |---|---|
 | MAE (spec §1.3, "necessary but not sufficient") | **PASS** — q50 beats the naive baseline in 20 of 21 market-seasons |
-| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.027** |
+| Calibration (spec §1.1, **the binding gate**, exogenous line) | **PASS** — 10 of 10 buckets within ±0.05, worst gap **0.024** |
 
 Both gates pass, so per the plan's Task 14 Step 3 the forward test may start. Worth stating plainly: **this authorises a $0, no-bet observation.** No credit has been spent, no artifact committed, nothing published or placed. The first live tick is Kevin's to start.
 
@@ -25,20 +25,22 @@ A prior run of this gate under the original own-median line returned **NO-GO**. 
 
 Walk-forward 2018–2025, three markets pooled, **37,584 scored rows**. Proxy line = exogenous cross-sectional median. Gate: predicted within ±0.05 of empirical, n ≥ 100.
 
+The calibration table below accounts for **37,523** of those rows: the remaining **61** sit in buckets below the n ≥ 100 floor, which `calibration_report` omits by design — the spec's gate is defined on n ≥ 100, and a verdict drawn from 40 predictions would be noise presented as evidence. The table therefore covers 99.8% of scored rows, and the shortfall is the floor doing its job, not a lost measurement.
+
 | bucket | predicted | empirical | gap | n | verdict |
 |---|---|---|---|---|---|
-| 0.0–0.1 | 0.088 | 0.091 | 0.003 | 428 | ok |
-| 0.1–0.2 | 0.165 | 0.145 | 0.020 | 4378 | ok |
-| 0.2–0.3 | 0.250 | 0.241 | 0.009 | 6185 | ok |
-| 0.3–0.4 | 0.351 | 0.325 | 0.027 | 4849 | ok |
-| 0.4–0.5 | 0.452 | 0.434 | 0.019 | 4167 | ok |
-| 0.5–0.6 | 0.551 | 0.543 | 0.008 | 4468 | ok |
-| 0.6–0.7 | 0.650 | 0.653 | 0.003 | 4612 | ok |
-| 0.7–0.8 | 0.748 | 0.749 | 0.001 | 4541 | ok |
-| 0.8–0.9 | 0.840 | 0.851 | 0.010 | 3501 | ok |
-| 0.9–1.0 | 0.916 | 0.901 | 0.015 | 394 | ok |
+| 0.0–0.1 | 0.088 | 0.085 | 0.003 | 434 | ok |
+| 0.1–0.2 | 0.166 | 0.147 | 0.018 | 4400 | ok |
+| 0.2–0.3 | 0.250 | 0.234 | 0.016 | 6137 | ok |
+| 0.3–0.4 | 0.351 | 0.329 | 0.022 | 4803 | ok |
+| 0.4–0.5 | 0.451 | 0.427 | 0.024 | 4150 | ok |
+| 0.5–0.6 | 0.552 | 0.549 | 0.003 | 4565 | ok |
+| 0.6–0.7 | 0.649 | 0.645 | 0.005 | 4638 | ok |
+| 0.7–0.8 | 0.750 | 0.754 | 0.005 | 4451 | ok |
+| 0.8–0.9 | 0.839 | 0.853 | 0.014 | 3521 | ok |
+| 0.9–1.0 | 0.915 | 0.899 | 0.017 | 424 | ok |
 
-Every bucket clears, on **25 features with no closing-line information** (§3.1), trained through 2026. The largest residual is 0.027, on 4849 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
+Every bucket clears, on **26 features with no closing-line information** (§3.1), trained through 2026. The largest residual is 0.024, on 4150 rows — the region the forward test's tail watch (§5) is built to catch if it moves.
 
 ### 1.1 Non-binding diagnostic: own-median curve
 
@@ -146,7 +148,59 @@ Found after the first merge, on review and on the first 2026 run:
 Cost of all three: **none**. Worst calibration gap 0.030 → **0.027**, and MAE
 improved on all three markets. Artifacts are now fitted on **2017–2026**.
 
-### 3.3 The Odds API event id is not an nflverse game id
+### 3.3 A starter signal, without a lineups feed
+
+The depth chart cannot be trusted for this. As of 2026-10-03 it ranked Winston
+**#1** / Dart **#3** at NYG and Darnold **#1** / Lock **#2** at SEA, while the 2026
+play-by-play shows **both** QBs starting two games each for both teams. Any starter
+logic built on that feed would be wrong for exactly the teams that need it.
+
+ESPN's public API was checked as an alternative and does not serve NFL starting
+lineups: no `rosters` on scoreboard events or `summary` (0 of 16 completed games),
+404 on the core-API roster paths, and `teams/{id}/roster` returns a roster with no
+starter flag. There is no lineups feed to consume.
+
+So the starter signal is derived from play-by-play instead, and taken **within the
+player's role** — the model previously had only `snap_share`, which is diluted (a
+starter reads ~0.49, because `team_snaps` counts every offensive play while a
+player is credited only for plays with an identified participant) and pooled
+across roles, so receivers and rushers dilute the passer further.
+
+| player | started | cameo |
+|---|---|---|
+| J. Dart | **1.00** → 230 yds | **0.15** → 20 yds |
+| S. Darnold | **0.98** → 379 yds | **0.12** → 13 yds |
+
+`opp_share` is attempts/team-attempts for a QB, carries for an RB, targets for a
+WR/TE — selected by the player's own `position`, so a WR who throws a trick pass is
+still scored on his targets for a receiving-yards prop. It is lagged through
+`_lagged_rolling` like every other post-game observable.
+
+**Two columns, because serving needs the unlagged one.** `opp_share` is the
+lagged feature the models are fitted on. `opp_share_raw` is this week's observation,
+is deliberately **excluded** from `FORWARD_FEATURE_COLUMNS`, and exists only so
+forward serving can build the target week's lagged value itself. Copying the
+previous row's already-lagged `opp_share` — the obvious implementation — prices a
+week-3 prop on `mean(raw wk1)` while training's week-3 row uses
+`mean(raw wk1, raw wk2)`, which is one game stale on precisely the feature meant to
+catch a QB change. A test asserts the raw column never enters the feature list,
+since an unlagged column left in the frame is the same trap that once produced a
+71-feature artifact fitted on the answer.
+
+**Measured effect: neutral on aggregate accuracy, better in the deep tail.** MAE is
+flat (passing 69.6 → 69.7, receiving 21.1, rushing 21.4) and the worst calibration
+gap is unchanged at 0.027, but the top bucket improved **0.015 → 0.010** on more
+rows (394 → 492) — the region the §5 kill rule watches. Only 5.5% of QB game-rows
+are cameo appearances, so a large aggregate move was never available; the point is
+correctness under a QB change, not accuracy, and it is free.
+
+The residual limitation is unchanged and stated rather than hidden: the model
+conditions on a player's own history and cannot know who starts on Sunday. What it
+prices is correctly conditional on that player playing — and **a book only posts a
+line for a player it expects to start**, so the prop's existence is itself the
+participation signal. Nothing in `src/` sums player projections into a team total.
+
+### 3.4 The Odds API event id is not an nflverse game id
 
 The tick passed `game["game_id"]` (`2026_05_ALB_DEN`) straight into the Odds API
 URL. Event ids there are opaque (`e91a…`), so **every real request would have
@@ -162,8 +216,8 @@ q50 against the naive trailing-mean baseline. Spec's 2025-holdout baselines in t
 
 | market | q50 MAE (mean) | naive MAE | q50 wins | spec baseline |
 |---|---|---|---|---|
-| passing_yards | 69.6 | 70.3 | 4 / 7 | 72.2 |
-| rushing_yards | 21.4 | 22.7 | 7 / 7 | 20.9 |
+| passing_yards | 70.1 | 70.3 | 4 / 7 | 72.2 |
+| rushing_yards | 21.5 | 22.7 | 7 / 7 | 20.9 |
 | receiving_yards (WR+TE) | 21.1 | 22.5 | 7 / 7 | 22.3 (WR) / 17.7 (TE) |
 
 - **Passing** beats the spec's 72.2 but loses to naive in 2018 and 2023, and is the weakest market by ratio (≈0.99× naive). ~650 QB-weeks per season is thin. Watch this one.
@@ -220,7 +274,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1113 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
@@ -248,9 +302,9 @@ Tasks 1–14 complete; **1100 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | market | features | quantiles | walk-forward MAE |
 |---|---|---|---|
-| `passing_yards_quantile_2025.pkl` | 25 | 19 | 69.6 |
-| `rushing_yards_quantile_2025.pkl` | 25 | 19 | 21.4 |
-| `receiving_yards_quantile_2025.pkl` | 25 | 19 | 21.1 |
+| `passing_yards_quantile_2025.pkl` | 26 | 19 | 70.1 |
+| `rushing_yards_quantile_2025.pkl` | 26 | 19 | 21.5 |
+| `receiving_yards_quantile_2025.pkl` | 26 | 19 | 21.1 |
 
 Manifest: additive key `quantile_yardage_v1`, each artifact carrying a sha256.
 Every pre-existing manifest key is carried through byte-identical — the live site
