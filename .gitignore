@@ -3,6 +3,7 @@ __pycache__/
 *.egg-info/
 data/cache/
 data/tracking.db
+data/tracking.db-*
 data/tracking.db-shm
 data/tracking.db-wal
 models/*.json
