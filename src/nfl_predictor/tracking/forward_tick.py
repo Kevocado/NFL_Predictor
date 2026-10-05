@@ -622,3 +622,11 @@ def main(argv: list[str] | None = None) -> int:
         path = write_weekly_report(season=args.season, week=args.week, out_dir=args.report_dir)
         print(f"report: {path}")
     return 0
+
+
+if __name__ == "__main__":
+    # Without this, `python -m nfl_predictor.tracking.forward_tick ...` imports the
+    # module, does nothing at all, and exits 0 -- so the command documented in
+    # OFFLINE_GATE.md reported success while snapshotting nothing and spending
+    # nothing. Found by running the documented dry-run and getting no output.
+    raise SystemExit(main())

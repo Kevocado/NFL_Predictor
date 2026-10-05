@@ -7,6 +7,7 @@ test stubs the network seam; nothing here reaches The Odds API.
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 
@@ -670,3 +671,24 @@ def test_no_history_yields_unknown_not_zero():
     row = forward_tick.history_row_for(frame, "00-1", 2026, 7)
 
     assert row["opp_share"] != row["opp_share"], "must be NaN, not 0.0"
+
+
+def test_the_module_is_executable_as_documented():
+    """`python -m nfl_predictor.tracking.forward_tick` is the documented command.
+
+    With no `__main__` guard it imported the module, did nothing, and exited 0 --
+    reporting success while snapshotting nothing. This runs the module the way the
+    gate document does and asserts it reaches argument handling rather than
+    falling off the end of the import."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "nfl_predictor.tracking.forward_tick", "--help"],
+        capture_output=True, text=True,
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "--feature-frame" in result.stdout, (
+        "the module must expose the documented CLI, not exit silently")
