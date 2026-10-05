@@ -166,7 +166,7 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
 
 def test_cli_refuses_without_an_api_key(monkeypatch, tmp_path):
     # main() reads the key from config at call time, so that is what to patch.
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", None)
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", None)
     called = []
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda *a, **k: called.append(a) or [])
@@ -178,7 +178,7 @@ def test_cli_refuses_without_an_api_key(monkeypatch, tmp_path):
 
 
 def test_cli_dry_run_makes_no_request_and_writes_nothing(monkeypatch, tmp_path):
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     called = []
     monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                         lambda *a, **k: called.append(a) or [])
@@ -196,7 +196,7 @@ def test_cli_dry_run_makes_no_request_and_writes_nothing(monkeypatch, tmp_path):
 def test_cli_refuses_an_empty_slate_rather_than_reporting_a_clean_week(monkeypatch, tmp_path):
     """No games and "looked at nothing" both produce zero picks. Only the first
     is a real result, so the second must not be reportable."""
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     empty = tmp_path / "empty.json"
     empty.write_text("[]")
 
@@ -206,14 +206,14 @@ def test_cli_refuses_an_empty_slate_rather_than_reporting_a_clean_week(monkeypat
 
 
 def test_cli_refuses_when_no_slate_is_given(monkeypatch, tmp_path):
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
 
     with pytest.raises(ValueError, match="no games to tick"):
         forward_tick.main(["--models-dir", str(_artifacts(tmp_path, monkeypatch))])
 
 
 def test_cli_reports_what_it_would_spend_on_a_dry_run(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     _stub(monkeypatch, props=[])
 
     forward_tick.main([
@@ -226,7 +226,7 @@ def test_cli_reports_what_it_would_spend_on_a_dry_run(monkeypatch, tmp_path, cap
 
 
 def test_cli_writes_nothing_when_the_budget_is_insufficient(monkeypatch, tmp_path):
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     store.record_game_predictions([GAME])
     _stub(monkeypatch, credits=0)
 
@@ -240,7 +240,7 @@ def test_cli_writes_nothing_when_the_budget_is_insufficient(monkeypatch, tmp_pat
 
 
 def test_main_writes_a_weekly_report_when_asked(monkeypatch, tmp_path):
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     _stub(monkeypatch, props=[])
     out_dir = tmp_path / "reports"
 
@@ -390,7 +390,7 @@ def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
     """Deleting `run_forward_tick` from `main()` left the whole suite green,
     because every other main() test supplied an empty prop list and took the
     `continue`. This one supplies a real prop, so the wiring is covered."""
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     _stub(monkeypatch, props=[PROP])
 
     exit_code = forward_tick.main([
@@ -412,7 +412,7 @@ def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
 def test_main_reports_a_missing_player_index_as_a_misconfiguration(monkeypatch, tmp_path):
     """A missing flag is not "the book had no props this week". It exits
     non-zero and says so, so it cannot be filed as a clean no-coverage week."""
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     _stub(monkeypatch, props=[PROP])
 
     exit_code = forward_tick.main([
@@ -529,7 +529,7 @@ def test_unknown_weather_is_imputed_from_the_frame_not_set_to_zero():
 def test_a_real_tick_does_not_force_the_context_columns_to_zero(monkeypatch, tmp_path):
     """The end-to-end version: after the tick's own fillna, no context column may
     be 0 purely because it was unknown."""
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     _stub(monkeypatch, props=[PROP])
 
     seen = {}
@@ -556,26 +556,38 @@ def test_a_real_tick_does_not_force_the_context_columns_to_zero(monkeypatch, tmp
     assert "is_home" not in unknown, "is_home is exactly derivable and was not supplied"
 
 
-def test_the_sportsbook_key_is_accepted_as_an_alias(monkeypatch):
-    """`vps-stack/.env.example` declares BOTH `ODDS_API_KEY` and
-    `SPORTSBOOK_API_KEY`. Reading only one means a key that is genuinely present
-    reads as absent -- which surfaces as an empty slate, not an error."""
+def test_the_working_key_wins_when_both_names_are_set(monkeypatch):
+    """The VPS holds two DIFFERENT credentials and only `ODDS_API_KEY` works --
+    `SPORTSBOOK_API_KEY` returns 401 there. So the verified key is read first,
+    despite the other name being the one the rest of the stack uses. A tidy
+    rename would have broken every live odds call.
+
+    `SPORTSBOOK_API_KEY` is still accepted, so a host carrying only that name
+    works, and the order can be flipped once its VPS value is replaced."""
     import importlib
 
     import nfl_predictor.config as config
 
+    monkeypatch.setenv("SPORTSBOOK_API_KEY", "returns-401")
+    monkeypatch.setenv("ODDS_API_KEY", "works")
+    assert importlib.reload(config).SPORTSBOOK_API_KEY == "works", \
+        "the credential that actually authenticates must win"
+
     monkeypatch.setenv("ODDS_API_KEY", "")
-    monkeypatch.setenv("SPORTSBOOK_API_KEY", "from-the-stack")
+    assert importlib.reload(config).SPORTSBOOK_API_KEY == "returns-401", \
+        "a host with only SPORTSBOOK_API_KEY must still work"
 
-    reloaded = importlib.reload(config)
-
-    assert reloaded.ODDS_API_KEY == "from-the-stack"
+    monkeypatch.setenv("SPORTSBOOK_API_KEY", "")
+    # An empty value is the "unset" signal here: compose.yml defaults both to
+    # empty when the host has no key, and every guard is `if not ...`, so falsy
+    # is the contract rather than `is None`.
+    assert not importlib.reload(config).SPORTSBOOK_API_KEY
 
 
 def test_a_missing_key_names_both_variables(monkeypatch, tmp_path):
     """A credential problem must not be reported as an exhausted budget."""
     # main() imports the name at call time, so patching config is the seam.
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", None)
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", None)
 
     exit_code = forward_tick.main(["--models-dir", str(tmp_path)])
 
@@ -587,7 +599,7 @@ def test_an_event_list_fetch_failure_exits_cleanly(monkeypatch, tmp_path):
     `raise_for_status()` buried inside the tick."""
     import requests
 
-    monkeypatch.setattr("nfl_predictor.config.ODDS_API_KEY", "test-key")
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
 
     def boom():
         raise requests.ConnectionError("no route to host")
