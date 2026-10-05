@@ -84,13 +84,13 @@ def _pick(monkeypatch, p_over_by_market):
 def test_tick_rejects_post_kickoff_game(monkeypatch):
     store.record_game_predictions([_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)])
     _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
-                                    "market": "player_rec_yds", "line": 50.0,
+                                    "market": "player_pass_yds", "line": 50.0,
                                     "over_odds": -110, "under_odds": -110,
                                     "book": "fanduel", "team": "A"}]})
-    _pick(monkeypatch, {"player_rec_yds": lambda line: {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
+    _pick(monkeypatch, {"player_pass_yds": lambda line: {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}})
 
     result = run_forward_tick(games=[_game("G_LIVE", FUTURE), _game("G_DEAD", PAST)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
                                   event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -102,9 +102,9 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     # Two props: one the model likes a lot, one it is indifferent on.
     props = [
-        {"player_name": "Good", "normalized_name": "good", "market": "player_rec_yds",
+        {"player_name": "Good", "normalized_name": "good", "market": "player_pass_yds",
          "line": 50.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "A"},
-        {"player_name": "Meh", "normalized_name": "meh", "market": "player_rec_yds",
+        {"player_name": "Meh", "normalized_name": "meh", "market": "player_pass_yds",
          "line": 90.0, "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "A"},
     ]
     _stub(monkeypatch, {EVENT_ID: props})
@@ -114,7 +114,7 @@ def test_tick_logs_only_edge_gate_qualifiers(monkeypatch):
                  0.6: 62.0, 0.7: 64.0, 0.8: 66.0, 0.9: 68.0}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles},
+                              market_quantiles={"player_pass_yds": quantiles},
                                 event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -135,13 +135,13 @@ def test_a_prop_the_model_is_indifferent_about_is_not_logged(monkeypatch):
     fabricated edge, and the 5% gate would wave it through."""
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
-                                "market": "player_rec_yds", "line": 60.0,
+                                "market": "player_pass_yds", "line": 60.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
     quantiles = {q: 60.0 for q in [i / 10 for i in range(1, 10)]}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles},
+                              market_quantiles={"player_pass_yds": quantiles},
                                   event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -166,13 +166,13 @@ def test_a_degenerate_distribution_is_rejected_before_pricing(monkeypatch):
 def test_budget_exhaustion_writes_nothing(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {EVENT_ID: [{"player_id": "00-1", "player_name": "P",
-                                "market": "player_rec_yds", "line": 50.0,
+                                "market": "player_pass_yds", "line": 50.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "BAL"}]},
             credits=0)
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
                                 event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -189,7 +189,7 @@ def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
     _stub(monkeypatch, {})
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                              market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
                                   event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -203,13 +203,13 @@ def test_no_props_coverage_means_no_picks_and_no_fallback(monkeypatch):
 def test_tick_returns_the_documented_counters(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
-                                "market": "player_rec_yds", "line": 50.0,
+                                "market": "player_pass_yds", "line": 50.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     result = run_forward_tick(games=[_game("G1", FUTURE)],
-                              market_quantiles={"player_rec_yds": quantiles},
+                              market_quantiles={"player_pass_yds": quantiles},
                                 event_index=EVENT_INDEX,
                               players=PLAYERS)
 
@@ -220,13 +220,13 @@ def test_tick_returns_the_documented_counters(monkeypatch):
 def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
-                                "market": "player_rec_yds", "line": 50.0,
+                                "market": "player_pass_yds", "line": 50.0,
                                 "over_odds": -115, "under_odds": -105,
                                 "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     run_forward_tick(games=[_game("G1", FUTURE)],
-                     market_quantiles={"player_rec_yds": quantiles},
+                     market_quantiles={"player_pass_yds": quantiles},
                        event_index=EVENT_INDEX,
                      players=PLAYERS)
 
@@ -239,13 +239,13 @@ def test_recorded_edge_uses_the_sides_actual_odds(monkeypatch):
 def test_under_pick_records_its_own_odds(monkeypatch):
     store.record_game_predictions([_game("G1", FUTURE)])
     _stub(monkeypatch, {EVENT_ID: [{"player_name": "Test", "normalized_name": "test",
-                                "market": "player_rec_yds", "line": 90.0,
+                                "market": "player_pass_yds", "line": 90.0,
                                 "over_odds": -110, "under_odds": -110,
                                 "book": "fanduel", "team": "A"}]})
     quantiles = {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}
 
     run_forward_tick(games=[_game("G1", FUTURE)],
-                     market_quantiles={"player_rec_yds": quantiles},
+                     market_quantiles={"player_pass_yds": quantiles},
                          event_index=EVENT_INDEX,
                      players=PLAYERS)
 
@@ -264,3 +264,50 @@ def _logged() -> list[dict]:
         conn.row_factory = sqlite3.Row
         return [dict(r) for r in conn.execute(
             "SELECT * FROM player_prop_predictions WHERE line_at_snapshot IS NOT NULL")]
+
+def test_the_budget_is_sized_by_markets_not_by_games(monkeypatch):
+    """The Odds API bills per MARKET per event. `credits_needed=1` per game
+    understated a 15-game slate fivefold -- ~15 credits believed, ~75 spent --
+    which is exactly what a budget guard exists to prevent."""
+    store.record_game_predictions([_game("G1", FUTURE)])
+
+    reserved = []
+
+    def capture(event_id, markets=None, credits_needed=1):
+        reserved.append(credits_needed)
+        return []
+
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.credits_sufficient",
+                        lambda needed: True)
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.fetch_props_for_event", capture)
+
+    run_forward_tick(games=[_game("G1", FUTURE)],
+                     market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0},
+                                       "player_rush_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0},
+                                       "player_receptions": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                     players=PLAYERS, event_index=EVENT_INDEX)
+
+    assert reserved == [3], "reserved one credit for a three-market request"
+
+
+def test_an_unpriceable_market_is_not_fetched(monkeypatch):
+    """No fitted artifact means the rows would be dropped after paying for them.
+    `receptions` has no quantile artifact, so it must not be requested."""
+    store.record_game_predictions([_game("G1", FUTURE)])
+
+    seen = {}
+
+    def capture(event_id, markets=None, credits_needed=1):
+        seen["markets"] = markets
+        return []
+
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.credits_sufficient",
+                        lambda needed: True)
+    monkeypatch.setattr("nfl_predictor.tracking.forward_tick.fetch_props_for_event", capture)
+
+    run_forward_tick(games=[_game("G1", FUTURE)],
+                     market_quantiles={"player_pass_yds": {0.1: 40.0, 0.5: 55.0, 0.9: 70.0}},
+                     players=PLAYERS, event_index=EVENT_INDEX)
+
+    assert seen["markets"] == ["player_pass_yds"], (
+        f"requested only the loaded market; got {seen['markets']}")

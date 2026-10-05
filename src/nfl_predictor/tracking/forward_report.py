@@ -13,6 +13,7 @@ so instead of printing a confident percentage.
 from __future__ import annotations
 
 import contextlib
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -34,29 +35,50 @@ _FORWARD_COLUMNS = ["game_id", "player_id", "player_name", "market", "side",
                     "actual_value", "resolved"]
 
 
+#: nflverse game ids are `<season>_<week>_<AWAY>_<HOME>` (e.g. `2026_05_TB_DAL`).
+#: The season and week live in the id itself.
+_GAME_ID = re.compile(r"^(?P<season>\d{4})_(?P<week>\d{2})_")
+
+
 def graded_picks(season: int | None = None, week: int | None = None) -> pd.DataFrame:
     """Forward-test rows: those carrying a snapshot line, which is what
     distinguishes them from the pre-existing yardage projections.
 
     `player_prop_predictions` has no season or week column -- it is keyed by
-    game_id -- so the scope comes from joining `game_predictions`, which carries
-    both. Skipping that join is how a weekly report ends up rendering the
-    all-time record under this week's filename, which is the worst shape of wrong
-    for the one artifact a human reads.
+    game_id -- so the scope is recovered from the game id, which encodes both
+    (`2026_05_TB_DAL`).
+
+    Deriving it from the id rather than joining `game_predictions` is not a
+    shortcut. A standalone forward tick never writes `game_predictions` rows --
+    it has no win probabilities to write, since those come from the game-level
+    model -- so the join yields NULL season/week for every forward pick and the
+    report renders an EMPTY week while the picks sit in the table. That is the
+    worst shape of wrong for the one artifact a human reads, and it is silent.
+
+    The join is kept as a fallback for any row whose id is not in nflverse form.
     """
     with contextlib.closing(store._connect()) as conn:
         frame = pd.read_sql(
             """
-            SELECT p.*, g.season AS season, g.week AS week
+            SELECT p.*, g.season AS joined_season, g.week AS joined_week
             FROM player_prop_predictions AS p
             LEFT JOIN game_predictions AS g ON g.game_id = p.game_id
             WHERE p.line_at_snapshot IS NOT NULL
             """,
             conn,
         )
-    if season is not None and "season" in frame.columns:
+
+    parsed = frame["game_id"].astype(str).str.extract(_GAME_ID)
+    frame["season"] = pd.to_numeric(parsed["season"], errors="coerce")
+    frame["week"] = pd.to_numeric(parsed["week"], errors="coerce")
+    # Fall back to the join only where the id is not nflverse-shaped.
+    frame["season"] = frame["season"].fillna(pd.to_numeric(frame["joined_season"], errors="coerce"))
+    frame["week"] = frame["week"].fillna(pd.to_numeric(frame["joined_week"], errors="coerce"))
+    frame = frame.drop(columns=["joined_season", "joined_week"])
+
+    if season is not None:
         frame = frame[frame["season"] == season]
-    if week is not None and "week" in frame.columns:
+    if week is not None:
         frame = frame[frame["week"] == week]
     return frame.reset_index(drop=True)
 

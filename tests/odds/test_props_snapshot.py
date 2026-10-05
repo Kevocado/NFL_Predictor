@@ -231,17 +231,23 @@ def test_a_supplied_team_disambiguates(requests_mock):
 # --- coverage probe --------------------------------------------------------
 
 def test_probe_reports_which_markets_and_books_came_back(requests_mock):
+    """Each offered market and book is reported under its own name.
+
+    There is no longer an alias table to test: `player_rec_yds` and
+    `player_reception_yds` are both rejected by the API as invalid markets
+    (verified 2026-10-05), so MARKET_ALIASES maps every real key to itself. An
+    earlier version of this test asserted that `player_reception_yds` was
+    rewritten to `player_rec_yds` -- a mapping between two keys the API never
+    returns."""
     requests_mock.get(BASE, json=[_outcome_row(market_key="player_pass_yds"),
-                                  _outcome_row(market_key="player_reception_yds",
+                                  _outcome_row(market_key="player_rush_yds",
                                                book="DraftKings")],
                       headers={"x-requests-remaining": "400"})
 
     coverage = probe_props_coverage("EV1")
 
-    # Book keys are mapped to project market names, so `player_reception_yds`
-    # is reported as `player_rec_yds` -- the same name the model trains on.
     assert coverage["markets"] == {"player_pass_yds": ["FanDuel"],
-                                   "player_rec_yds": ["DraftKings"]}
+                                   "player_rush_yds": ["DraftKings"]}
     assert "FanDuel" in coverage["books"]
 
 
