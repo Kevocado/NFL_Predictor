@@ -21,7 +21,7 @@ import re
 
 import requests
 
-from ..config import ODDS_API_BASE_URL, ODDS_API_KEY, ODDS_API_SPORT_KEY
+from ..config import ODDS_API_BASE_URL, ODDS_API_SPORT_KEY, SPORTSBOOK_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def fetch_event_index() -> dict[tuple[str, str], str]:
     """
     response = requests.get(
         events_url(),
-        params={"apiKey": ODDS_API_KEY, "regions": "us"}, timeout=30,
+        params={"apiKey": SPORTSBOOK_API_KEY, "regions": "us"}, timeout=30,
     )
     response.raise_for_status()
     index: dict[tuple[str, str], str] = {}
@@ -187,7 +187,7 @@ def _probe_credits() -> int | None:
     try:
         response = requests.get(
             f"{ODDS_API_BASE_URL}/{ODDS_API_SPORT_KEY}/scores",
-            params={"apiKey": ODDS_API_KEY}, timeout=15,
+            params={"apiKey": SPORTSBOOK_API_KEY}, timeout=15,
         )
     except requests.RequestException as error:
         logger.warning("credit probe failed: %s", error)
@@ -209,7 +209,7 @@ def _response_rows(event_id: str, markets: list[str]) -> list[dict]:
     response = requests.get(
         event_odds_url(event_id),
         params={
-            "apiKey": ODDS_API_KEY,
+            "apiKey": SPORTSBOOK_API_KEY,
             "regions": "us",
             "markets": ",".join(markets),
             "oddsFormat": "american",

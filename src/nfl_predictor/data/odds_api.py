@@ -13,13 +13,13 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 
-from ..config import ODDS_API_BASE_URL, ODDS_API_KEY, ODDS_API_SPORT_KEY
+from ..config import ODDS_API_BASE_URL, ODDS_API_SPORT_KEY, SPORTSBOOK_API_KEY
 
 
 def _fetch_raw_odds() -> list[dict]:
     url = f"{ODDS_API_BASE_URL}/{ODDS_API_SPORT_KEY}/odds"
     params = {
-        "apiKey": ODDS_API_KEY,
+        "apiKey": SPORTSBOOK_API_KEY,
         "regions": "us",
         "markets": "h2h,spreads,totals",
         "oddsFormat": "decimal",
@@ -30,7 +30,7 @@ def _fetch_raw_odds() -> list[dict]:
 
 
 def fetch_game_odds() -> pd.DataFrame:
-    if not ODDS_API_KEY:
+    if not SPORTSBOOK_API_KEY:
         return pd.DataFrame()
 
     try:

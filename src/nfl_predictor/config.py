@@ -24,11 +24,20 @@ DEPTH_CHARTS_CACHE_DIR = CACHE_DIR / "depth_charts"
 
 CURRENT_SEASON = 2026  # bump each new NFL league year (typically March)
 
-#: The Odds API key. Accepts either name because the sibling stack declares both
-#: `ODDS_API_KEY` and `SPORTSBOOK_API_KEY` in its .env.example, and reading only
-#: one of them means a key that is present in the environment still silently
-#: reads as absent -- which surfaces as an empty slate, not an error.
-ODDS_API_KEY = os.getenv("ODDS_API_KEY") or os.getenv("SPORTSBOOK_API_KEY")
+#: Sportsbook API key, under the name the rest of the stack uses.
+#:
+#: **Both names are read, `ODDS_API_KEY` first, and the order is evidence-backed
+#: rather than cosmetic.** On the VPS (2026-10-05) the two hold DIFFERENT
+#: credentials and only one of them works:
+#:
+#:   SPORTSBOOK_API_KEY -> HTTP 401 Unauthorized
+#:   ODDS_API_KEY       -> HTTP 200, x-requests-remaining: 498
+#:
+#: Preferring the canonical name would therefore have broken every game-level
+#: odds call on the live site while reading as a tidy rename. `SPORTSBOOK_API_KEY`
+#: is accepted so a host carrying only that name works, and so this can be
+#: flipped once its value on the VPS is replaced with a working credential.
+SPORTSBOOK_API_KEY = os.getenv("ODDS_API_KEY") or os.getenv("SPORTSBOOK_API_KEY")
 ODDS_API_SPORT_KEY = "americanfootball_nfl"
 ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4/sports"
 
