@@ -274,7 +274,7 @@ Residuals are laterals, which nflverse folds into official totals. The three yar
 
 ## 8. State of the build
 
-Tasks 1–14 complete; **1113 passed, 20 skipped**; ruff clean at CI's rule set.
+Tasks 1–14 complete; **1114 passed, 20 skipped**; ruff clean at CI's rule set.
 
 | task | artifact | note |
 |---|---|---|
