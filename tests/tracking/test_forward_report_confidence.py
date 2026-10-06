@@ -49,6 +49,7 @@ def _seed_pick(**overrides):
         "side": "under", "line_at_snapshot": 75.5, "odds_at_snapshot": -114.0,
         "model_p_over": 0.8639398469360456,
         "edge_vs_breakeven": 0.3312295665622139,
+        "commence_time": FUTURE,
     }
     row.update(overrides)
     store.record_player_prop_predictions([row])

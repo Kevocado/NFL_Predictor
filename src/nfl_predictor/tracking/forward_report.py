@@ -176,7 +176,7 @@ def render(season: int, week: int, frame: pd.DataFrame) -> str:
     ]
 
     if picks == 0:
-        lines += ["No picks this week: nothing cleared the 5% confidence gate.", ""]
+        lines += [f"No picks this week: nothing cleared the {GATE:.0%} confidence gate.", ""]
         return "\n".join(lines) + "\n"
 
     lines += _picks_table(frame)

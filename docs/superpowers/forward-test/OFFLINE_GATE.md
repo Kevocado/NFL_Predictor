@@ -432,6 +432,7 @@ with the yardage projections on `(game_id, player_id, market)` — now namespace
 - **`weather` is opt-in** (`--fetch-weather`): ~2.3k free calls and ten minutes of network that a plain training run should not spend silently.
 - One pre-existing test, `test_passing_td_record_absence.py`, asserted `scripts/` held exactly one `.py`; Task 8's CLI made it two. It failed identically with all this branch's work stashed. The assertion now checks what the test is about.
 - **Tasks 1–3, 4, 7, 12 corrected eight places** where the plan's own code contradicted its own tests or the live nflverse schema — including a `pull_ngs` signature bug its own stub had agreed with. Per-commit reasons in the history.
+
 ## 11. Receptions: reachable, and refused by the gate
 
 `player_receptions` is quoted by the book (valid per the 2026-10-05 API probe)

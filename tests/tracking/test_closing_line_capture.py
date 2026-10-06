@@ -203,6 +203,7 @@ def test_a_forward_pick_can_be_graded_at_all():
         "game_id": "G1", "player_id": "00-1", "player_name": "Test",
         "market": "fwd_rushing_yards", "predicted_value": 75.5,
         "side": "under", "line_at_snapshot": 75.5,
+        "commence_time": FUTURE,
     }])
 
     assert s.reconcile_player_prop_predictions(stats) == 1

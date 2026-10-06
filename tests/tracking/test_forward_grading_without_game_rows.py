@@ -52,6 +52,7 @@ def _forward_pick(**overrides):
         "market": "fwd_rushing_yards", "predicted_value": 75.5,
         "side": "under", "line_at_snapshot": 75.5, "odds_at_snapshot": -114.0,
         "model_p_over": 0.864, "edge_vs_breakeven": 0.331,
+        "commence_time": FUTURE,
     }
     row.update(overrides)
     store.record_player_prop_predictions([row])
@@ -112,6 +113,7 @@ def test_the_exemption_is_narrow_a_non_forward_orphan_still_fails_closed():
     store.record_player_prop_predictions([{
         "game_id": FWD_GAME, "player_id": "00-2", "player_name": "Orphan",
         "market": "rushing_yards", "predicted_value": 90.0,
+        "commence_time": FUTURE,
     }])
 
     stats = pd.DataFrame([{"game_id": FWD_GAME, "player_id": "00-2",

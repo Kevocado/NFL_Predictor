@@ -9,6 +9,7 @@ only fills outcome columns on existing, unresolved rows.
 from __future__ import annotations
 
 import contextlib
+import logging
 import math
 import sqlite3
 from datetime import datetime, timezone
@@ -19,6 +20,8 @@ from scipy.stats import norm
 
 from ..config import CACHE_DIR, TRACKING_DB_PATH
 from ..features import player_usage
+
+logger = logging.getLogger(__name__)
 
 
 def _connect() -> sqlite3.Connection:
@@ -171,6 +174,7 @@ _FORWARD_PROP_COLUMNS = (
     ("clv", "REAL"),
     ("hit", "INTEGER"),
     ("book_at_snapshot", "TEXT"),
+    ("commence_time", "TEXT"),
 )
 
 #: The `anytime_td` DEFINITION that graded a row, stamped at resolve time from
@@ -1532,7 +1536,21 @@ def _summarize_player_props(resolved: pd.DataFrame) -> dict:
 
     with contextlib.closing(_connect()) as conn:
         kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
+    # The merge creates commence_time_x (from props) and commence_time_y (from game_predictions).
+    # The authoritative kickoff time is from game_predictions (commence_time_y).
+    # For forward picks, if missing, fall back to the pick's commence_time_x.
+    # For non-forward picks, NO fallback: they must have a game_predictions row.
     resolved = resolved.merge(kickoff_times, on="game_id", how="left")
+
+    # Add a helper column with the authoritative kickoff time for _made_before_kickoff_row.
+    def _kickoff_for_row(row):
+        forward = _strip_forward_prefix(row["market"]) != row["market"]
+        kickoff = row.get("commence_time_y")
+        if not _present(kickoff) and forward:
+            kickoff = row.get("commence_time_x")
+        return kickoff
+
+    resolved["_authoritative_kickoff"] = resolved.apply(_kickoff_for_row, axis=1)
 
     counted = _counted_prop_picks(resolved)
     pre_kickoff_resolved = counted[counted.apply(_made_before_kickoff_row, axis=1)]
@@ -1914,6 +1932,33 @@ def record_player_prop_predictions(props: list[dict]) -> int:
     if not props:
         return 0
     now = datetime.now(timezone.utc).isoformat()
+
+    # A forward pick recorded at or after its own kickoff is a reconstruction,
+    # not a bet. The kickoff time is carried in `commence_time` on the prop
+    # row (set by `run_forward_tick` from the schedule). If missing and the
+    # row is a forward pick, we cannot prove it was pre-kickoff; it is
+    # rejected. Non-forward rows retain their existing behavior.
+    from .forward_tick import _is_post_kickoff
+
+    validated = []
+    for prop in props:
+        market = prop.get("market", "")
+        is_forward = market.startswith("fwd_")
+        ct = prop.get("commence_time")
+        if is_forward:
+            if not _present(ct):
+                logger.warning("forward pick %s/%s missing commence_time; rejected",
+                               prop.get("game_id"), prop.get("player_id"))
+                continue
+            if _is_post_kickoff(ct):
+                logger.warning("forward pick %s/%s at or after kickoff; rejected",
+                               prop.get("game_id"), prop.get("player_id"))
+                continue
+        validated.append(prop)
+
+    if not validated:
+        return 0
+
     rows = [
         (prop["game_id"], prop["player_id"], prop["player_name"], prop.get("position"),
          prop["market"], float(prop["predicted_value"]), now,
@@ -1921,8 +1966,8 @@ def record_player_prop_predictions(props: list[dict]) -> int:
          prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")),
          _optional_float(prop.get("line_at_snapshot")), _optional_float(prop.get("odds_at_snapshot")),
          _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")),
-         prop.get("book_at_snapshot"))
-        for prop in props
+         prop.get("book_at_snapshot"), prop.get("commence_time"))
+        for prop in validated
     ]
     with contextlib.closing(_connect()) as conn, conn:
         cursor = conn.executemany(
@@ -1931,8 +1976,8 @@ def record_player_prop_predictions(props: list[dict]) -> int:
                 (game_id, player_id, player_name, position, market, predicted_value,
                  snapshotted_at, line, line_source, side, mu, call_prob,
                  line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven,
-                 book_at_snapshot)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 book_at_snapshot, commence_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -2087,10 +2132,18 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
             # tick skips those games at both write sites (`run_forward_tick` and
             # the closing capture), so the guard has nothing left to check.
             forward = _strip_forward_prefix(row["market"]) != row["market"]
-            if not _present(row.get("commence_time")):
+            # The authoritative kickoff time is from game_predictions (commence_time_y
+            # after the LEFT merge). For forward picks, if missing, we fall back
+            # to the pick's commence_time_x (copied from the schedule at snapshot).
+            # For non-forward picks, NO fallback: they must have a game_predictions
+            # row to be graded, preserving the orphan guarantee.
+            kickoff = row.get("commence_time_y")
+            if not _present(kickoff) and forward:
+                kickoff = row.get("commence_time_x")
+            if not _present(kickoff):
                 if not forward:
                     continue
-            elif _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
+            elif _snapshotted_after_kickoff(row["snapshotted_at"], kickoff):
                 continue
             if row["market"] == "anytime_td":
                 # Rushing + receiving only; `passing_tds` was dropped from the
@@ -2193,7 +2246,12 @@ def _made_before_kickoff(snapshotted_at: str, commence_time: str) -> bool:
 
 def _made_before_kickoff_row(row: pd.Series) -> bool:
     """`_made_before_kickoff` over one row, for a frame filter."""
-    return _made_before_kickoff(row["snapshotted_at"], row["commence_time"])
+    # Prefer the authoritative kickoff column added by summarize/reconcile.
+    # Fall back to commence_time for compatibility with other callers.
+    kickoff = row.get("_authoritative_kickoff")
+    if not _present(kickoff):
+        kickoff = row.get("commence_time")
+    return _made_before_kickoff(row["snapshotted_at"], kickoff)
 
 
 def _snapshotted_after_kickoff(snapshotted_at: str, commence_time: str) -> bool:
