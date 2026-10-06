@@ -13,7 +13,7 @@ import pytest
 
 from nfl_predictor.tracking import forward_tick, store
 
-from quantile_stubs import QUANTILE_GRID as QUANTILES, write_artifacts
+from quantile_stubs import QUANTILE_GRID as QUANTILES, write_artifact, write_artifacts
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +39,7 @@ GAME = {
 #: hand-seeded player_id, which is precisely why the missing join went unnoticed.
 PROP = {
     "player_name": "A.J. Brown Jr.", "normalized_name": "aj brown",
-    "market": "player_rec_yds", "line": 50.0,
+    "market": "player_pass_yds", "line": 50.0,
     "over_odds": -110, "under_odds": -110, "book": "fanduel", "team": "BAL",
 }
 
@@ -63,7 +63,7 @@ def _stub(monkeypatch, credits=500, props=None):
     monkeypatch.setattr(forward_tick, "fetch_event_index", lambda: EVENT_INDEX)
 
 
-def _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",)):
+def _artifacts(tmp_path, monkeypatch, markets=("passing_yards",)):
     """Artifacts on disk, loaded exactly as the CLI loads them."""
     return write_artifacts(tmp_path, markets=markets)
 
@@ -73,8 +73,8 @@ def test_loads_an_artifact_into_a_per_market_predictor(tmp_path, monkeypatch):
 
     predictor = forward_tick.predictor_for(models_dir)
 
-    assert set(predictor) == {"player_rec_yds"}
-    quantiles = predictor["player_rec_yds"]({"passing_yards_roll": 0.0}, 50.0)
+    assert set(predictor) == {"player_pass_yds"}
+    quantiles = predictor["player_pass_yds"]({"passing_yards_roll": 0.0}, 50.0)
     assert set(quantiles) == set(QUANTILES)
     values = [quantiles[q] for q in QUANTILES]
     assert values == sorted(values), "quantile predictions must ascend with level"
@@ -92,14 +92,18 @@ def test_a_market_absent_from_the_artifacts_is_simply_absent(tmp_path, monkeypat
 
     predictor = forward_tick.predictor_for(models_dir)
 
-    assert "player_pass_yds" not in predictor, "an absent market must be absent, not invented"
+    # The artifacts on disk hold passing_yards only, so the other two offered
+    # markets must be absent rather than invented as unpriceable stubs.
+    assert set(predictor) == {"player_pass_yds"}
+    assert "player_rush_yds" not in predictor, "an absent market must be absent, not invented"
+    assert "player_receptions" not in predictor
 
 
 def test_predictor_expands_a_single_row_to_every_quantile(tmp_path, monkeypatch):
     models_dir = _artifacts(tmp_path, monkeypatch)
     predictor = forward_tick.predictor_for(models_dir)
 
-    quantiles = predictor["player_rec_yds"]({"passing_yards_roll": 0.5}, 50.0)
+    quantiles = predictor["player_pass_yds"]({"passing_yards_roll": 0.5}, 50.0)
 
     assert set(quantiles) == set(QUANTILES)
 
@@ -115,8 +119,8 @@ def test_the_prediction_actually_moves_with_the_feature_row(tmp_path, monkeypatc
     models_dir = _artifacts(tmp_path, monkeypatch)
     predictor = forward_tick.predictor_for(models_dir)
 
-    low = predictor["player_rec_yds"]({"passing_yards_roll": 0.0}, 50.0)
-    high = predictor["player_rec_yds"]({"passing_yards_roll": 10.0}, 50.0)
+    low = predictor["player_pass_yds"]({"passing_yards_roll": 0.0}, 50.0)
+    high = predictor["player_pass_yds"]({"passing_yards_roll": 10.0}, 50.0)
 
     assert low[0.5] != high[0.5]
     assert high[0.5] > low[0.5]
@@ -128,15 +132,15 @@ def test_predict_refuses_an_empty_feature_row(tmp_path, monkeypatch):
     predictor = forward_tick.predictor_for(models_dir)
 
     with pytest.raises(ValueError, match="feature row"):
-        predictor["player_rec_yds"]({}, 50.0)
+        predictor["player_pass_yds"]({}, 50.0)
 
 
 def test_two_players_get_different_predictions(tmp_path, monkeypatch):
     models_dir = _artifacts(tmp_path, monkeypatch)
     predictor = forward_tick.predictor_for(models_dir)
 
-    a = predictor["player_rec_yds"]({"passing_yards_roll": 1.0}, 50.0)
-    b = predictor["player_rec_yds"]({"passing_yards_roll": 9.0}, 50.0)
+    a = predictor["player_pass_yds"]({"passing_yards_roll": 1.0}, 50.0)
+    b = predictor["player_pass_yds"]({"passing_yards_roll": 9.0}, 50.0)
 
     assert a[0.5] != b[0.5], "the model is being consulted, not bypassed"
 
@@ -161,7 +165,7 @@ def test_tick_through_loaded_artifacts_logs_an_edge(monkeypatch, tmp_path):
     logged = _logged()
     assert logged[0]["side"] == "over"
     assert logged[0]["edge_vs_breakeven"] >= 0.05
-    assert logged[0]["market"] == "fwd_receiving_yards", (
+    assert logged[0]["market"] == "fwd_passing_yards", (
         "a forward pick must not share a market with the yardage projections")
 
 
@@ -323,7 +327,7 @@ def test_weekly_report_is_scoped_to_its_week(monkeypatch, tmp_path):
         }])
         store.record_player_prop_predictions([{
             "game_id": game, "player_id": f"00-{week}", "player_name": "P",
-            "market": "receiving_yards", "position": "WR", "predicted_value": 50.0,
+            "market": "passing_yards", "position": "QB", "predicted_value": 50.0,
             "side": "over", "line_at_snapshot": 52.5, "odds_at_snapshot": -110.0,
             "model_p_over": 0.60, "edge_vs_breakeven": 0.076,
         }])
@@ -339,15 +343,13 @@ def test_a_verified_artifact_is_served_and_a_corrupt_one_is_not(tmp_path, monkey
     import json
     import sqlite3
 
-    from nfl_predictor.models import quantile_registry
-
-    models_dir = _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",))
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("passing_yards",))
     # No manifest: predictor_for verifies only when one exists.
     assert forward_tick.predictor_for(models_dir)
 
     # Now write a manifest whose recorded digest does not match the file.
     manifest = {"quantile_yardage_v1": {"markets": {
-        "receiving_yards": {"path": "receiving_yards_quantile_2025.pkl",
+        "passing_yards": {"path": "passing_yards_quantile_2025.pkl",
                             "sha256": "0" * 64}}}}
     (models_dir / "manifest.json").write_text(json.dumps(manifest))
 
@@ -359,12 +361,12 @@ def test_a_matching_manifest_verifies(tmp_path, monkeypatch):
     import json
     import hashlib
 
-    models_dir = _artifacts(tmp_path, monkeypatch, markets=("receiving_yards",))
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("passing_yards",))
     digest = hashlib.sha256(
-        (models_dir / "receiving_yards_quantile_2025.pkl").read_bytes()).hexdigest()
+        (models_dir / "passing_yards_quantile_2025.pkl").read_bytes()).hexdigest()
     (models_dir / "manifest.json").write_text(json.dumps({"quantile_yardage_v1": {
-        "markets": {"receiving_yards": {
-            "path": "receiving_yards_quantile_2025.pkl", "sha256": digest}}}}))
+        "markets": {"passing_yards": {
+            "path": "passing_yards_quantile_2025.pkl", "sha256": digest}}}}))
 
     assert forward_tick.predictor_for(models_dir)
 
@@ -406,7 +408,7 @@ def test_main_actually_ticks_and_logs_a_pick(monkeypatch, tmp_path):
     assert len(logged) == 1
     assert logged[0]["player_id"] == "00-1", "the book name was joined to an nflverse id"
     assert logged[0]["edge_vs_breakeven"] >= 0.05
-    assert logged[0]["market"] == "fwd_receiving_yards", (
+    assert logged[0]["market"] == "fwd_passing_yards", (
         "a forward pick must not share a market with the yardage projections")
 
 
@@ -704,3 +706,43 @@ def test_the_module_is_executable_as_documented():
     assert result.returncode == 0, result.stderr
     assert "--feature-frame" in result.stdout, (
         "the module must expose the documented CLI, not exit silently")
+
+
+def test_an_artifact_with_no_book_market_is_skipped_not_fatal(tmp_path, monkeypatch):
+    """`receiving_yards` is fitted and gated, but the API offers no NFL
+    receiving-yards player-prop market, so it can never be forward-tested through
+    this feed. Loading must skip it with the reason, not KeyError -- and must not
+    silently invent the market either."""
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("passing_yards",))
+    # A receiving_yards artifact alongside, exactly as the real models dir has.
+    write_artifact(models_dir, market="receiving_yards")
+
+    predictor = forward_tick.predictor_for(models_dir)
+
+    assert set(predictor) == {"player_pass_yds"}, (
+        "an unquotable market must be absent, not invented")
+
+
+def test_the_dry_run_estimate_counts_only_priceable_markets(monkeypatch, tmp_path, capsys):
+    """The printed estimate must equal what the tick will actually reserve.
+
+    It read the artifact list with the glob `*_quantile_2025`, which matches none
+    of `passing_yards_quantile_2025.pkl`, so it silently fell through to a
+    fallback and reported 3 markets where 2 were priceable."""
+    monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
+    _stub(monkeypatch)
+
+    models_dir = _artifacts(tmp_path, monkeypatch, markets=("passing_yards", "rushing_yards"))
+
+    exit_code = forward_tick.main([
+        "--models-dir", str(models_dir),
+        "--games-json", _games_file(tmp_path),
+        "--feature-frame", _feature_frame_path(tmp_path),
+        "--players-path", _players_file(tmp_path),
+        "--dry-run",
+    ])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    # 1 game in the fixture, 2 priceable markets.
+    assert "~2 credits estimated" in out, out

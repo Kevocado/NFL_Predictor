@@ -25,11 +25,13 @@ from ..models.prop_probability import american_to_breakeven, edge_vs_line, p_ove
 from ..models.quantile_registry import (
     ARTIFACT_SUFFIX, load_quantile_artifact, verify_quantile_artifacts,
 )
+from pathlib import Path
+
 from ..features.availability import _LONG_WINDOW
 from ..models.training import FORWARD_FEATURE_COLUMNS
 from ..odds.props_snapshot import (
-    BudgetExhausted, credits_sufficient, fetch_event_index, fetch_props_for_event,
-    match_event_id, match_props_to_players,
+    PROP_MARKETS, BudgetExhausted, credits_sufficient, fetch_event_index,
+    fetch_props_for_event, match_event_id, match_props_to_players,
 )
 from . import store
 
@@ -51,10 +53,18 @@ class MissingEventIndex(RuntimeError):
 
 
 #: Book market key -> the market name the quantile models were trained on.
+#: Book market key -> the market our quantile models were trained on. Keys are
+#: the ones the API actually accepts; `player_rec_yds` was never valid and made
+#: the live tick fail with HTTP 422 on the first game.
+#:
+#: `receiving_yards` is ABSENT because The Odds API offers no NFL receiving-yards
+#: player-prop market (verified 2026-10-05: `player_receiving_yds` is rejected as
+#: an invalid market). The model is fitted and gated, but it cannot be
+#: forward-tested through this feed. `receptions` is the nearest offered market
+#: and picks up automatically once a quantile artifact exists for it.
 MARKET_MAP = {
     "player_pass_yds": "passing_yards",
     "player_rush_yds": "rushing_yards",
-    "player_rec_yds": "receiving_yards",
     "player_receptions": "receptions",
 }
 
@@ -116,9 +126,24 @@ def predictor_for(models_dir: Path | str) -> dict[str, callable]:
         # The stem already carries the market name; `load_quantile_artifact`
         # re-joins the suffix itself, so do not add it a second time.
         market = path.name.removesuffix(".pkl").removesuffix(ARTIFACT_SUFFIX)
+        if market not in BOOK_MARKET_BY_MODEL:
+            # A fitted, gated model the odds feed cannot quote: the API offers no
+            # NFL `receiving_yards` player-prop market (verified 2026-10-05 --
+            # `player_receiving_yds` is rejected as invalid). Skip it with the
+            # reason, rather than KeyError, and rather than pretending the market
+            # exists. It stays on disk and in the manifest; it just is not
+            # forward-testable through this feed.
+            logger.warning(
+                "no book market for %s -- the odds feed does not offer it, so it "
+                "cannot be forward-tested; artifact left untouched", market)
+            continue
         payload = load_quantile_artifact(market, out_dir=models_dir)
         models, feature_cols = payload["quantile_models"], payload["feature_cols"]
         predictors[BOOK_MARKET_BY_MODEL[market]] = _row_predictor(models, feature_cols)
+    if not predictors:
+        raise FileNotFoundError(
+            f"none of the artifacts in {models_dir} map to a book market this "
+            f"feed offers; nothing can be priced")
     return predictors
 
 
@@ -329,12 +354,23 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
     if not live:
         return result
 
-    # One props call per game per tick. The whole slate is costed up front so a
-    # month that cannot afford it writes nothing rather than half a slate.
-    # One props call per game. The scores probe that checks affordability does
-    # not consume a props credit, so it is not budgeted; the old +1 here could
-    # refuse an affordable slate at the monthly boundary.
-    needed = len(live)
+    # Only the markets this run can actually PRICE. Fetching a market with no
+    # fitted artifact spends credit on rows that are then dropped.
+    #
+    # `predictors` is keyed by the BOOK market (`predictor_for` maps through
+    # BOOK_MARKET_BY_MODEL), so the filter is on the book key directly.
+    book_markets = [book for book in MARKET_MAP
+                    if book in (market_quantiles or {})] or list(MARKET_MAP)
+
+    # Costed with the SAME market list the per-event request will use. Sizing the
+    # pre-check off PROP_MARKETS instead made it an over-estimate whenever some
+    # market lacks an artifact -- refusing a slate that was affordable, which is
+    # the mirror image of the under-estimate this replaced.
+    #
+    # The whole slate is costed up front so a month that cannot afford it writes
+    # nothing rather than half a slate. The scores probe that checks affordability
+    # consumes no props credit, so it is not budgeted.
+    needed = len(live) * len(book_markets)
     if not credits_sufficient(needed):
         logger.warning("budget: %d credits needed, not fetching anything", needed)
         result["credits_remaining"] = 0
@@ -363,7 +399,8 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             result["games_not_listed"] = result.get("games_not_listed", 0) + 1
             continue
         try:
-            props = fetch_props_for_event(event_id, credits_needed=1)
+            props = fetch_props_for_event(event_id, markets=book_markets,
+                                          credits_needed=len(book_markets))
         except BudgetExhausted:
             logger.warning("budget exhausted mid-slate at %s; stopping", event_id)
             break
@@ -559,7 +596,16 @@ def main(argv: list[str] | None = None) -> int:
     games = _load_games(args.games_json, slate=args.slate, season=args.season,
                         week=args.week)
     live = [g for g in games if not _is_post_kickoff(g.get("commence_time", ""))]
-    cost = len(live)  # one props call per game; the credit probe is free
+    # Per market per event, and only markets this run can actually price -- read
+    # off the artifact filenames rather than by loading the models, so a dry run
+    # stays cheap and reports the same number the real tick will reserve.
+    # The glob needs the extension too: `*_quantile_2025` matches none of
+    # `passing_yards_quantile_2025.pkl`, which silently fell through to the
+    # fallback and printed 3 markets instead of 2.
+    on_disk = {path.name.removesuffix(".pkl").removesuffix(ARTIFACT_SUFFIX)
+               for path in Path(args.models_dir).glob(f"*{ARTIFACT_SUFFIX}.pkl")}
+    priceable = [book for book, model in MARKET_MAP.items() if model in on_disk]
+    cost = len(live) * (len(priceable) or len(MARKET_MAP))
     print(f"{len(games)} games, {len(live)} pre-kickoff, ~{cost} credits estimated")
 
     if args.dry_run:

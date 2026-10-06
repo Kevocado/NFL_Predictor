@@ -27,16 +27,25 @@ logger = logging.getLogger(__name__)
 
 #: Markets the forward test asks for. `player_receptions` is secondary and is
 #: simply absent from most free-tier responses; that is fine.
-PROP_MARKETS = ["player_pass_yds", "player_rush_yds", "player_rec_yds",
-                "player_reception_yds", "player_receptions"]
+#: Verified against the live API on 2026-10-05, because getting a market key
+#: wrong is not a soft failure: the odds endpoint answers HTTP 422 and the tick
+#: dies on the first game. Probed with a single multi-market request, which names
+#: every invalid key at once:
+#:
+#:   VALID   player_pass_yds, player_rush_yds, player_receptions, player_pass_tds
+#:   INVALID player_rec_yds, player_receiving_yds, player_rush_receiving_yds,
+#:           player_fumbles
+#:
+#: **There is no NFL receiving-yards prop market on this API at all.** A model for
+#: `receiving_yards` therefore cannot be forward-tested through it; see
+#: OFFLINE_GATE.md. `player_receptions` is offered and is the nearest substitute.
+PROP_MARKETS = ["player_pass_yds", "player_rush_yds", "player_receptions"]
 
 #: Book-side market keys mapped onto this project's market names, because the
 #: two do not agree (`player_rec_yds` vs `player_reception_yds`).
 MARKET_ALIASES = {
     "player_pass_yds": "player_pass_yds",
     "player_rush_yds": "player_rush_yds",
-    "player_rec_yds": "player_rec_yds",
-    "player_reception_yds": "player_rec_yds",
     "player_receptions": "player_receptions",
 }
 

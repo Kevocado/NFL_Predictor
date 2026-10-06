@@ -46,7 +46,7 @@ class FixedQuantileModel:
         return {"value": self.value, "feature_index": self.feature_index}
 
 
-def write_artifact(directory: Path | str, market: str = "receiving_yards",
+def write_artifact(directory: Path | str, market: str = "passing_yards",
                    feature_cols: list[str] | None = None) -> Path:
     """Write one artifact shaped exactly as `quantile_registry` writes them."""
     directory = Path(directory)
