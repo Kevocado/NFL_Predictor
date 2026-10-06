@@ -2061,11 +2061,33 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
             return 0
 
         kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
-        merged = unresolved.merge(kickoff_times, on="game_id", how="inner")
+        merged = unresolved.merge(kickoff_times, on="game_id", how="left")
         merged = merged.merge(player_stats_df, on=["game_id", "player_id"], how="inner")
         resolved_count = 0
         for _, row in merged.iterrows():
-            if _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
+            # A FORWARD pick may be graded without a kickoff time; every other
+            # prop row still fails closed without one.
+            #
+            # A standalone forward tick writes no `game_predictions` rows -- it
+            # has no win probabilities to write, those come from the game-level
+            # model -- so an INNER join on kickoff times dropped every forward
+            # pick and the reconciler returned 0 on a slate whose outcomes were
+            # sitting right there. The forward test graded to zero permanently,
+            # which is the same trap `forward_report.graded_picks` already
+            # documents and works around by deriving season/week from the game id.
+            #
+            # That exemption is deliberately narrow. `test_reconcile_skips_
+            # orphan_prop_rows_with_no_game` requires an unprovable prop row to
+            # stay ungraded, and relaxing the join for every market would have
+            # quietly dropped that guarantee repo-wide to fix one market. A
+            # forward row cannot be a post-kickoff reconstruction anyway: the
+            # tick skips those games at both write sites (`run_forward_tick` and
+            # the closing capture), so the guard has nothing left to check.
+            forward = _strip_forward_prefix(row["market"]) != row["market"]
+            if not _present(row.get("commence_time")):
+                if not forward:
+                    continue
+            elif _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
                 continue
             if row["market"] == "anytime_td":
                 # Rushing + receiving only; `passing_tds` was dropped from the
