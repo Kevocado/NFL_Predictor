@@ -109,15 +109,18 @@ import pandas as pd
 
 from ..models.player_props import QUANTILES, fit_yardage_quantile_models
 from ..models.prop_probability import p_over_from_quantiles
+from ..models.training import MARKET_POSITIONS
 
 #: Markets the quantile models cover, and the positions that actually get a line
 #: for them. A WR has no rushing-yards prop, so training one would be fitting a
 #: market that cannot be bet.
-QUANTILE_MARKETS: dict[str, tuple[str, ...]] = {
-    "passing_yards": ("QB",),
-    "rushing_yards": ("RB",),
-    "receiving_yards": ("WR", "TE"),
-}
+#:
+#: **Imported from `models.training`, not restated.** These were two independent
+#: declarations of one mapping, which is precisely how the offline gate came to
+#: validate a different feature set from the one the artifacts were fitted on
+#: with nothing comparing them. The trainer is the authority: a market it fits is
+#: a market the gate scores.
+QUANTILE_MARKETS: dict[str, tuple[str, ...]] = MARKET_POSITIONS
 
 #: Proxy lines are not real book lines -- no free historical props exist. Each
 #: row is scored against an exogenous line, which tests calibration without

@@ -20,11 +20,20 @@ import pandas as pd
 
 from ..evaluate.walk_forward import calibration_report
 from ..models.prop_probability import american_to_breakeven
-from . import store
+from . import forward_tick, store
 
 #: Breakeven for a -110 prop. Stated as a constant because the spec's gates are
 #: written against it.
 BREAKEVEN = american_to_breakeven(-110)
+
+#: The confidence gate `forward_tick` logs a pick at, named here so the report
+#: states the threshold that produced the log instead of implying a market edge.
+#: Read from the tick rather than restated, for the reason `FORWARD_FEATURE_COLUMNS`
+#: is imported rather than redeclared. Safe at module level: `forward_tick` imports
+#: THIS module only inside `main()`, so there is no cycle -- and no try/except
+#: either, because a fallback of 0.05 would silently misreport the threshold if the
+#: import ever did break.
+GATE = forward_tick.EDGE_GATE
 
 #: Under this many graded picks, a hit rate is noise with a decimal point.
 THIN_SAMPLE = 50
@@ -115,6 +124,41 @@ def _verdict(frame: pd.DataFrame, rate: float | None, graded: int,
             f"to stop treating yardage props as a betting edge.")
 
 
+def _picks_table(frame: pd.DataFrame) -> list[str]:
+    """Every logged pick, with the number named for what it is.
+
+    Without this the log is a count and the numbers only exist in the database,
+    where `edge_vs_breakeven` reads as an inefficiency found in the market. It is
+    not: it is P(side) minus breakeven, so both figures are shown side by side
+    and the column is called confidence.
+    """
+    ordered = frame.sort_values("edge_vs_breakeven", ascending=False)
+    lines = [
+        "## Picks",
+        "",
+        "| player | market | side | line | P(side) | confidence vs breakeven | graded |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for row in ordered.itertuples():
+        side = getattr(row, "side", None)
+        # `model_p_over` is a misnomer in the schema: `_row` writes P(side taken)
+        # into it, and `hit` is likewise side-relative (`_forward_verdict` covers
+        # an under when actual < line). The two are therefore consistent with each
+        # other and the calibration buckets below are sound; only the NAME lies.
+        # Correcting the name here rather than migrating stored rows, which are
+        # immutable by rule.
+        p_side = getattr(row, "model_p_over", None)
+        hit = getattr(row, "hit", None)
+        lines.append(
+            f"| {row.player_name} | {row.market} | {side} | "
+            f"{_fmt(getattr(row, 'line_at_snapshot', None))} | "
+            f"{_fmt(p_side, '{:.1%}')} | "
+            f"{_fmt(getattr(row, 'edge_vs_breakeven', None), '{:+.1%}')} | "
+            f"{'n/a' if hit is None or pd.isna(hit) else int(hit)} |")
+    lines.append("")
+    return lines
+
+
 def render(season: int, week: int, frame: pd.DataFrame) -> str:
     picks = len(frame)
     rate, graded = _hit_rate(frame)
@@ -132,8 +176,21 @@ def render(season: int, week: int, frame: pd.DataFrame) -> str:
     ]
 
     if picks == 0:
-        lines += ["No picks this week: nothing cleared the 5% edge gate.", ""]
+        lines += ["No picks this week: nothing cleared the 5% confidence gate.", ""]
         return "\n".join(lines) + "\n"
+
+    lines += _picks_table(frame)
+    lines += [
+        "Confidence is the model's probability for the side taken, minus the "
+        f"breakeven implied by the price. A pick is logged at {GATE:.0%} confidence "
+        "against breakeven or better, and the table is ranked by it. It is a "
+        "statement about the MODEL, not a demonstrated mispricing in the book's "
+        "line: a large number means the model disagrees with the price, which is a "
+        "hypothesis. What would settle it is beating the close, and that is "
+        "measured separately by CLV.",
+        "",
+    ]
+
     if graded == 0:
         lines += ["Picks are logged but none are graded yet, so there is no hit rate "
                   "to report this week.", ""]
@@ -157,11 +214,15 @@ def render(season: int, week: int, frame: pd.DataFrame) -> str:
     # `calibration_report` reads the offline harness's column names (p_over /
     # covered); the store's are model_p_over / hit. Renamed rather than given a
     # second bucketing path, so both callers bucket identically.
+    #
+    # Both sides are side-relative (see `_picks_table`), so this is a
+    # P(side)-vs-covered calibration, NOT a P(over) one. An earlier heading said
+    # P(over) and was wrong for every under pick in the log.
     scored = frame[frame["model_p_over"].notna() & frame["hit"].notna()]
     buckets = calibration_report(
         scored.rename(columns={"model_p_over": "p_over", "hit": "covered"}), min_n=1)
     if buckets:
-        lines += ["## P(over) calibration", "",
+        lines += ["## P(side) calibration", "",
                   "| bucket | predicted | empirical | n | within +/-5pts |",
                   "|---|---|---|---|---|"]
         for label, bucket in buckets.items():

@@ -22,14 +22,30 @@ from .quantile_registry import save_quantile_artifacts, verify_quantile_artifact
 logger = logging.getLogger(__name__)
 
 #: Market -> the yardage column it models.
-MARKETS = ("passing_yards", "rushing_yards", "receiving_yards")
+#:
+#: `receptions` is here because the book quotes it: `player_receptions` is a
+#: valid The Odds API market (probed 2026-10-05) and `forward_tick.MARKET_MAP`
+#: already routes it here, so an artifact makes the tick price it automatically.
+#: Without one the tick skipped every reception prop and reported a clean week
+#: while a third of the book went unexamined.
+MARKETS = ("passing_yards", "rushing_yards", "receiving_yards", "receptions")
 
 #: Positions that actually get a line for each market. Fitting a WR's
 #: rushing-yards model would be fitting a market nobody quotes.
+#:
+#: `receptions` covers RB as well as WR/TE: a back's reception total is one of
+#: the most heavily bet props in the league, so excluding RB would fit a model
+#: that cannot price half of the market it is being fitted for.
+#:
+#: **Single source of truth, imported not restated.** `walk_forward.QUANTILE_
+#: MARKETS` used to declare the same mapping independently, which is exactly how
+#: the gate came to validate one feature set while the artifacts carried another
+#: with nothing comparing the two. `walk_forward` now imports this.
 MARKET_POSITIONS = {
     "passing_yards": ("QB",),
     "rushing_yards": ("RB",),
     "receiving_yards": ("WR", "TE"),
+    "receptions": ("WR", "TE", "RB"),
 }
 
 #: THE feature list — the single authority for both the offline gate and the

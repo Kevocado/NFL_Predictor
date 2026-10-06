@@ -170,6 +170,7 @@ _FORWARD_PROP_COLUMNS = (
     ("closing_line", "REAL"),
     ("clv", "REAL"),
     ("hit", "INTEGER"),
+    ("book_at_snapshot", "TEXT"),
 )
 
 #: The `anytime_td` DEFINITION that graded a row, stamped at resolve time from
@@ -1919,7 +1920,8 @@ def record_player_prop_predictions(props: list[dict]) -> int:
          _optional_float(prop.get("line")), prop.get("line_source"),
          prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")),
          _optional_float(prop.get("line_at_snapshot")), _optional_float(prop.get("odds_at_snapshot")),
-         _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")))
+         _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")),
+         prop.get("book_at_snapshot"))
         for prop in props
     ]
     with contextlib.closing(_connect()) as conn, conn:
@@ -1928,8 +1930,9 @@ def record_player_prop_predictions(props: list[dict]) -> int:
             INSERT OR IGNORE INTO player_prop_predictions
                 (game_id, player_id, player_name, position, market, predicted_value,
                  snapshotted_at, line, line_source, side, mu, call_prob,
-                 line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven,
+                 book_at_snapshot)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )
@@ -1984,6 +1987,20 @@ def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
         close = float(closing_line)
         clv = close - line if side == "over" else line - close
     return int(covered), clv
+
+
+def _strip_forward_prefix(market: str) -> str:
+    """`fwd_rushing_yards` -> `rushing_yards`; anything else unchanged.
+
+    The prefix is imported lazily, and that is load-bearing rather than
+    defensive: `forward_tick` imports THIS module at module level, so a
+    top-level import here would be a genuine import cycle.
+    """
+    from .forward_tick import FORWARD_MARKET_PREFIX
+
+    if market.startswith(FORWARD_MARKET_PREFIX):
+        return market[len(FORWARD_MARKET_PREFIX):]
+    return market
 
 
 _MARKET_TO_STAT_COLUMN = {
@@ -2047,11 +2064,33 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
             return 0
 
         kickoff_times = pd.read_sql("SELECT game_id, commence_time FROM game_predictions", conn)
-        merged = unresolved.merge(kickoff_times, on="game_id", how="inner")
+        merged = unresolved.merge(kickoff_times, on="game_id", how="left")
         merged = merged.merge(player_stats_df, on=["game_id", "player_id"], how="inner")
         resolved_count = 0
         for _, row in merged.iterrows():
-            if _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
+            # A FORWARD pick may be graded without a kickoff time; every other
+            # prop row still fails closed without one.
+            #
+            # A standalone forward tick writes no `game_predictions` rows -- it
+            # has no win probabilities to write, those come from the game-level
+            # model -- so an INNER join on kickoff times dropped every forward
+            # pick and the reconciler returned 0 on a slate whose outcomes were
+            # sitting right there. The forward test graded to zero permanently,
+            # which is the same trap `forward_report.graded_picks` already
+            # documents and works around by deriving season/week from the game id.
+            #
+            # That exemption is deliberately narrow. `test_reconcile_skips_
+            # orphan_prop_rows_with_no_game` requires an unprovable prop row to
+            # stay ungraded, and relaxing the join for every market would have
+            # quietly dropped that guarantee repo-wide to fix one market. A
+            # forward row cannot be a post-kickoff reconstruction anyway: the
+            # tick skips those games at both write sites (`run_forward_tick` and
+            # the closing capture), so the guard has nothing left to check.
+            forward = _strip_forward_prefix(row["market"]) != row["market"]
+            if not _present(row.get("commence_time")):
+                if not forward:
+                    continue
+            elif _snapshotted_after_kickoff(row["snapshotted_at"], row["commence_time"]):
                 continue
             if row["market"] == "anytime_td":
                 # Rushing + receiving only; `passing_tds` was dropped from the
@@ -2073,7 +2112,16 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
                 # because no other prop market's truth is a definition that moves.
                 label_version = player_usage.ANYTIME_TD_LABEL_VERSION
             else:
-                stat_col = _MARKET_TO_STAT_COLUMN[row["market"]]
+                # A forward pick is namespaced `fwd_<market>` so its
+                # `predicted_value` (the book's line) is never read as a model
+                # point estimate. That namespace made EVERY forward row
+                # ungradeable: the lookup below raised KeyError on
+                # 'fwd_passing_yards' and the reconciler died on the first one,
+                # so no forward pick could ever produce a hit or a CLV. The
+                # prefix is a storage detail -- the column behind
+                # `fwd_rushing_yards` is still `rushing_yards` -- so it is
+                # stripped here, at the one lookup that cares.
+                stat_col = _MARKET_TO_STAT_COLUMN[_strip_forward_prefix(row["market"])]
                 if stat_col not in row or pd.isna(row[stat_col]):
                     continue
                 actual = float(row[stat_col])
