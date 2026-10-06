@@ -170,6 +170,7 @@ _FORWARD_PROP_COLUMNS = (
     ("closing_line", "REAL"),
     ("clv", "REAL"),
     ("hit", "INTEGER"),
+    ("book_at_snapshot", "TEXT"),
 )
 
 #: The `anytime_td` DEFINITION that graded a row, stamped at resolve time from
@@ -1919,7 +1920,8 @@ def record_player_prop_predictions(props: list[dict]) -> int:
          _optional_float(prop.get("line")), prop.get("line_source"),
          prop.get("side"), _optional_float(prop.get("mu")), _optional_float(prop.get("call_prob")),
          _optional_float(prop.get("line_at_snapshot")), _optional_float(prop.get("odds_at_snapshot")),
-         _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")))
+         _optional_float(prop.get("model_p_over")), _optional_float(prop.get("edge_vs_breakeven")),
+         prop.get("book_at_snapshot"))
         for prop in props
     ]
     with contextlib.closing(_connect()) as conn, conn:
@@ -1928,8 +1930,9 @@ def record_player_prop_predictions(props: list[dict]) -> int:
             INSERT OR IGNORE INTO player_prop_predictions
                 (game_id, player_id, player_name, position, market, predicted_value,
                  snapshotted_at, line, line_source, side, mu, call_prob,
-                 line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 line_at_snapshot, odds_at_snapshot, model_p_over, edge_vs_breakeven,
+                 book_at_snapshot)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             rows,
         )

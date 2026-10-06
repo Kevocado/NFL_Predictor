@@ -397,6 +397,39 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
 
     rows: list[dict] = []
     closes: list[dict] = []
+
+    # In capture mode, the markets/books to fetch come from the DB, not from
+    # market_quantiles. The close belongs to the PICK, not the model.
+    capture_targets: list[tuple[str, str, str, float]] = []  # (game_id, player_id, book, line)
+    if capture_closing:
+        with store._connect() as conn:
+            placeholders = ",".join("?" for _ in live)
+            game_ids = [g["game_id"] for g in live]
+            pick_rows = conn.execute(
+                f"""
+                SELECT game_id, player_id, market, book_at_snapshot, line_at_snapshot
+                FROM player_prop_predictions
+                WHERE market LIKE 'fwd_%' AND game_id IN ({placeholders})
+                """,
+                game_ids,
+            ).fetchall()
+        if not pick_rows:
+            logger.info("no forward picks to close; nothing to capture")
+            return result
+        for row in pick_rows:
+            book = row[3]
+            if not book:
+                logger.warning("pick %s/%s has no book_at_snapshot; cannot match close",
+                               row[0], row[1])
+                continue
+            # Map fwd_rushing_yards -> player_rush_yds for the API request
+            model_market = row[2][4:]  # strip 'fwd_'
+            book_market = BOOK_MARKET_BY_MODEL.get(model_market)
+            if not book_market:
+                logger.warning("no book market for model market %s", model_market)
+                continue
+            capture_targets.append((row[0], row[1], book, book_market, float(row[4])))
+
     for game in live:
         # The Odds API's event id is an opaque string (`e91a...`), NOT the
         # nflverse game_id. Passing the game_id straight into the URL 404s on
@@ -411,6 +444,21 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
                            game.get("home_team"))
             result["games_not_listed"] = result.get("games_not_listed", 0) + 1
             continue
+
+        # What markets to fetch for this game: in snapshot mode, what the model
+        # prices; in capture mode, what the DB says has picks.
+        if capture_closing:
+            this_game_targets = [t for t in capture_targets if t[0] == game["game_id"]]
+            if not this_game_targets:
+                continue
+            book_markets = list({t[3] for t in this_game_targets})
+            # We need to fetch by book AND market to match the close correctly.
+            # The API doesn't support per-book requests, so we fetch all books
+            # for these markets and filter client-side.
+        else:
+            book_markets = [book for book in MARKET_MAP
+                            if book in (market_quantiles or {})] or list(MARKET_MAP)
+
         try:
             props = fetch_props_for_event(event_id, markets=book_markets,
                                           credits_needed=len(book_markets))
@@ -440,26 +488,58 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             continue
         result["props_snapshotted"] += len(props)
 
+        if capture_closing:
+            # Match each prop to a capture target by (game_id, player_id, book, market)
+            # ONLY. The line is expected to move between snapshot and close -- that IS
+            # the CLV. The snapped line is NOT part of the match key.
+            targets_by_key = {}
+            for gt in this_game_targets:
+                # Key by (player_id, book, market) since the book is recorded
+                # at snapshot. The line is not part of the key -- it's the variable
+                # we're measuring the close AGAINST.
+                key = (gt[1], gt[2], gt[3])  # player_id, book, book_market
+                # But there could be multiple picks for the same player/book/market
+                # (e.g. same player snapped twice at different lines). Store all.
+                targets_by_key.setdefault(key, []).append(gt)
+
+            for prop in props:
+                book = prop.get("book")
+                book_market = prop["market"]
+                player_id = prop.get("player_id")
+                if not book or not player_id:
+                    continue
+                key = (player_id, book, book_market)
+                targets = targets_by_key.get(key)
+                if not targets:
+                    continue
+                # Use the first matching target (there shouldn't be multiples for
+                # the same player/book/market in a single game, but if there are,
+                # the first one wins).
+                target = targets[0]
+                closes.append({
+                    "game_id": game["game_id"],
+                    "player_id": player_id,
+                    "market": forward_market(MARKET_MAP.get(book_market)),
+                    "closing_line": float(prop["line"]),
+                })
+                # Remove this target so it's not matched again
+                if len(targets) == 1:
+                    del targets_by_key[key]
+                else:
+                    targets.pop(0)
+
+            # Unmatched targets = picks whose book no longer quotes this line
+            if targets_by_key:
+                for key, target_list in targets_by_key.items():
+                    for target in target_list:
+                        logger.warning("no close found for pick %s %s %s at line %s",
+                                       target[0], target[1], target[2], target[4])
+            continue
+
         for prop in props:
             market = MARKET_MAP.get(prop["market"])
             predictor = (market_quantiles or {}).get(prop["market"])
             if market is None or predictor is None:
-                continue
-
-            if capture_closing:
-                # Deliberately BEFORE the edge gate and before the model runs.
-                # The close is where the market ended up, which is a fact about
-                # the market and not about the model's opinion of it: gating it
-                # on `edge >= 0.05` would measure CLV only on the model's
-                # favourites. And `record_closing_lines` UPDATEs by
-                # (game, player, market), so a prop with no snapshot row is
-                # silently skipped -- a close with no pick is not a pick.
-                closes.append({
-                    "game_id": game["game_id"],
-                    "player_id": prop["player_id"],
-                    "market": forward_market(market),
-                    "closing_line": float(prop["line"]),
-                })
                 continue
             if callable(predictor):
                 # The feature row is mandatory. Predicting from the line alone
@@ -512,6 +592,10 @@ def _row(game, prop, market, side, p_side, edge, odds) -> dict:
         "odds_at_snapshot": float(odds) if odds is not None else None,
         "model_p_over": float(p_side),
         "edge_vs_breakeven": float(edge),
+        # Record which book and line this pick was snapped at. CLV is only
+        # meaningful against the SAME book/line; a close from a different shop
+        # is just a price difference, not CLV.
+        "book_at_snapshot": prop.get("book"),
     }
 
 # --- the CLI ---------------------------------------------------------------
