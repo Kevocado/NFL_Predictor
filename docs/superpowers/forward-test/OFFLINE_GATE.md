@@ -432,3 +432,46 @@ with the yardage projections on `(game_id, player_id, market)` — now namespace
 - **`weather` is opt-in** (`--fetch-weather`): ~2.3k free calls and ten minutes of network that a plain training run should not spend silently.
 - One pre-existing test, `test_passing_td_record_absence.py`, asserted `scripts/` held exactly one `.py`; Task 8's CLI made it two. It failed identically with all this branch's work stashed. The assertion now checks what the test is about.
 - **Tasks 1–3, 4, 7, 12 corrected eight places** where the plan's own code contradicted its own tests or the live nflverse schema — including a `pull_ngs` signature bug its own stub had agreed with. Per-commit reasons in the history.
+## 11. Receptions: reachable, and refused by the gate
+
+`player_receptions` is quoted by the book (valid per the 2026-10-05 API probe)
+and `forward_tick.MARKET_MAP` already routes it to a `receptions` model, so the
+tick prices it automatically once an artifact exists. It is now a trainable
+market with positions WR/TE/RB.
+
+**It fails the offline gate, so no artifact was written.** Run against the full
+2017–2026 frame, validated 2019–2025, exogenous line, `n>=100`:
+
+| market | rows | MAE q50 | worst gap | gate |
+|---|---|---|---|---|
+| passing_yards | 30 963 | 70.14 | 0.041 | PASS |
+| rushing_yards | 8 407 | 21.27 | 0.042 | PASS |
+| **receptions** | **28 388** | **1.39** | **0.138** | **FAIL** |
+
+Receptions is overconfident in 7 of 8 buckets, worst at the middle
+(pred 0.467 / empirical 0.329):
+
+| bucket | predicted | empirical | gap | n |
+|---|---|---|---|---|
+| 0.1-0.2 | 0.192 | 0.125 | +0.068 | 1 052 |
+| 0.2-0.3 | 0.220 | 0.123 | +0.097 | 6 613 |
+| 0.3-0.4 | 0.359 | 0.239 | +0.120 | 3 500 |
+| 0.4-0.5 | 0.467 | 0.329 | +0.138 | 3 056 |
+| 0.5-0.6 | 0.534 | 0.421 | +0.113 | 2 770 |
+| 0.6-0.7 | 0.635 | 0.523 | +0.111 | 3 259 |
+| 0.7-0.8 | 0.740 | 0.645 | +0.095 | 3 949 |
+| 0.8-0.9 | 0.825 | 0.817 | +0.008 | 4 177 |
+
+MAE is fine (1.39, and it beats the naive 1.41), which is why the failure is
+easy to miss: the point estimate is good and the *distribution* is not. A
+count this small and this skewed -- a zero is common, a line is a half point --
+means the quantiles need a count-appropriate fit rather than the yardage
+regressor the other three markets share. `train_all` refuses to write without a
+passing verdict, so nothing was written and the forward test still prices two
+markets. That refusal is the guarantee working, not a gap in it.
+
+Note for anyone re-running this: the gate must be invoked as
+`walk_forward_quantile` over the WHOLE frame with `seasons=2019..2025`.
+Filtering to positions first, or validating on 2024+ only, makes all four
+markets "fail" and is a harness bug, not a model result -- it was the cause of
+a first, wrong reading here.
