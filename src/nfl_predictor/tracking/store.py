@@ -1986,6 +1986,18 @@ def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
     return int(covered), clv
 
 
+def _strip_forward_prefix(market: str) -> str:
+    """`fwd_rushing_yards` -> `rushing_yards`; anything else unchanged.
+
+    Imported lazily because `forward_tick` imports this module, so a top-level
+    import here would be a cycle.
+    """
+    from .forward_tick import FORWARD_MARKET_PREFIX
+
+    return market[len(FORWARD_MARKET_PREFIX):] \
+        if market.startswith(FORWARD_MARKET_PREFIX) else market
+
+
 _MARKET_TO_STAT_COLUMN = {
     "anytime_td": None,
     "passing_yards": "passing_yards",
@@ -2073,7 +2085,16 @@ def reconcile_player_prop_predictions(player_stats_df: pd.DataFrame) -> int:
                 # because no other prop market's truth is a definition that moves.
                 label_version = player_usage.ANYTIME_TD_LABEL_VERSION
             else:
-                stat_col = _MARKET_TO_STAT_COLUMN[row["market"]]
+                # A forward pick is namespaced `fwd_<market>` so its
+                # `predicted_value` (the book's line) is never read as a model
+                # point estimate. That namespace made EVERY forward row
+                # ungradeable: the lookup below raised KeyError on
+                # 'fwd_passing_yards' and the reconciler died on the first one,
+                # so no forward pick could ever produce a hit or a CLV. The
+                # prefix is a storage detail -- the column behind
+                # `fwd_rushing_yards` is still `rushing_yards` -- so it is
+                # stripped here, at the one lookup that cares.
+                stat_col = _MARKET_TO_STAT_COLUMN[_strip_forward_prefix(row["market"])]
                 if stat_col not in row or pd.isna(row[stat_col]):
                     continue
                 actual = float(row[stat_col])

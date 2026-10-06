@@ -326,13 +326,24 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
                      edge_gate: float = EDGE_GATE,
                      players: list[dict] | None = None,
                      feature_frame=None,
-                     event_index: dict | None = None) -> dict:
+                     event_index: dict | None = None,
+                     capture_closing: bool = False) -> dict:
     """Snapshot one slate.
 
     `market_quantiles` maps a book market key to that row's predicted quantiles
     -- either a plain `{level: value}` dict, or a callable taking the line and
     returning one, which is how a trained model is injected. Injecting rather
     than importing is what lets the tick be tested without an artifact on disk.
+
+    `capture_closing` turns the run into a CLOSING capture: it writes each
+    joined prop's current line onto the snapshot row that already exists
+    (`store.record_closing_lines`, which UPDATEs and so cannot create a pick),
+    and snapshots nothing. Run it again as kickoff approaches -- it reuses the
+    fetch, the event mapping and the player join the snapshot already pays for,
+    so it costs the same credits and needs no second code path.
+
+    Without this, `closing_line` and `clv` existed with no writer anywhere and
+    every CLV was permanently NULL.
 
     Returns the counters the forward report reads.
     """
@@ -341,6 +352,7 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
         "games": 0, "games_skipped_post_kickoff": 0,
         "props_snapshotted": 0, "picks_logged": 0, "credits_remaining": 0,
         "no_props_coverage": False, "degenerate_rows": 0,
+        "closing_lines_written": 0,
     }
 
     live = []
@@ -384,6 +396,7 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             "(a free call) and pass it in.")
 
     rows: list[dict] = []
+    closes: list[dict] = []
     for game in live:
         # The Odds API's event id is an opaque string (`e91a...`), NOT the
         # nflverse game_id. Passing the game_id straight into the URL 404s on
@@ -432,6 +445,22 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
             predictor = (market_quantiles or {}).get(prop["market"])
             if market is None or predictor is None:
                 continue
+
+            if capture_closing:
+                # Deliberately BEFORE the edge gate and before the model runs.
+                # The close is where the market ended up, which is a fact about
+                # the market and not about the model's opinion of it: gating it
+                # on `edge >= 0.05` would measure CLV only on the model's
+                # favourites. And `record_closing_lines` UPDATEs by
+                # (game, player, market), so a prop with no snapshot row is
+                # silently skipped -- a close with no pick is not a pick.
+                closes.append({
+                    "game_id": game["game_id"],
+                    "player_id": prop["player_id"],
+                    "market": forward_market(market),
+                    "closing_line": float(prop["line"]),
+                })
+                continue
             if callable(predictor):
                 # The feature row is mandatory. Predicting from the line alone
                 # bypasses the model entirely: every player gets the same
@@ -463,6 +492,8 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
 
     if rows:
         result["picks_logged"] = store.record_player_prop_predictions(rows)
+    if closes:
+        result["closing_lines_written"] = store.record_closing_lines(closes)
     return result
 
 
@@ -585,6 +616,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="parquet of the assembled feature frame (required)")
     parser.add_argument("--dry-run", action="store_true",
                         help="report what a tick would cost and record; spend nothing")
+    parser.add_argument("--capture-closing", action="store_true",
+                        help="record the book's current line as each pick's CLOSING "
+                             "line instead of snapshotting. Run it again as kickoff "
+                             "approaches: same fetch, same credits, and it makes CLV "
+                             "measurable. Writes no picks of its own.")
     args = parser.parse_args(argv)
 
     if not SPORTSBOOK_API_KEY:
@@ -656,12 +692,14 @@ def main(argv: list[str] | None = None) -> int:
         result = run_forward_tick(games=games, market_quantiles=predictors,
                                   edge_gate=args.edge_gate,
                                   players=players, feature_frame=feature_frame,
-                                  event_index=event_index)
+                                  event_index=event_index,
+                                  capture_closing=args.capture_closing)
     except (MissingPlayerIndex, MissingEventIndex) as error:
         print(f"error: {error}")
         return 2
     for key in ("games", "games_skipped_post_kickoff", "props_snapshotted",
-                "picks_logged", "degenerate_rows", "no_props_coverage"):
+                "picks_logged", "degenerate_rows", "no_props_coverage",
+                "closing_lines_written"):
         print(f"  {key}: {result[key]}")
 
     if args.report_dir and args.season and args.week:
