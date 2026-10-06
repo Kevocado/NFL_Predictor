@@ -20,12 +20,19 @@ import pandas as pd
 import pytest
 
 from nfl_predictor.models.player_props import QUANTILES, fit_yardage_quantile_models
-from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS, train_all
+from nfl_predictor.models.training import (
+    FORWARD_FEATURE_COLUMNS, train_all,
+)
+from nfl_predictor.models.training import MARKETS as training_markets
 from nfl_predictor.models.quantile_registry import (
     ARTIFACT_KEY, load_quantile_artifact, save_quantile_artifacts,
 )
 
-MARKETS = ["passing_yards", "rushing_yards", "receiving_yards"]
+#: The trainer's own market list, imported rather than restated. This file
+#: declared its own copy, so adding a market to the trainer failed two tests
+#: here for a reason that had nothing to do with the registry -- the exact
+#: duplication that let the gate and the trainer drift apart in production.
+MARKETS = list(training_markets)
 
 
 def _fitted(n=200):
