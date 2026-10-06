@@ -20,7 +20,7 @@ import pandas as pd
 
 from ..evaluate.walk_forward import calibration_report
 from ..models.prop_probability import american_to_breakeven
-from . import store
+from . import forward_tick, store
 
 #: Breakeven for a -110 prop. Stated as a constant because the spec's gates are
 #: written against it.
@@ -29,11 +29,11 @@ BREAKEVEN = american_to_breakeven(-110)
 #: The confidence gate `forward_tick` logs a pick at, named here so the report
 #: states the threshold that produced the log instead of implying a market edge.
 #: Read from the tick rather than restated, for the reason `FORWARD_FEATURE_COLUMNS`
-#: is imported rather than redeclared.
-try:
-    from .forward_tick import EDGE_GATE as GATE
-except ImportError:  # pragma: no cover - import cycle at module load
-    GATE = 0.05
+#: is imported rather than redeclared. Safe at module level: `forward_tick` imports
+#: THIS module only inside `main()`, so there is no cycle -- and no try/except
+#: either, because a fallback of 0.05 would silently misreport the threshold if the
+#: import ever did break.
+GATE = forward_tick.EDGE_GATE
 
 #: Under this many graded picks, a hit rate is noise with a decimal point.
 THIN_SAMPLE = 50

@@ -1989,13 +1989,15 @@ def _forward_verdict(side, line_at_snapshot, closing_line, actual_value):
 def _strip_forward_prefix(market: str) -> str:
     """`fwd_rushing_yards` -> `rushing_yards`; anything else unchanged.
 
-    Imported lazily because `forward_tick` imports this module, so a top-level
-    import here would be a cycle.
+    The prefix is imported lazily, and that is load-bearing rather than
+    defensive: `forward_tick` imports THIS module at module level, so a
+    top-level import here would be a genuine import cycle.
     """
     from .forward_tick import FORWARD_MARKET_PREFIX
 
-    return market[len(FORWARD_MARKET_PREFIX):] \
-        if market.startswith(FORWARD_MARKET_PREFIX) else market
+    if market.startswith(FORWARD_MARKET_PREFIX):
+        return market[len(FORWARD_MARKET_PREFIX):]
+    return market
 
 
 _MARKET_TO_STAT_COLUMN = {
