@@ -430,6 +430,16 @@ def run_forward_tick(games: list[dict], market_quantiles: dict[str, dict] | None
                 continue
             capture_targets.append((row[0], row[1], book, book_market, float(row[4])))
 
+        # Budget check for capture mode: one credit per distinct (game, market).
+        # Each game's per-event request covers all its target markets.
+        needed = sum(len({t[3] for t in capture_targets if t[0] == g["game_id"]})
+                     for g in live)
+        if not credits_sufficient(needed):
+            logger.warning("budget: %d credits needed for capture, not fetching anything", needed)
+            result["credits_remaining"] = 0
+            result["no_props_coverage"] = True
+            return result
+
     for game in live:
         # The Odds API's event id is an opaque string (`e91a...`), NOT the
         # nflverse game_id. Passing the game_id straight into the URL 404s on
@@ -596,6 +606,8 @@ def _row(game, prop, market, side, p_side, edge, odds) -> dict:
         # meaningful against the SAME book/line; a close from a different shop
         # is just a price difference, not CLV.
         "book_at_snapshot": prop.get("book"),
+        # Kickoff time is needed for the write-time kickoff guard.
+        "commence_time": game.get("commence_time"),
     }
 
 # --- the CLI ---------------------------------------------------------------
@@ -732,12 +744,18 @@ def main(argv: list[str] | None = None) -> int:
         print("--dry-run: no request made, nothing snapshotted.")
         return 0
 
-    try:
-        predictors = predictor_for(args.models_dir)
-    except FileNotFoundError as error:
-        print(f"error: {error}")
-        return 2
-    print(f"loaded markets: {sorted(predictors)}")
+    # In capture mode we don't price picks, so we don't need the predictors.
+    # Skipping predictor_for allows the capture to run even when the artifact
+    # for a market has been removed between snapshot and close.
+    if args.capture_closing:
+        predictors = {}
+    else:
+        try:
+            predictors = predictor_for(args.models_dir)
+        except FileNotFoundError as error:
+            print(f"error: {error}")
+            return 2
+        print(f"loaded markets: {sorted(predictors)}")
 
     # (A missing key is guarded above, before any request: without that check the
     # credit probe 401s, `credits_sufficient` reports False, and the tick would

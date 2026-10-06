@@ -143,15 +143,9 @@ def test_capture_only_closes_markets_that_have_snapshot_rows(monkeypatch, tmp_pa
 
 def test_capture_matches_the_book_and_line_that_snapped_the_pick(monkeypatch, tmp_path):
     """A pick snapped at one book's line must get its close from THAT book, not
-    from another shop. The schema does not currently record which book a pick
-    came from, so this test documents the gap: both books returned, the capture
-    currently picks whichever comes first in the API response, which is not CLV.
-
-    The fix requires recording the book at snapshot time and matching it at close.
-    For now this test EXPECTS the bug: the close comes from whichever book's
-    prop is returned first in the capture fetch, which is not the book the bet
-    was made at. Once the fix lands, this test will assert the correct book.
-    """
+    from another shop. The schema now records `book_at_snapshot` at pick time,
+    and the capture matches by (player_id, book, market) so CLV is measured
+    against the SAME shop the bet was made at."""
     store.record_game_predictions([GAME])
     models = _models(tmp_path)
 
@@ -159,7 +153,8 @@ def test_capture_matches_the_book_and_line_that_snapped_the_pick(monkeypatch, tm
         monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: True)
         monkeypatch.setattr(forward_tick, "fetch_event_index", lambda: EVENT_INDEX)
         # Snapshot: both books quote the player; the first match wins.
-        # The recorded pick will have line_at_snapshot from the FIRST match.
+        # The recorded pick will have line_at_snapshot from the FIRST match,
+        # and book_at_snapshot from that match.
         monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                             lambda e, markets=None, credits_needed=1: [
                                 PROP_DK,    # DraftKings 52.0 (first in list)
@@ -172,15 +167,15 @@ def test_capture_matches_the_book_and_line_that_snapped_the_pick(monkeypatch, tm
 
     rows = _snapshot_rows()
     picked = rows.iloc[0]
-    # The current code takes the FIRST match - in this case DK at 52.0
-    snapped_line = picked["line_at_snapshot"]
-    snapped_book = "unknown"  # not recorded yet
+    # The pick was made at DK (first in list), so book_at_snapshot = draftkings
+    assert picked["book_at_snapshot"] == "draftkings"
+    assert picked["line_at_snapshot"] == 52.0
 
     def _stub_capture(monkeypatch):
         monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: True)
         monkeypatch.setattr(forward_tick, "fetch_event_index", lambda: EVENT_INDEX)
         # At close: FD moved to 54.5, DK moved to 48.0 (opposite directions).
-        # The bug matches by market only, so it picks the first book in the list.
+        # The fix matches by book_at_snapshot, so it picks DK's close (48.0).
         monkeypatch.setattr(forward_tick, "fetch_props_for_event",
                             lambda e, markets=None, credits_needed=1: [
                                 {**PROP_FD, "line": 54.5},      # FD close
@@ -192,11 +187,8 @@ def test_capture_matches_the_book_and_line_that_snapped_the_pick(monkeypatch, tm
 
     rows = _snapshot_rows()
     picked = rows.iloc[0]
-    # Currently the close comes from whichever book appears first in the capture
-    # fetch. This is NOT CLV; CLV requires the SAME book. The fix will record
-    # the book at snapshot time and match it here. For now we document the
-    # actual (buggy) behavior.
-    assert picked["closing_line"] in (54.5, 48.0), "close comes from some book"
+    # Close MUST come from DK (the book the pick was made at), not FD.
+    assert picked["closing_line"] == 48.0, "close must come from the SAME book"
 
 
 def test_capture_does_not_require_the_model_to_still_price_the_market(monkeypatch, tmp_path):
@@ -206,12 +198,12 @@ def test_capture_does_not_require_the_model_to_still_price_the_market(monkeypatc
     present. Tying the close to the artifact makes the forward test fragile:
     retraining one market would orphan all its closes.
 
-    Current behavior: `predictor_for` loads from the model directory, so if the
-    artifact is removed, the tick skips that market entirely. This test
-    documents the bug; the fix will read the DB for what markets have picks.
-    """
+    The fix reads the DB for what markets have picks, so it works even when
+    the artifact for that market is gone."""
     store.record_game_predictions([GAME])
-    models = _models(tmp_path)
+    # Create TWO artifacts: passing_yards (the pick's market) and rushing_yards
+    # (unrelated). We'll remove only passing_yards.
+    models = _models(tmp_path, markets=("passing_yards", "rushing_yards"))
 
     def _stub_snap(monkeypatch):
         monkeypatch.setattr(forward_tick, "credits_sufficient", lambda needed: True)
@@ -223,7 +215,8 @@ def test_capture_does_not_require_the_model_to_still_price_the_market(monkeypatc
     monkeypatch.setattr("nfl_predictor.config.SPORTSBOOK_API_KEY", "test-key")
     assert _run(models, tmp_path) == 0
 
-    # REMOVE the passing artifact -- the model no longer loads this market.
+    # REMOVE only the passing_yards artifact -- the model no longer loads this
+    # market, but rushing_yards remains. The pick exists in the DB.
     (models / "passing_yards_quantile_2025.pkl").unlink()
 
     def _stub_capture(monkeypatch):
@@ -233,6 +226,8 @@ def test_capture_does_not_require_the_model_to_still_price_the_market(monkeypatc
                             lambda e, markets=None, credits_needed=1: [{**PROP_FD, "line": 54.5}])
 
     _stub_capture(monkeypatch)
-    # With no artifact, `predictor_for` fails and the CLI exits with 2.
-    # The fix will make it read the DB and proceed; for now we expect 2.
-    assert _run(models, tmp_path, "--capture-closing") == 2
+    # With the fix, capture reads the DB and proceeds even without the artifact.
+    assert _run(models, tmp_path, "--capture-closing") == 0
+
+    rows = _snapshot_rows()
+    assert rows.iloc[0]["closing_line"] == 54.5, "close written even with artifact removed"
