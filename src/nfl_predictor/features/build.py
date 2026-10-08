@@ -48,19 +48,6 @@ FEATURE_COLUMNS = [
 ]
 
 
-def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = (), aux: Aux | None = None) -> pd.DataFrame:
-    df = _assemble_base(games_df)
-    if "epa" in blocks:
-        if aux is None or aux.efficiency is None:
-            raise ValueError("the epa block needs aux.efficiency; refusing to default it to zeros")
-        df = epa.add_epa_features(df, aux.efficiency)
-    if "qb" in blocks:
-        if aux is None or aux.qb_games is None:
-            raise ValueError("the qb block needs aux.qb_games; refusing to default it to a neutral QB")
-        df = qb.add_qb_features(df, aux.qb_games, upcoming_starters=aux.upcoming_starters)
-    return df
-
-
 def _assemble_base(games_df: pd.DataFrame) -> pd.DataFrame:
     df = power_ratings.compute_pregame_ratings(games_df)
     df = rolling_form.add_rolling_form(df)
@@ -71,6 +58,19 @@ def _assemble_base(games_df: pd.DataFrame) -> pd.DataFrame:
     if "div_game" not in df.columns:
         df["div_game"] = 0
     df["div_game"] = df["div_game"].fillna(0).astype(int)
+    return df
+
+
+def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = (), aux: Aux | None = None) -> pd.DataFrame:
+    df = _assemble_base(games_df)
+    if "epa" in blocks:
+        if aux is None or aux.efficiency is None:
+            raise ValueError("the epa block needs aux.efficiency; refusing to default it to zeros")
+        df = epa.add_epa_features(df, aux.efficiency)
+    if "qb" in blocks:
+        if aux is None or aux.qb_games is None:
+            raise ValueError("the qb block needs aux.qb_games; refusing to default it to a neutral QB")
+        df = qb.add_qb_features(df, aux.qb_games, upcoming_starters=aux.upcoming_starters)
     return df
 
 
@@ -128,8 +128,9 @@ def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int
 
 
 def build_features_for_game(
-    home_team: str, away_team: str, games_df: pd.DataFrame, gameday: str | pd.Timestamp | None = None,
-    blocks: tuple[str, ...] = DEFAULT_BLOCKS, aux: Aux | None = None, starters: dict[str, str | None] | None = None,
+    home_team: str, away_team: str, games_df: pd.DataFrame,
+    gameday: str | pd.Timestamp | None = None, blocks: tuple[str, ...] = DEFAULT_BLOCKS,
+    aux: Aux | None = None, starters: dict[str, str | None] | None = None,
 ) -> pd.Series:
     """One feature row for an upcoming home_team vs away_team game, built by the SAME code that builds training rows.
 
