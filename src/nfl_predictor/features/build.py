@@ -7,6 +7,7 @@ features/build.py documents.
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from . import power_ratings, rest_days, rolling_form
@@ -19,8 +20,24 @@ FEATURE_COLUMNS = [
     "div_game",
 ]
 
+#: Feature BLOCKS beyond the ten base columns. Empty until a block registers here; a block joins DEFAULT_BLOCKS only
+#: in the PR that shows it clears the evaluation bar (paired-bootstrap intervals + calibration gap, on identical
+#: held-out games).
+BLOCK_COLUMNS: dict[str, list[str]] = {}
+DEFAULT_BLOCKS: tuple[str, ...] = ()
 
-def _assemble(games_df: pd.DataFrame) -> pd.DataFrame:
+
+def feature_columns(blocks: tuple[str, ...] = DEFAULT_BLOCKS) -> list[str]:
+    unknown = [b for b in blocks if b not in BLOCK_COLUMNS]
+    if unknown:
+        raise ValueError(f"unknown feature blocks: {unknown}; known: {sorted(BLOCK_COLUMNS)}")
+    cols = list(FEATURE_COLUMNS)
+    for block in blocks:
+        cols += BLOCK_COLUMNS[block]
+    return cols
+
+
+def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = ()) -> pd.DataFrame:
     df = power_ratings.compute_pregame_ratings(games_df)
     df = rolling_form.add_rolling_form(df)
     df = rest_days.add_rest_days(df)
@@ -30,15 +47,21 @@ def _assemble(games_df: pd.DataFrame) -> pd.DataFrame:
     if "div_game" not in df.columns:
         df["div_game"] = 0
     df["div_game"] = df["div_game"].fillna(0).astype(int)
+    missing = [b for b in blocks if b not in BLOCK_COLUMNS]
+    if missing:  # a selected block that is not registered would be silently dropped from the row
+        raise ValueError(f"feature block not wired into _assemble: {missing}")
     return df
 
 
-def build_training_frame(games_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
-    df = _assemble(games_df)
+def build_training_frame(
+    games_df: pd.DataFrame, blocks: tuple[str, ...] = DEFAULT_BLOCKS,
+) -> tuple[pd.DataFrame, list[str]]:
+    columns = feature_columns(blocks)
+    df = _assemble(games_df, blocks)
     played = df[df["home_score"].notna() & df["away_score"].notna()].reset_index(drop=True)
     played["margin"] = played["home_score"] - played["away_score"]
     played["total_points"] = played["home_score"] + played["away_score"]
-    return played, FEATURE_COLUMNS
+    return played, columns
 
 
 def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int:
@@ -83,68 +106,33 @@ def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int
     return 0 if pd.isna(value) else int(value)
 
 
-def build_features_for_game(home_team: str, away_team: str, games_df: pd.DataFrame) -> pd.Series:
-    """One live feature row for an upcoming home_team vs away_team game,
-    computed from every played game in games_df (ratings/rolling form as of
-    right now)."""
-    ratings = power_ratings.final_ratings(games_df)
-    played = games_df[games_df["home_score"].notna() & games_df["away_score"].notna()]
+def build_features_for_game(
+    home_team: str, away_team: str, games_df: pd.DataFrame,
+    gameday: str | pd.Timestamp | None = None, blocks: tuple[str, ...] = DEFAULT_BLOCKS,
+) -> pd.Series:
+    """One feature row for an upcoming home_team vs away_team game, built by the SAME code that builds training rows.
 
-    def _recent_form(team: str) -> tuple[float, float]:
-        appearances = pd.concat(
-            [
-                played[played["home_team"] == team][["gameday", "home_score", "away_score"]].rename(
-                    columns={"home_score": "scored", "away_score": "allowed"}
-                ),
-                played[played["away_team"] == team][["gameday", "away_score", "home_score"]].rename(
-                    columns={"away_score": "scored", "home_score": "allowed"}
-                ),
-            ]
-        ).sort_values("gameday")
-        recent = appearances.tail(5)
-        if recent.empty:
-            return float("nan"), float("nan")
-        return float(recent["scored"].mean()), float(recent["allowed"].mean())
+    The upcoming game is appended to the PLAYED games (no result, its own date) and the whole frame goes through
+    `_assemble`, so ratings, rolling form and rest days are computed exactly as they are for a training row. This used
+    to be a second, hand-written implementation, and it measured rest as the days from the last game to TODAY, not to
+    the game: a game five days out was served with five fewer rest days than the model was fitted on.
 
-    def _rest_days(team: str) -> float | None:
-        appearances = pd.concat(
-            [
-                played[played["home_team"] == team][["gameday"]],
-                played[played["away_team"] == team][["gameday"]],
-            ]
-        ).sort_values("gameday")
-        if appearances.empty:
-            return None
-        last_game = pd.to_datetime(appearances.iloc[-1]["gameday"])
-        return float((pd.Timestamp.now().normalize() - last_game).days)
-
-    home_scored, home_allowed = _recent_form(home_team)
-    away_scored, away_allowed = _recent_form(away_team)
-    home_rating = ratings.get(home_team, power_ratings.DEFAULT_START_RATING)
-    away_rating = ratings.get(away_team, power_ratings.DEFAULT_START_RATING)
-    home_rest = _rest_days(home_team)
-    away_rest = _rest_days(away_team)
-
-    # `div_game` is a real modelled feature (FEATURE_COLUMNS) and training fills
-    # it from the schedule, where it toggles for roughly a third of games. It
-    # used to be hardcoded to 0 here, so the model was fitted with the covariate
-    # varying and served with it permanently constant -- the fitted coefficient
-    # was dead weight at inference. Read it from the schedule for this matchup
-    # when the column is present, and fall back to 0 for any games frame that
-    # does not carry it (which is also the training default).
-    div_game = _div_game_for(games_df, home_team, away_team)
-
-    return pd.Series(
-        {
-            "home_pregame_rating": home_rating,
-            "away_pregame_rating": away_rating,
-            "rating_diff": home_rating - away_rating,
-            "home_points_scored_roll": home_scored,
-            "home_points_allowed_roll": home_allowed,
-            "away_points_scored_roll": away_scored,
-            "away_points_allowed_roll": away_allowed,
-            "home_rest_days": home_rest if home_rest is not None else 7.0,
-            "away_rest_days": away_rest if away_rest is not None else 7.0,
-            "div_game": div_game,
-        }
-    )
+    `gameday` is the game's date; None means today (an ad-hoc "if they played now" request).
+    """
+    played = games_df[games_df["home_score"].notna() & games_df["away_score"].notna()].copy()
+    when = pd.Timestamp(gameday) if gameday is not None else pd.Timestamp.now().normalize()
+    upcoming = {c: np.nan for c in played.columns}
+    upcoming.update({
+        "game_id": "__upcoming__", "gameday": when, "home_team": home_team, "away_team": away_team,
+        "home_score": np.nan, "away_score": np.nan, "div_game": _div_game_for(games_df, home_team, away_team),
+    })
+    if "season" in played.columns and played["season"].notna().any():
+        upcoming["season"] = played["season"].max()
+    frame = pd.concat([played, pd.DataFrame([upcoming])], ignore_index=True)
+    frame["gameday"] = pd.to_datetime(frame["gameday"])
+    row = _assemble(frame, blocks)
+    served = row[row["game_id"] == "__upcoming__"].iloc[0]
+    # What `_assemble` produced, in the declared order. A column declared in FEATURE_COLUMNS but never assembled is
+    # absent here, and `manifest.load_models` compares this against what each model was fitted on and refuses the
+    # mismatch: the declared list is the code's claim, and this is what the code actually builds.
+    return served[[c for c in feature_columns(blocks) if c in served.index]]
