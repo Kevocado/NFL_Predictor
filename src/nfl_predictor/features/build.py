@@ -4,6 +4,7 @@ must call build_training_frame / build_features_for_game rather than
 reimplementing feature logic inline — same discipline PL_Predictor's
 features/build.py documents.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -131,6 +132,7 @@ def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int
 def build_features_for_game(
     home_team: str, away_team: str, games_df: pd.DataFrame, gameday: str | pd.Timestamp | None = None,
     blocks: tuple[str, ...] = DEFAULT_BLOCKS, aux: Aux | None = None, starters: dict[str, str | None] | None = None,
+    game_schedule: dict | None = None,
 ) -> pd.Series:
     """One feature row for an upcoming home_team vs away_team game, built by the SAME code that builds training rows.
 
@@ -141,13 +143,31 @@ def build_features_for_game(
 
     `gameday` is the game's date; None means today (an ad-hoc "if they played now" request). `starters` maps each team
     to its expected starting QB id for the `qb` block (never guessed: an unknown starter is a neutral, "new" QB).
+    `game_schedule` is an optional dict with the upcoming game's schedule data (roof, temp, wind) from the schedule.
     """
     played = games_df[games_df["home_score"].notna() & games_df["away_score"].notna()].copy()
     when = pd.Timestamp(gameday) if gameday is not None else pd.Timestamp.now().normalize()
+    # Read scheduled conditions (roof/temp/wind) for the upcoming game from the schedule.
+    # The schedule may carry roof/temp/wind for upcoming games; fall back to NaN if absent.
+    if game_schedule:
+        roof = game_schedule.get("roof", np.nan)
+        temp = game_schedule.get("temp", np.nan)
+        wind = game_schedule.get("wind", np.nan)
+    else:
+        # Fallback: try to read from the schedule DataFrame if it contains the upcoming game.
+        sched_cond = games_df[
+            (games_df["home_team"] == home_team) & (games_df["away_team"] == away_team)
+            & (pd.to_datetime(games_df["gameday"]) == when)
+        ]
+        roof = sched_cond["roof"].iloc[0] if not sched_cond.empty and "roof" in sched_cond.columns else np.nan
+        temp = sched_cond["temp"].iloc[0] if not sched_cond.empty and "temp" in sched_cond.columns else np.nan
+        wind = sched_cond["wind"].iloc[0] if not sched_cond.empty and "wind" in sched_cond.columns else np.nan
+
     upcoming = {c: np.nan for c in played.columns}
     upcoming.update({
         "game_id": "__upcoming__", "gameday": when, "home_team": home_team, "away_team": away_team,
         "home_score": np.nan, "away_score": np.nan, "div_game": _div_game_for(games_df, home_team, away_team),
+        "roof": roof, "temp": temp, "wind": wind,
     })
     if "season" in played.columns and played["season"].notna().any():
         upcoming["season"] = played["season"].max()

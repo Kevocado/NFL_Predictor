@@ -41,7 +41,7 @@ def client(monkeypatch):
     )
     monkeypatch.setattr(
         routes, "_predict_game_from_models",
-        lambda models, home, away, games_df, spread_line=None, total_line=None, gameday=None, blocks=None, aux=None, starters=None: {
+        lambda models, home, away, games_df, spread_line=None, total_line=None, gameday=None, blocks=None, aux=None, starters=None, game_schedule=None: {
             "home_win_prob": 0.6, "away_win_prob": 0.4, "home_cover_prob": 0.55, "away_cover_prob": 0.45,
             "over_prob": 0.52, "under_prob": 0.48,
         },
@@ -80,7 +80,7 @@ def test_predict_game_from_models_includes_sigma_and_total_sigma(monkeypatch):
 
     monkeypatch.setattr(
         routes.feature_build, "build_features_for_game",
-        lambda home, away, games_df, gameday=None, blocks=None, aux=None, starters=None: pd.Series({"rating_diff": 50.0, "home_rest_days": 7.0, "away_rest_days": 7.0}),
+        lambda home, away, games_df, gameday=None, blocks=None, aux=None, starters=None, game_schedule=None: pd.Series({"rating_diff": 50.0, "home_rest_days": 7.0, "away_rest_days": 7.0}),
     )
     models = {
         "feature_cols": ["rating_diff", "home_rest_days", "away_rest_days"],
@@ -385,7 +385,7 @@ def test_get_predictions_batch_skips_one_failing_game_without_failing_the_rest(c
         ),
     )
 
-    def flaky_predict(models, home, away, games_df, spread_line=None, total_line=None, gameday=None, blocks=None, aux=None, starters=None):
+    def flaky_predict(models, home, away, games_df, spread_line=None, total_line=None, gameday=None, blocks=None, aux=None, starters=None, game_schedule=None):
         if home == "BAL":
             raise ValueError("feature build blew up")
         return {"home_win_prob": 0.6, "away_win_prob": 0.4}

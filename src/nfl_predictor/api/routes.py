@@ -172,8 +172,9 @@ def _predict_game_from_models(
     gameday=None,
     blocks: tuple[str, ...] = (), aux: feature_build.Aux | None = None,
     starters: dict[str, str | None] | None = None,
+    game_schedule: dict | None = None,
 ) -> dict:
-    feature_row = feature_build.build_features_for_game(home, away, games_df, gameday=gameday, blocks=blocks, aux=aux, starters=starters)
+    feature_row = feature_build.build_features_for_game(home, away, games_df, gameday=gameday, blocks=blocks, aux=aux, starters=starters, game_schedule=game_schedule)
     feature_cols = models["feature_cols"]
     X = feature_row.reindex(feature_cols).fillna(0)
 
@@ -397,6 +398,7 @@ def _get_game_prediction_live(season: int, week: int, game_id: str):
         models, game["home_team"], game["away_team"], history,
         spread_line=game.get("spread_line"), total_line=game.get("total_line"),
         gameday=game.get("gameday"), blocks=blocks, aux=aux,
+        game_schedule=game,
     )
     return prediction
 
@@ -429,6 +431,7 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
                 models, game["home_team"], game["away_team"], game_history,
                 spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                 gameday=game.get("gameday"), blocks=blocks, aux=aux,
+                game_schedule=game,
             )
         except Exception:
             logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
@@ -1158,6 +1161,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                     models, game["home_team"], game["away_team"], history,
                     spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                     gameday=game.get("gameday"), blocks=blocks, aux=aux,
+                    game_schedule=game,
                 )
                 predictions.append(
                     {
@@ -1272,6 +1276,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                             models, game["home_team"], game["away_team"], history_excl,
                             spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                             gameday=game.get("gameday"), blocks=blocks, aux=aux,
+                            game_schedule=game,
                         )
                         backfill_games.append({
                             "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],

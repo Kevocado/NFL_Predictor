@@ -458,7 +458,7 @@ def live(monkeypatch):
     # under it. The real builder emits all ten.
     monkeypatch.setattr(
         facts_mod.routes.feature_build, "build_features_for_game",
-        lambda home, away, history, gameday=None, blocks=None, aux=None, starters=None: pd.Series(
+        lambda home, away, history, gameday=None, blocks=None, aux=None, starters=None, game_schedule=None: pd.Series(
             {c: float(i + 1) for i, c in enumerate(facts_mod.routes.feature_build.FEATURE_COLUMNS)}
             | {"rating_diff": 7.0, "home_rest_days": 6, "away_rest_days": 6},
             dtype=float,
