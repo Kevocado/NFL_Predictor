@@ -23,7 +23,10 @@ def test_the_served_row_equals_the_trained_row_with_both_blocks():
     full_aux = _aux(games)
     trained, cols = build.build_training_frame(games, blocks=BLOCKS, aux=full_aux)
     assert cols == build.feature_columns(BLOCKS) and len(cols) == 10 + len(build.BLOCK_COLUMNS["epa"]) + len(build.BLOCK_COLUMNS["qb"])
-    qb_actual = full_aux.qb_games.set_index(["game_id", "team"])["qb_id"]
+    qb_actual = (
+        full_aux.qb_games.sort_values(["game_id", "team", "dropbacks", "qb_id"], ascending=[True, True, False, True])
+        .drop_duplicates(["game_id", "team"], keep="first").set_index(["game_id", "team"])["qb_id"]
+    )
     sample = trained[trained["season"] == 2025].dropna(subset=cols).sample(12, random_state=2)
     for _, g in sample.iterrows():
         when = pd.Timestamp(g["gameday"])

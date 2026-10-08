@@ -67,7 +67,13 @@ def team_game_efficiency(pbp: pd.DataFrame) -> pd.DataFrame:
 
 
 def qb_games(pbp: pd.DataFrame) -> pd.DataFrame:
-    """One row per (game, team): the QB with the most dropbacks that game, how many, and his total EPA on them."""
+    """One row per (game, team, qb): every passer who took a dropback that game, with his dropbacks and EPA.
+
+    The team-game STARTER (most dropbacks, lowest id on a tie) is selected separately in
+    `features/qb.py`, not by dropping rows here: a backup's relief dropbacks are the history
+    his rating and experience are built from when he later starts. Dropping non-starters here
+    made every promoted backup arrive as a "new" QB with the prior.
+    """
     plays = _plays(pbp)
     if plays.empty:
         return pd.DataFrame(columns=QB_GAME_COLUMNS)
@@ -80,5 +86,4 @@ def qb_games(pbp: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     per_qb = per_qb.sort_values(["game_id", "posteam", "dropbacks", "passer_player_id"], ascending=[True, True, False, True])
-    starter = per_qb.drop_duplicates(["game_id", "posteam"], keep="first")
-    return starter.rename(columns={"posteam": "team", "passer_player_id": "qb_id"})[QB_GAME_COLUMNS].reset_index(drop=True)
+    return per_qb.rename(columns={"posteam": "team", "passer_player_id": "qb_id"})[QB_GAME_COLUMNS].reset_index(drop=True)

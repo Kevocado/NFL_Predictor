@@ -42,6 +42,33 @@ def test_the_starting_qb_is_the_passer_with_the_most_dropbacks():
     assert row["qb_id"] == "starter" and row["dropbacks"] == 2 and row["epa_sum"] == pytest.approx(0.6)
 
 
+def test_a_backup_who_later_starts_keeps_his_earlier_dropbacks():
+    """A backup's relief dropbacks count toward his rating and experience when he later starts.
+
+    Failing-first for the review: qb_games used to drop_duplicates to the starter per
+    (game, team), so a backup's earlier relief appearances vanished and he arrived as a
+    "new" QB with the prior when he later started.
+    """
+    pbp = pd.DataFrame([
+        _play("g1", "A", "B", "pass", 0.5, 1, 1, "starter"), _play("g1", "A", "B", "pass", 0.5, 1, 1, "starter"),
+        _play("g1", "A", "B", "pass", 0.4, 1, 1, "backup"),
+        _play("g2", "A", "B", "pass", 0.3, 1, 1, "backup"), _play("g2", "A", "B", "pass", 0.3, 1, 1, "backup"),
+        _play("g2", "A", "B", "pass", -1.0, 0, 1, "starter"),
+    ])
+    qbg = pbp_agg.qb_games(pbp)
+    # the backup's g1 relief row is retained, not dropped as a non-starter
+    relief = qbg[(qbg["game_id"] == "g1") & (qbg["qb_id"] == "backup")]
+    assert not relief.empty and relief.iloc[0]["dropbacks"] == 1
+    games = pd.DataFrame([
+        {"game_id": "g1", "gameday": "2025-09-07", "home_team": "A", "away_team": "B"},
+        {"game_id": "g2", "gameday": "2025-09-14", "home_team": "A", "away_team": "B"},
+    ])
+    out = qb.add_qb_features(games, qbg).set_index("game_id")
+    # g2 starter is "backup" with 1 prior dropback and 0.4 prior EPA, not the prior with 0 games
+    assert out.loc["g2", "home_qb_games"] == 1
+    assert out.loc["g2", "home_qb_epa_pd"] == pytest.approx(0.4 / (1 + qb.SHRINK_K))
+
+
 def test_a_dropback_tie_goes_to_the_lowest_id_so_the_choice_is_deterministic():
     pbp = pd.DataFrame([_play("g1", "A", "B", "pass", 0.2, 1, 1, "z"), _play("g1", "A", "B", "pass", 0.2, 1, 1, "a")])
     assert pbp_agg.qb_games(pbp).iloc[0]["qb_id"] == "a"

@@ -16,8 +16,8 @@ from ..features.build import build_training_frame
 from ..models import game_outcome
 
 
-def prepare_folds(games_df: pd.DataFrame, min_train_seasons: int = 2) -> list[dict]:
-    df, feature_cols = build_training_frame(games_df)
+def prepare_folds(games_df: pd.DataFrame, min_train_seasons: int = 2, blocks: tuple[str, ...] = (), aux=None) -> list[dict]:
+    df, feature_cols = build_training_frame(games_df, blocks=blocks, aux=aux)
     seasons = sorted(df["season"].unique())
 
     folds = []

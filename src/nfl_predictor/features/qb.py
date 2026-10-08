@@ -30,7 +30,10 @@ def add_qb_features(
 ) -> pd.DataFrame:
     """Add `{home,away}_qb_epa_pd / qb_games / qb_changed / qb_new` for every game.
 
-    A completed game uses its actual starter. A game with no QB row (upcoming) uses `upcoming_starters[(game_id, team)]`,
+    `qb_games_df` holds one row per (game, team, qb) — every passer, not just the starter.
+    The starter for a completed game is the passer with the most dropbacks (lowest id on a tie);
+    his rating and experience accumulate ALL his prior dropbacks, including relief appearances
+    in games he did not start. A game with no QB row (upcoming) uses `upcoming_starters[(game_id, team)]`,
     and a game with neither gets the prior, zero games and "new": the honest "we do not know who starts".
     """
     upcoming_starters = upcoming_starters or {}
@@ -38,19 +41,24 @@ def add_qb_features(
     hist["cum_db"] = hist.groupby("qb_id")["dropbacks"].cumsum() - hist["dropbacks"]
     hist["cum_epa"] = hist.groupby("qb_id")["epa_sum"].cumsum() - hist["epa_sum"]
     hist["cum_games"] = hist.groupby("qb_id").cumcount()
-    hist["prev_qb"] = hist.groupby("team")["qb_id"].shift(1)
-    by_game = hist.set_index(["game_id", "team"])
+    # Starter per (game, team): most dropbacks, lowest id on a tie. Pick within each
+    # game-team group; order the starters chronologically for prev_qb.
+    ranked = hist.sort_values(["game_id", "team", "dropbacks", "qb_id"], ascending=[True, True, False, True])
+    starter_rows = ranked.drop_duplicates(["game_id", "team"], keep="first").sort_values(["gameday", "game_id"])
+    starter_rows = starter_rows.copy()
+    starter_rows["prev_qb"] = starter_rows.groupby("team")["qb_id"].shift(1)
+    by_starter = starter_rows.set_index(["game_id", "team"])
     # What each QB has accumulated through his LAST game: the starting point for a game that has not been played.
     totals = hist.groupby("qb_id").agg(db=("dropbacks", "sum"), epa=("epa_sum", "sum"), games=("dropbacks", "size"))
-    last_qb_of_team = hist.groupby("team")["qb_id"].last()
+    last_qb_of_team = starter_rows.groupby("team")["qb_id"].last()
 
     out = games_df.copy()
     for side in ("home", "away"):
         epa_pd, n_games, changed, new = [], [], [], []
         for game_id, team in zip(out["game_id"], out[f"{side}_team"]):
             key = (game_id, team)
-            if key in by_game.index:
-                r = by_game.loc[key]
+            if key in by_starter.index:
+                r = by_starter.loc[key]
                 epa_pd.append((r["cum_epa"] + k * prior) / (r["cum_db"] + k))
                 n_games.append(float(r["cum_games"]))
                 changed.append(float(isinstance(r["prev_qb"], str) and r["prev_qb"] != r["qb_id"]))
