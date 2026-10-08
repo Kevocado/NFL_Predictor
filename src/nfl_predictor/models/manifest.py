@@ -110,15 +110,22 @@ def fit_sigmas(folds: list[dict], chosen: str) -> tuple[float, float]:
     return sigma, total_sigma
 
 
-def train_all(seasons: list[int] | None = None) -> dict:
-    """Fit all models, persist their artifacts, and return their manifest."""
+def train_all(seasons: list[int] | None = None, blocks: tuple[str, ...] = (), aux=None) -> dict:
+    """Fit all models, persist their artifacts, and return their manifest.
+
+    `blocks`/`aux` select feature blocks beyond the ten base columns; the manifest records
+    the blocks it was fitted with so `load_models` serves the same columns.
+    """
     MODELS_DIR.mkdir(exist_ok=True, parents=True)
     seasons = seasons or schedules.default_completed_seasons(n=DEFAULT_TRAIN_SEASONS)
 
     games_df = schedules.load_training_data(seasons)
-    train_df, feature_cols = feature_build.build_training_frame(games_df)
+    # Use the same blocks/aux that serving will use (from the manifest or defaults)
+    # For now, DEFAULT_BLOCKS is empty so this is a no-op; when blocks are enabled
+    # the manifest will record them and load_models will rebuild the expected columns.
+    train_df, feature_cols = feature_build.build_training_frame(games_df, blocks=blocks, aux=aux)
 
-    folds = walk_forward.prepare_folds(games_df, min_train_seasons=max(1, len(seasons) - 2))
+    folds = walk_forward.prepare_folds(games_df, blocks=blocks, aux=aux, min_train_seasons=max(1, len(seasons) - 2))
     if not folds:
         raise ValueError("Training requires at least one walk-forward validation fold.")
     candidate_scores = {}
@@ -188,7 +195,7 @@ def train_all(seasons: list[int] | None = None) -> dict:
         "n_train": int(len(train_df)),
         "feature_cols": feature_cols,
         "player_feature_cols": player_feature_cols,
-        "feature_blocks": [],
+        "feature_blocks": list(blocks),
         "chosen_candidate": chosen,
         "candidate_scores": candidate_scores,
         "sigma": sigma,
@@ -392,14 +399,15 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
             "(`python -m nfl_predictor.models.manifest`) to write one."
         )
 
-    expected_game_features = current["feature_cols"]
+    expected_game_features = feature_build.feature_columns(tuple(manifest.get("feature_blocks", [])))
     fitted_game_features = list(recorded["feature_cols"])
     if fitted_game_features != expected_game_features:
         raise ValueError(
             f"{MANIFEST_PATH} records the game models fitted on "
             f"{fitted_game_features} but the code's game features are now "
             f"{expected_game_features} "
-            f"({feature_build.__name__}.FEATURE_COLUMNS). The committed pickles "
+            f"({feature_build.__name__}.FEATURE_COLUMNS plus blocks "
+            f"{tuple(manifest.get('feature_blocks', []))}). The committed pickles "
             "were fitted on a different feature set, so every game prediction "
             "would come from a stale model. Re-run training "
             "(`python -m nfl_predictor.models.manifest`)."
@@ -807,7 +815,7 @@ def _player_serving_columns() -> list[str]:
     return list(row.index)
 
 
-def _game_serving_columns() -> list[str]:
+def _game_serving_columns(blocks: tuple[str, ...] = ()) -> list[str]:
     """What `feature_build.build_features_for_game` actually emits.
 
     The game half of the same audit, on the same fail-closed terms. This is the
@@ -815,6 +823,11 @@ def _game_serving_columns() -> list[str]:
     and `fillna(0)`s, so a game feature the builder stops emitting -- or that the
     pickles were never fitted on -- reaches the model as a constant zero. Nothing
     audited the game pickles at all before this.
+
+    Probed with the manifest's `blocks`: a block-fitted model is served with its block
+    columns, so the probe must emit them too. Blocks that need `aux` (epa, qb) get an
+    empty-frame Aux — enough to emit the columns (as NaN) for the shape audit without
+    any data.
     """
     games = pd.DataFrame(
         [
@@ -827,8 +840,11 @@ def _game_serving_columns() -> list[str]:
             for home, away in (("A", "B"), ("A", "C"), ("B", "C"))
         ]
     )
+    aux = None
+    if blocks:
+        aux = feature_build.Aux(efficiency=pd.DataFrame(), qb_games=pd.DataFrame(), upcoming_starters={})
     try:
-        row = feature_build.build_features_for_game("A", "C", games)
+        row = feature_build.build_features_for_game("A", "C", games, blocks=blocks, aux=aux)
     except Exception as exc:  # pragma: no cover - fail-closed branch
         raise ValueError(
             "feature_build.build_features_for_game could not be run, so the "
@@ -927,7 +943,7 @@ def load_models() -> dict:
     # `_player_serving_columns` / `_game_serving_columns` for why this is not the
     # declared constants.
     player_serving = _player_serving_columns()
-    game_serving = _game_serving_columns()
+    game_serving = _game_serving_columns(tuple(manifest.get("feature_blocks", [])))
 
     # The code-side half of the audit, and the one thing `_verify_artifact_fingerprint`
     # does not cover. That check pins the manifest to `PLAYER_FEATURE_COLUMNS`, so
@@ -978,11 +994,12 @@ def load_models() -> dict:
     # in #28 was needed. The fingerprint pins the declared list; this pins the
     # pickle against the builder.
     #
-    # Both game artefacts are fitted on `feature_build.FEATURE_COLUMNS`, which
-    # `build_training_frame` hands to `train_all`, and both are scored on
+    # Both game artefacts are fitted on `feature_build.FEATURE_COLUMNS` + blocks,
+    # which `build_training_frame` hands to `train_all`, and both are scored on
     # `manifest["feature_cols"]`, which the fingerprint has pinned to it. Same
     # third leg as the player side.
-    expected_game = list(feature_build.FEATURE_COLUMNS)
+    blocks = tuple(manifest.get("feature_blocks", []))
+    expected_game = feature_build.feature_columns(blocks)
 
     game_outcome_model = _load_pickle(_artifact_path(GAME_MODEL_FILENAME))
     total_model = _load_pickle(_artifact_path(TOTAL_MODEL_FILENAME))

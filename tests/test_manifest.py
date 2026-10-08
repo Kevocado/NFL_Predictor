@@ -753,3 +753,42 @@ def test_load_models_ignores_stale_yardage_artifacts_after_retrain(monkeypatch, 
 
     assert not (tmp_path / "receiving_yards_model.pkl").exists()
     assert "receiving_yards" not in manifest.load_models()["player_models"]
+
+
+def _fake_games_with_conditions(seasons):
+    df = _fake_games(seasons)
+    df = df.copy()
+    df["roof"] = "outdoors"
+    df["temp"] = 30.0
+    df["wind"] = 10.0
+    return df
+
+
+def test_block_fitted_model_loads_and_mismatch_is_refused(monkeypatch, tmp_path):
+    """A model fitted with the conditions block loads when the manifest lists it.
+
+    Failing-first for the review: `train_all` recorded no blocks and the load-time
+    expectations derived from the base columns only, so a block-fitted payload could
+    never load — and a manifest whose blocks disagreed with its artefacts was not
+    refused loudly.
+    """
+    monkeypatch.setattr(manifest, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(manifest, "MANIFEST_PATH", tmp_path / "manifest.json")
+    seasons = [2021, 2022, 2023, 2024]
+    monkeypatch.setattr(manifest.schedules, "load_training_data", lambda s: _fake_games_with_conditions(seasons))
+    monkeypatch.setattr(manifest.player_stats, "fetch_weekly_player_stats", lambda s: _fake_player_stats(seasons))
+
+    result = manifest.train_all(seasons=seasons, blocks=("conditions",))
+    assert result["feature_blocks"] == ["conditions"]
+    assert "wx_known" in result["feature_cols"]
+
+    models = manifest.load_models()
+    assert models["feature_blocks"] == ["conditions"]
+    assert "wx_known" in models["feature_cols"]
+
+    # Mismatch: manifest claims no blocks while the artefacts were fitted with them.
+    saved = json.loads((tmp_path / "manifest.json").read_text())
+    saved["feature_blocks"] = []
+    (tmp_path / "manifest.json").write_text(json.dumps(saved))
+    with pytest.raises(ValueError, match="different feature set|different feature"):
+        manifest.load_models()

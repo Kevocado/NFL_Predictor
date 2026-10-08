@@ -156,14 +156,87 @@ def _load_models_cached() -> dict:
 
 
 @lru_cache(maxsize=1)
+def _load_completed_aux_cached() -> feature_build.Aux:
+    """Aux over completed seasons only. Completed seasons never change, so freezing them in
+    memory is safe; the current season is layered on fresh per call in `_load_aux_cached`."""
+    seasons = schedules.default_completed_seasons(n=8)
+    eff_frames, qb_frames = [], []
+    for s in seasons:
+        try:
+            pbp = load_pbp_agg(s)
+        except Exception:
+            logger.warning("pbp unavailable for completed season=%s; skipping in aux", s)
+            continue
+        eff_frames.append(team_game_efficiency(pbp))
+        qb_frames.append(qb_games(pbp))
+    efficiency = pd.concat(eff_frames, ignore_index=True) if eff_frames else pd.DataFrame()
+    qb_games_df = pd.concat(qb_frames, ignore_index=True) if qb_frames else pd.DataFrame()
+    return feature_build.Aux(efficiency=efficiency, qb_games=qb_games_df, upcoming_starters={})
+
+
 def _load_aux_cached(season: int) -> feature_build.Aux:
-    """Load pbp aggregates for a season and build Aux for the feature blocks."""
-    efficiency = team_game_efficiency(load_pbp_agg(season))
-    qb_games_df = qb_games(load_pbp_agg(season))
-    # Build upcoming_starters from depth charts for this season's upcoming games
-    # (only used when blocks include "qb")
-    upcoming_starters = {}
-    return feature_build.Aux(efficiency=efficiency, qb_games=qb_games_df, upcoming_starters=upcoming_starters)
+    """Aux for feature blocks: completed-season history (cached) plus the requested season (fresh).
+
+    The completed seasons are frozen in `_load_completed_aux_cached` — safe, because a finished
+    season's play-by-play never changes. The requested season is ALWAYS loaded fresh here, never
+    from the in-memory cache: an `lru_cache` on this function froze the current season's partial
+    aggregate on first request and served it all season. History needs prior seasons too, not just
+    the current one: a QB's rating in week 1 comes almost entirely from last season.
+    """
+    base = _load_completed_aux_cached()
+    completed = set(schedules.default_completed_seasons(n=8))
+    if season in completed:
+        return base
+    try:
+        pbp = load_pbp_agg(season)
+    except Exception:
+        logger.warning("pbp unavailable for season=%s; serving completed-season history only", season)
+        return base
+    eff_frames = [base.efficiency, team_game_efficiency(pbp)] if not base.efficiency.empty else [team_game_efficiency(pbp)]
+    qb_frames = [base.qb_games, qb_games(pbp)] if not base.qb_games.empty else [qb_games(pbp)]
+    return feature_build.Aux(
+        efficiency=pd.concat(eff_frames, ignore_index=True),
+        qb_games=pd.concat(qb_frames, ignore_index=True),
+        upcoming_starters={},
+    )
+
+
+def _expected_starters_for_week(season: int, week: int) -> dict[str, str | None]:
+    """{team: expected starting QB gsis_id} for a scheduled week, fail-open.
+
+    Depth chart's first QB who is not reported Out. Any failure (no chart, no injury
+    report, network) returns {} — an unknown starter is served as a neutral new QB downstream,
+    never a guess.
+    """
+    from ..features import qb as qb_features
+
+    try:
+        chart_full = depth_charts.load_depth_charts(season, DEPTH_CHARTS_CACHE_DIR)
+    except Exception:
+        logger.warning("depth chart unavailable for season=%s; no expected starters", season)
+        return {}
+    if chart_full is None or chart_full.empty:
+        return {}
+    try:
+        chart = depth_charts.resolve_chart(chart_full, season, week)
+    except Exception:
+        logger.warning("depth chart unresolvable for season=%s week=%s", season, week)
+        return {}
+    out_ids: set[str] = set()
+    try:
+        frame = injuries.fetch_injuries(
+            [season], max_age_seconds=INJURY_REPORT_MAX_AGE_SECONDS if season == CURRENT_SEASON else None
+        )
+        if frame is not None and not frame.empty:
+            status_by_player = injuries.current_status_by_player(frame, season=season, week=week)
+            out_ids = {pid for pid, st in status_by_player.items() if _is_gating_status(st)}
+    except Exception:
+        logger.warning("injury report unavailable for season=%s week=%s; chart without outs", season, week)
+    try:
+        return qb_features.expected_starters(chart, out_ids=out_ids)
+    except Exception:
+        logger.warning("expected starters uncomputable for season=%s week=%s", season, week)
+        return {}
 
 
 def _predict_game_from_models(
@@ -394,11 +467,13 @@ def _get_game_prediction_live(season: int, week: int, game_id: str):
     history = history[history["game_id"] != game_id]
     blocks = tuple(models.get("feature_blocks", []))
     aux = _load_aux_cached(season) if blocks else None
+    starters_map = _expected_starters_for_week(season, week) if blocks and "qb" in blocks else {}
+    starters = {game["home_team"]: starters_map.get(game["home_team"]), game["away_team"]: starters_map.get(game["away_team"])} if starters_map else None
     prediction = _predict_game_from_models(
         models, game["home_team"], game["away_team"], history,
         spread_line=game.get("spread_line"), total_line=game.get("total_line"),
         gameday=game.get("gameday"), blocks=blocks, aux=aux,
-        game_schedule=game,
+        game_schedule=game, starters=starters,
     )
     return prediction
 
@@ -417,6 +492,7 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
     models = _load_models_cached()
     blocks = tuple(models.get("feature_blocks", []))
     aux = _load_aux_cached(season) if blocks else None
+    starters_map = _expected_starters_for_week(season, week) if blocks and "qb" in blocks else {}
     history = _load_game_history(season)
     predictions: dict[str, dict] = {}
     for _, game in games.iterrows():
@@ -427,11 +503,12 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
             # game's prediction would leak its own result into its own
             # features.
             game_history = history[history["game_id"] != game["game_id"]]
+            starters = {game["home_team"]: starters_map.get(game["home_team"]), game["away_team"]: starters_map.get(game["away_team"])} if starters_map else None
             predictions[game["game_id"]] = _predict_game_from_models(
                 models, game["home_team"], game["away_team"], game_history,
                 spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                 gameday=game.get("gameday"), blocks=blocks, aux=aux,
-                game_schedule=game,
+                game_schedule=game, starters=starters,
             )
         except Exception:
             logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
@@ -973,7 +1050,7 @@ def _get_standings_live(season: int):
     history = _load_game_history(season)
 
     def predict_fn(home: str, away: str) -> dict:
-        return _predict_game_from_models(models, home, away, history, blocks=blocks, aux=aux)
+        return _predict_game_from_models(models, home, away, history, blocks=blocks, aux=aux, starters=None)
 
     return season_projection.project_standings(remaining, current_records, team_conferences, predict_fn)
 
@@ -1153,15 +1230,17 @@ def background_tracking_tick(season: int, week: int) -> None:
         models = _load_models_cached()
         blocks = tuple(models.get("feature_blocks", []))
         aux = _load_aux_cached(season) if blocks else None
+        starters_map = _expected_starters_for_week(season, week) if blocks and "qb" in blocks else {}
         history = _load_game_history(season)
         predictions = []
         for _, game in games.iterrows():
             try:
+                starters = {game["home_team"]: starters_map.get(game["home_team"]), game["away_team"]: starters_map.get(game["away_team"])} if starters_map else None
                 pred = _predict_game_from_models(
                     models, game["home_team"], game["away_team"], history,
                     spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                     gameday=game.get("gameday"), blocks=blocks, aux=aux,
-                    game_schedule=game,
+                    game_schedule=game, starters=starters,
                 )
                 predictions.append(
                     {
@@ -1267,16 +1346,18 @@ def background_tracking_tick(season: int, week: int) -> None:
                 models = _load_models_cached()
                 blocks = tuple(models.get("feature_blocks", []))
                 aux = _load_aux_cached(season) if blocks else None
+                starters_map = _expected_starters_for_week(season, week) if blocks and "qb" in blocks else {}
                 history_all = _load_game_history(season)
                 backfill_games = []
                 for _, game in completed[completed["game_id"].isin(untracked_ids)].iterrows():
                     try:
                         history_excl = history_all[history_all["game_id"] != game["game_id"]]
+                        starters = {game["home_team"]: starters_map.get(game["home_team"]), game["away_team"]: starters_map.get(game["away_team"])} if starters_map else None
                         pred = _predict_game_from_models(
                             models, game["home_team"], game["away_team"], history_excl,
                             spread_line=game.get("spread_line"), total_line=game.get("total_line"),
                             gameday=game.get("gameday"), blocks=blocks, aux=aux,
-                            game_schedule=game,
+                            game_schedule=game, starters=starters,
                         )
                         backfill_games.append({
                             "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],

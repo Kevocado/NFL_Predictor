@@ -14,10 +14,22 @@ HFA_GRID = (30.0, 45.0, 65.0, 80.0)
 
 def _log_loss(games: pd.DataFrame, k: float, hfa: float) -> float:
     rated = compute_pregame_ratings(games, k=k, home_field=hfa)
-    diff = rated["home_pregame_rating"] - rated["away_pregame_rating"] + hfa
+    # Only score completed games (both scores present)
+    completed = rated["home_score"].notna() & rated["away_score"].notna()
+    if not completed.any():
+        return float("inf")
+    diff = rated.loc[completed, "home_pregame_rating"] - rated.loc[completed, "away_pregame_rating"] + hfa
     p = np.clip(1.0 / (1.0 + 10 ** (-diff / ELO_SCALE)), 1e-6, 1 - 1e-6)
-    y = (rated["home_score"] > rated["away_score"]).astype(float).to_numpy()
-    burn = len(rated) // 4  # early games are rated off the start rating; score the settled part
+    # Handle ties as 0.5, not as away win
+    y = np.where(
+        rated.loc[completed, "home_score"] > rated.loc[completed, "away_score"], 1.0,
+        np.where(rated.loc[completed, "home_score"] < rated.loc[completed, "away_score"], 0.0, 0.5)
+    )
+    # Score only the settled part (burn-in)
+    n = len(y)
+    burn = n // 4
+    if n <= burn:
+        return float("inf")
     return float(-np.mean(y[burn:] * np.log(p[burn:]) + (1 - y[burn:]) * np.log(1 - p[burn:])))
 
 
