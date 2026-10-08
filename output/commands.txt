@@ -1,0 +1,12 @@
+# NFL block eval overall 2000-2025
+PYTHONPATH=/Users/sigey/predictor/NFL_Predictor/src:/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages /Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/bin/python -m nfl_predictor.tools.block_eval --blocks epa qb conditions --start-year 2000 --end-year 2025 2>&1 | tee /tmp/nfl_block_eval.txt
+
+# NFL EPA pre-2010
+PYTHONPATH=/Users/sigey/predictor/NFL_Predictor/src:/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages /Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/bin/python -m nfl_predictor.tools.block_eval --blocks epa --start-year 2000 --end-year 2009 2>&1 | tee /tmp/nfl_epa_pre2010.txt
+
+# NFL EPA 2010-2025 (attempted but did not produce output in this environment; see note)
+# PYTHONPATH=/Users/sigey/predictor/NFL_Predictor/src:/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages /Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/bin/python -m nfl_predictor.tools.block_eval --blocks epa --start-year 2010 --end-year 2025 2>&1 | tee /tmp/nfl_epa_2010plus.txt
+
+# QB agreement
+PYTHONPATH=/Users/sigey/predictor/NFL_Predictor/src:/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages /Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/bin/python -m nfl_predictor.tools.qb_agreement --season 2024 --weeks 1 2 3 4 --output /tmp/qb_agreement_2024_w1-4.csv 2>&1 | tee /tmp/qb_agreement_output.txt
+EOF")
