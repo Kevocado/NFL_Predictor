@@ -25,6 +25,7 @@ from ..config import (
 from ..data import depth_charts, injuries, player_stats, schedules, teams as teams_data
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
+from ..data.pbp_agg import load_pbp_agg, team_game_efficiency, qb_games
 from ..features import build as feature_build
 from ..features import player_usage
 from ..features import power_ratings
@@ -154,12 +155,25 @@ def _load_models_cached() -> dict:
     return manifest.load_models()
 
 
+@lru_cache(maxsize=1)
+def _load_aux_cached(season: int) -> feature_build.Aux:
+    """Load pbp aggregates for a season and build Aux for the feature blocks."""
+    efficiency = team_game_efficiency(load_pbp_agg(season))
+    qb_games_df = qb_games(load_pbp_agg(season))
+    # Build upcoming_starters from depth charts for this season's upcoming games
+    # (only used when blocks include "qb")
+    upcoming_starters = {}
+    return feature_build.Aux(efficiency=efficiency, qb_games=qb_games_df, upcoming_starters=upcoming_starters)
+
+
 def _predict_game_from_models(
     models: dict, home: str, away: str, games_df: pd.DataFrame,
     spread_line: float | None = None, total_line: float | None = None,
     gameday=None,
+    blocks: tuple[str, ...] = (), aux: feature_build.Aux | None = None,
+    starters: dict[str, str | None] | None = None,
 ) -> dict:
-    feature_row = feature_build.build_features_for_game(home, away, games_df, gameday=gameday)
+    feature_row = feature_build.build_features_for_game(home, away, games_df, gameday=gameday, blocks=blocks, aux=aux, starters=starters)
     feature_cols = models["feature_cols"]
     X = feature_row.reindex(feature_cols).fillna(0)
 
@@ -377,10 +391,12 @@ def _get_game_prediction_live(season: int, week: int, game_id: str):
     # does for exactly this reason.
     history = _load_game_history(season)
     history = history[history["game_id"] != game_id]
+    blocks = tuple(models.get("feature_blocks", []))
+    aux = _load_aux_cached(season) if blocks else None
     prediction = _predict_game_from_models(
         models, game["home_team"], game["away_team"], history,
         spread_line=game.get("spread_line"), total_line=game.get("total_line"),
-        gameday=game.get("gameday"),
+        gameday=game.get("gameday"), blocks=blocks, aux=aux,
     )
     return prediction
 
@@ -397,6 +413,8 @@ def get_predictions_batch(season: int, week: int):
 def _get_predictions_batch_live(season: int, week: int) -> dict:
     games = schedules.fetch_week_games(season, week)
     models = _load_models_cached()
+    blocks = tuple(models.get("feature_blocks", []))
+    aux = _load_aux_cached(season) if blocks else None
     history = _load_game_history(season)
     predictions: dict[str, dict] = {}
     for _, game in games.iterrows():
@@ -410,7 +428,7 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
             predictions[game["game_id"]] = _predict_game_from_models(
                 models, game["home_team"], game["away_team"], game_history,
                 spread_line=game.get("spread_line"), total_line=game.get("total_line"),
-                gameday=game.get("gameday"),
+                gameday=game.get("gameday"), blocks=blocks, aux=aux,
             )
         except Exception:
             logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
@@ -947,10 +965,12 @@ def _get_standings_live(season: int):
     team_conferences = teams_data.fetch_team_conferences()
 
     models = _load_models_cached()
+    blocks = tuple(models.get("feature_blocks", []))
+    aux = _load_aux_cached(season) if blocks else None
     history = _load_game_history(season)
 
     def predict_fn(home: str, away: str) -> dict:
-        return _predict_game_from_models(models, home, away, history)
+        return _predict_game_from_models(models, home, away, history, blocks=blocks, aux=aux)
 
     return season_projection.project_standings(remaining, current_records, team_conferences, predict_fn)
 
@@ -1128,6 +1148,8 @@ def background_tracking_tick(season: int, week: int) -> None:
     games = _games_to_snapshot(season, week, datetime.now(timezone.utc))
     if not games.empty:
         models = _load_models_cached()
+        blocks = tuple(models.get("feature_blocks", []))
+        aux = _load_aux_cached(season) if blocks else None
         history = _load_game_history(season)
         predictions = []
         for _, game in games.iterrows():
@@ -1135,7 +1157,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                 pred = _predict_game_from_models(
                     models, game["home_team"], game["away_team"], history,
                     spread_line=game.get("spread_line"), total_line=game.get("total_line"),
-                    gameday=game.get("gameday"),
+                    gameday=game.get("gameday"), blocks=blocks, aux=aux,
                 )
                 predictions.append(
                     {
@@ -1239,6 +1261,8 @@ def background_tracking_tick(season: int, week: int) -> None:
             untracked_ids = store.get_untracked_game_ids(list(completed["game_id"]))
             if untracked_ids:
                 models = _load_models_cached()
+                blocks = tuple(models.get("feature_blocks", []))
+                aux = _load_aux_cached(season) if blocks else None
                 history_all = _load_game_history(season)
                 backfill_games = []
                 for _, game in completed[completed["game_id"].isin(untracked_ids)].iterrows():
@@ -1247,7 +1271,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                         pred = _predict_game_from_models(
                             models, game["home_team"], game["away_team"], history_excl,
                             spread_line=game.get("spread_line"), total_line=game.get("total_line"),
-                            gameday=game.get("gameday"),
+                            gameday=game.get("gameday"), blocks=blocks, aux=aux,
                         )
                         backfill_games.append({
                             "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],

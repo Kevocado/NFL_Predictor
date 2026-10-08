@@ -188,6 +188,7 @@ def train_all(seasons: list[int] | None = None) -> dict:
         "n_train": int(len(train_df)),
         "feature_cols": feature_cols,
         "player_feature_cols": player_feature_cols,
+        "feature_blocks": [],
         "chosen_candidate": chosen,
         "candidate_scores": candidate_scores,
         "sigma": sigma,
@@ -1039,6 +1040,7 @@ def load_models() -> dict:
         "player_models": player_models,
         "feature_cols": manifest["feature_cols"],
         "player_feature_cols": manifest["player_feature_cols"],
+        "feature_blocks": manifest.get("feature_blocks", []),
     }
 
 
