@@ -13,30 +13,49 @@ def test_ranks_ties_share_better_rank():
     assert r["a"]==1 and r["b"]==1 and r["c"]==3
 
 def test_unranked_team_gives_no_duel():
-    assert duel.make_duel("x","a","b",home="T1",away="ZZZ",attack_ranks=_ranks_32(),defence_ranks=_ranks_32(),history_gaps=[5]) is None
+    assert duel.make_duel("x", home="T1", away="ZZZ", attacker_side="home",
+                          attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[5]) is None
 
 def test_a_duel_built_without_history_carries_a_gap_based_strength():
-    """With no history, bigger gap → bigger strength (no percentile)."""
-    big = duel.make_duel("a", "T17", "T1", home="T17", away="T1",
-                          attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
-    small = duel.make_duel("a", "T10", "T1", home="T10", away="T1",
-                            attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
-    weaker = duel.make_duel("a", "T9", "T1", home="T9", away="T1",
-                             attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
-    assert big.strength > small.strength > weaker.strength > 0
+    """With no history, bigger gap → bigger strength."""
+    big = duel.make_duel("a", home="T5", away="T20", attacker_side="home",
+                         attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
+    small = duel.make_duel("a", home="T10", away="T20", attacker_side="home",
+                           attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
+    assert big.strength > small.strength > 0
+
+def test_bad_attack_into_good_defence_favours_the_defender():
+    d = duel.make_duel("rush_off_vs_rush_def", home="T30", away="T2", attacker_side="home",
+                       attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[5, 10, 20])
+    assert d is not None and d.toward == "away"
 
 def test_history_percentile_strength():
-    """With history, strength is percentile of |gap| among past duels."""
-    d1 = duel.make_duel("a","T32","T1",home="T32",away="T1",
-                         attack_ranks=_ranks_32(),defence_ranks=_ranks_32(),history_gaps=[5,10,15])
-    d2 = duel.make_duel("a","T32","T1",home="T32",away="T1",
-                         attack_ranks=_ranks_32(),defence_ranks=_ranks_32(),history_gaps=[5,10])
-    # d1 has 3 gaps >= 31 out of 3 = 1.0; d2 has 3 gaps >= 31 out of 2 = 1.5 → 1.0 still
-    # Actually let's use gaps that are in the history
-    d1 = duel.make_duel("a","T10","T1",home="T10",away="T1",
-                         attack_ranks=_ranks_32(),defence_ranks=_ranks_32(),history_gaps=[5,10,15])
-    d2 = duel.make_duel("a","T10","T1",home="T10",away="T1",
-                         attack_ranks=_ranks_32(),defence_ranks=_ranks_32(),history_gaps=[5,10])
-    # gap=9, history=[5,10,15]: |5|>=9? F, |10|>=9? T, |15|>=9? T → 2/3 ≈ 0.667
-    # history=[5,10]: |5|>=9? F, |10|>=9? T → 1/2 = 0.5
-    assert d1.strength > d2.strength
+    hist = [5, 10, 15, 20]
+    big = duel.make_duel("a", home="T3", away="T28", attacker_side="home",
+                         attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=hist)
+    small = duel.make_duel("a", home="T10", away="T20", attacker_side="home",
+                           attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=hist)
+    assert big.strength > small.strength > 0
+
+def test_make_duel_with_numpy_array_history():
+    d = duel.make_duel("a", home="T20", away="T1", attacker_side="home",
+                       attack_ranks=_ranks_32(), defence_ranks=_ranks_32(),
+                       history_gaps=np.array([5, 10, 15]))
+    assert d is not None and d.strength > 0
+
+def test_make_duel_with_default_history():
+    d = duel.make_duel("a", home="T20", away="T1", attacker_side="home",
+                       attack_ranks=_ranks_32(), defence_ranks=_ranks_32())
+    assert d is not None and d.strength > 0
+
+def test_toward_favours_attacker_when_defence_ranks_worse():
+    """T3 attack vs T28 defence: defence ranks worse (28 > 3), so the attacker has the edge."""
+    d = duel.make_duel("a", home="T3", away="T28", attacker_side="home",
+                       attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
+    assert d is not None and d.toward == "home"
+
+def test_toward_favours_defender_when_attacker_ranks_worse():
+    """T30 attack vs T2 defence: attacker ranks worse (30 > 2), so the defender has the edge."""
+    d = duel.make_duel("a", home="T30", away="T2", attacker_side="home",
+                       attack_ranks=_ranks_32(), defence_ranks=_ranks_32(), history_gaps=[])
+    assert d is not None and d.toward == "away"

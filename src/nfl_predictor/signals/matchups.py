@@ -22,11 +22,14 @@ DUELS = [
 
 def _recent_means(efficiency: pd.DataFrame, games_df: pd.DataFrame, as_of: pd.Timestamp, season: int) -> pd.DataFrame:
     """Last WINDOW games per team, from `season` strictly before `as_of`, with at least MIN_GAMES of data."""
+    if efficiency.empty or games_df.empty:
+        return pd.DataFrame(columns=efficiency.columns) if not efficiency.empty else pd.DataFrame()
     meta = games_df[["game_id", "gameday", "season"]].copy()
     meta["gameday"] = pd.to_datetime(meta["gameday"])
-    eff = efficiency.assign(
-        gameday=pd.to_datetime(efficiency["game_id"].map(meta["gameday"])),
-        season=efficiency["game_id"].map(meta["season"]),
+    efficiency_idxed = efficiency.merge(meta, on="game_id", how="left")
+    eff = efficiency_idxed.assign(
+        gameday=pd.to_datetime(efficiency_idxed["gameday"]),
+        season=efficiency_idxed["season"],
     )
     eff = eff[(eff["gameday"] < as_of) & (eff["season"] == season)].sort_values("gameday")
     last = eff.groupby("team").tail(WINDOW)
@@ -48,10 +51,10 @@ def matchups_for_game(
     for duel_id, attack_col, defence_col, attack_noun, defence_noun in DUELS:
         attack_ranks = ranks(means[attack_col].to_dict(), higher_is_better=True)
         defence_ranks = ranks(means[defence_col].to_dict(), higher_is_better=False)
-        for attacker, defender in ((home, away), (away, home)):
+        for attacker_side in ("home", "away"):
             d = make_duel(
-                f"{duel_id}:{attacker}", attacker, defender,
-                home=home, away=away,
+                f"{duel_id}:{attacker_side}",
+                home=home, away=away, attacker_side=attacker_side,
                 attack_ranks=attack_ranks, defence_ranks=defence_ranks,
                 history_gaps=history_gaps.get(duel_id, np.array([])), min_gap=min_gap,
             )
@@ -62,16 +65,10 @@ def matchups_for_game(
 
 
 def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4) -> list[dict]:
-    """Facts-bundle form. `toward_pick` is the direction relative to the pick, or None when there is no pick."""
+    """Facts-bundle form. `toward_pick` is True when the duel favours the pick."""
     out: list[dict] = []
     for d in duels[:limit]:
-        toward = d.toward
-        if pick_side == "home":
-            toward_pick = "home" if toward == "home" else "away"
-        elif pick_side == "away":
-            toward_pick = "away" if toward == "away" else "home"
-        else:
-            toward_pick = None
+        toward_pick = None if pick_side is None else (d.toward == pick_side)
         out.append({
             "id": d.id,
             "attacker": d.attacker,
