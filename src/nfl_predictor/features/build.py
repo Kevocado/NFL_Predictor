@@ -9,21 +9,13 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
 
-from . import power_ratings, rest_days, rolling_form
+from . import epa, power_ratings, qb, rest_days, rolling_form
 
-FEATURE_COLUMNS = [
-    "home_pregame_rating", "away_pregame_rating", "rating_diff",
-    "home_points_scored_roll", "home_points_allowed_roll",
-    "away_points_scored_roll", "away_points_allowed_roll",
-    "home_rest_days", "away_rest_days",
-    "div_game",
-]
-
-#: Feature BLOCKS beyond the ten base columns. Empty until a block registers here; a block joins DEFAULT_BLOCKS only
-#: in the PR that shows it clears the evaluation bar (paired-bootstrap intervals + calibration gap, on identical
-#: held-out games).
-BLOCK_COLUMNS: dict[str, list[str]] = {}
+#: Feature BLOCKS beyond the ten base columns. A block joins DEFAULT_BLOCKS only in the PR that shows it clears the
+#: evaluation bar (paired-bootstrap intervals + calibration gap, on identical held-out games).
+BLOCK_COLUMNS: dict[str, list[str]] = {"epa": epa.epa_columns(), "qb": list(qb.QB_COLUMNS)}
 DEFAULT_BLOCKS: tuple[str, ...] = ()
 
 
@@ -37,7 +29,26 @@ def feature_columns(blocks: tuple[str, ...] = DEFAULT_BLOCKS) -> list[str]:
     return cols
 
 
-def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = ()) -> pd.DataFrame:
+@dataclass
+class Aux:
+    """The extra inputs the blocks read. `efficiency` is pbp_agg.team_game_efficiency(), `qb_games` is
+    pbp_agg.qb_games(), `upcoming_starters` maps (game_id, team) to the expected starting QB's id for games not yet played."""
+
+    efficiency: pd.DataFrame | None = None
+    qb_games: pd.DataFrame | None = None
+    upcoming_starters: dict | None = None
+
+
+FEATURE_COLUMNS = [
+    "home_pregame_rating", "away_pregame_rating", "rating_diff",
+    "home_points_scored_roll", "home_points_allowed_roll",
+    "away_points_scored_roll", "away_points_allowed_roll",
+    "home_rest_days", "away_rest_days",
+    "div_game",
+]
+
+
+def _assemble_base(games_df: pd.DataFrame) -> pd.DataFrame:
     df = power_ratings.compute_pregame_ratings(games_df)
     df = rolling_form.add_rolling_form(df)
     df = rest_days.add_rest_days(df)
@@ -47,17 +58,27 @@ def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = ()) -> pd.DataFr
     if "div_game" not in df.columns:
         df["div_game"] = 0
     df["div_game"] = df["div_game"].fillna(0).astype(int)
-    missing = [b for b in blocks if b not in BLOCK_COLUMNS]
-    if missing:  # a selected block that is not registered would be silently dropped from the row
-        raise ValueError(f"feature block not wired into _assemble: {missing}")
+    return df
+
+
+def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = (), aux: Aux | None = None) -> pd.DataFrame:
+    df = _assemble_base(games_df)
+    if "epa" in blocks:
+        if aux is None or aux.efficiency is None:
+            raise ValueError("the epa block needs aux.efficiency; refusing to default it to zeros")
+        df = epa.add_epa_features(df, aux.efficiency)
+    if "qb" in blocks:
+        if aux is None or aux.qb_games is None:
+            raise ValueError("the qb block needs aux.qb_games; refusing to default it to a neutral QB")
+        df = qb.add_qb_features(df, aux.qb_games, upcoming_starters=aux.upcoming_starters)
     return df
 
 
 def build_training_frame(
-    games_df: pd.DataFrame, blocks: tuple[str, ...] = DEFAULT_BLOCKS,
+    games_df: pd.DataFrame, blocks: tuple[str, ...] = DEFAULT_BLOCKS, aux: Aux | None = None,
 ) -> tuple[pd.DataFrame, list[str]]:
     columns = feature_columns(blocks)
-    df = _assemble(games_df, blocks)
+    df = _assemble(games_df, blocks, aux)
     played = df[df["home_score"].notna() & df["away_score"].notna()].reset_index(drop=True)
     played["margin"] = played["home_score"] - played["away_score"]
     played["total_points"] = played["home_score"] + played["away_score"]
@@ -109,6 +130,7 @@ def _div_game_for(games_df: pd.DataFrame, home_team: str, away_team: str) -> int
 def build_features_for_game(
     home_team: str, away_team: str, games_df: pd.DataFrame,
     gameday: str | pd.Timestamp | None = None, blocks: tuple[str, ...] = DEFAULT_BLOCKS,
+    aux: Aux | None = None, starters: dict[str, str | None] | None = None,
 ) -> pd.Series:
     """One feature row for an upcoming home_team vs away_team game, built by the SAME code that builds training rows.
 
@@ -117,7 +139,8 @@ def build_features_for_game(
     to be a second, hand-written implementation, and it measured rest as the days from the last game to TODAY, not to
     the game: a game five days out was served with five fewer rest days than the model was fitted on.
 
-    `gameday` is the game's date; None means today (an ad-hoc "if they played now" request).
+    `gameday` is the game's date; None means today (an ad-hoc "if they played now" request). `starters` maps each team
+    to its expected starting QB id for the `qb` block (never guessed: an unknown starter is a neutral, "new" QB).
     """
     played = games_df[games_df["home_score"].notna() & games_df["away_score"].notna()].copy()
     when = pd.Timestamp(gameday) if gameday is not None else pd.Timestamp.now().normalize()
@@ -130,7 +153,11 @@ def build_features_for_game(
         upcoming["season"] = played["season"].max()
     frame = pd.concat([played, pd.DataFrame([upcoming])], ignore_index=True)
     frame["gameday"] = pd.to_datetime(frame["gameday"])
-    row = _assemble(frame, blocks)
+    if starters:
+        known = dict(aux.upcoming_starters or {}) if aux is not None else {}
+        known.update({("__upcoming__", team): qb_id for team, qb_id in starters.items()})
+        aux = Aux(aux.efficiency if aux else None, aux.qb_games if aux else None, known)
+    row = _assemble(frame, blocks, aux)
     served = row[row["game_id"] == "__upcoming__"].iloc[0]
     # What `_assemble` produced, in the declared order. A column declared in FEATURE_COLUMNS but never assembled is
     # absent here, and `manifest.load_models` compares this against what each model was fitted on and refuses the
