@@ -157,8 +157,9 @@ def _load_models_cached() -> dict:
 def _predict_game_from_models(
     models: dict, home: str, away: str, games_df: pd.DataFrame,
     spread_line: float | None = None, total_line: float | None = None,
+    gameday=None,
 ) -> dict:
-    feature_row = feature_build.build_features_for_game(home, away, games_df)
+    feature_row = feature_build.build_features_for_game(home, away, games_df, gameday=gameday)
     feature_cols = models["feature_cols"]
     X = feature_row.reindex(feature_cols).fillna(0)
 
@@ -379,6 +380,7 @@ def _get_game_prediction_live(season: int, week: int, game_id: str):
     prediction = _predict_game_from_models(
         models, game["home_team"], game["away_team"], history,
         spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+        gameday=game.get("gameday"),
     )
     return prediction
 
@@ -408,6 +410,7 @@ def _get_predictions_batch_live(season: int, week: int) -> dict:
             predictions[game["game_id"]] = _predict_game_from_models(
                 models, game["home_team"], game["away_team"], game_history,
                 spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+                gameday=game.get("gameday"),
             )
         except Exception:
             logger.exception("batch prediction failed for game_id=%s", game.get("game_id"))
@@ -1132,6 +1135,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                 pred = _predict_game_from_models(
                     models, game["home_team"], game["away_team"], history,
                     spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+                    gameday=game.get("gameday"),
                 )
                 predictions.append(
                     {
@@ -1243,6 +1247,7 @@ def background_tracking_tick(season: int, week: int) -> None:
                         pred = _predict_game_from_models(
                             models, game["home_team"], game["away_team"], history_excl,
                             spread_line=game.get("spread_line"), total_line=game.get("total_line"),
+                            gameday=game.get("gameday"),
                         )
                         backfill_games.append({
                             "game_id": game["game_id"], "home_team": game["home_team"], "away_team": game["away_team"],

@@ -207,7 +207,9 @@ def _blank_fitted_record(artefact, *, drop: bool):
         blanked.get_booster().feature_names = [] if drop else None
         return blanked
     blanked = artefact
-    blanked.feature_names_in_ = np.array([], dtype=object) if drop else None
+    # A scaled Ridge is a Pipeline whose `feature_names_in_` is read from its first step.
+    holder = blanked.steps[0][1] if hasattr(blanked, "steps") else blanked
+    holder.feature_names_in_ = np.array([], dtype=object) if drop else None
     return blanked
 
 

@@ -355,7 +355,7 @@ def _drivers(game: dict, season: int, home_team: str, away_team: str, live_ok: b
         try:
             history = routes._load_game_history(season)
             history = history[history["game_id"] != game["game_id"]]
-            row = routes.feature_build.build_features_for_game(home_team, away_team, history)
+            row = routes.feature_build.build_features_for_game(home_team, away_team, history, gameday=game.get("gameday"))
             rating_diff = _num(row.get("rating_diff"))
             home_rest = _num(row.get("home_rest_days"))
             away_rest = _num(row.get("away_rest_days"))
