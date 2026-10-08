@@ -4,7 +4,6 @@ must call build_training_frame / build_features_for_game rather than
 reimplementing feature logic inline — same discipline PL_Predictor's
 features/build.py documents.
 """
-
 from __future__ import annotations
 
 import numpy as np
@@ -48,6 +47,19 @@ FEATURE_COLUMNS = [
 ]
 
 
+def _assemble_base(games_df: pd.DataFrame) -> pd.DataFrame:
+    df = power_ratings.compute_pregame_ratings(games_df)
+    df = rolling_form.add_rolling_form(df)
+    df = rest_days.add_rest_days(df)
+    df["rating_diff"] = df["home_pregame_rating"] - df["away_pregame_rating"]
+    df["home_rest_days"] = df["home_rest_days"].fillna(7)
+    df["away_rest_days"] = df["away_rest_days"].fillna(7)
+    if "div_game" not in df.columns:
+        df["div_game"] = 0
+    df["div_game"] = df["div_game"].fillna(0).astype(int)
+    return df
+
+
 def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = (), aux: Aux | None = None) -> pd.DataFrame:
     df = _assemble_base(games_df)
     if "epa" in blocks:
@@ -60,19 +72,6 @@ def _assemble(games_df: pd.DataFrame, blocks: tuple[str, ...] = (), aux: Aux | N
         df = qb.add_qb_features(df, aux.qb_games, upcoming_starters=aux.upcoming_starters)
     if "conditions" in blocks:
         df = conditions.add_condition_features(df)
-    return df
-
-
-def _assemble_base(games_df: pd.DataFrame) -> pd.DataFrame:
-    df = power_ratings.compute_pregame_ratings(games_df)
-    df = rolling_form.add_rolling_form(df)
-    df = rest_days.add_rest_days(df)
-    df["rating_diff"] = df["home_pregame_rating"] - df["away_pregame_rating"]
-    df["home_rest_days"] = df["home_rest_days"].fillna(7)
-    df["away_rest_days"] = df["away_rest_days"].fillna(7)
-    if "div_game" not in df.columns:
-        df["div_game"] = 0
-    df["div_game"] = df["div_game"].fillna(0).astype(int)
     return df
 
 
