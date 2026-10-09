@@ -32,13 +32,18 @@ def test_missing_values_on_either_side_never_count_as_agreement():
 import csv as _csv  # noqa: E402
 from pathlib import Path as _Path  # noqa: E402
 
+import nfl_predictor  # noqa: E402
+import pytest  # noqa: E402
+
 from nfl_predictor.tools.qb_agreement import (  # noqa: E402
     get_expected_starters, get_actual_starters, expected_starters_serving_view,
 )
 
-# The committed raw output of the exact command in docs/nfl_qb_agreement.md, so the
+# The committed raw output of the exact command in docs/nfl_block_eval_results.md, so the
 # headline rate is reproducible from the CSV alone rather than trusted from memory.
-QB_AGREEMENT_CSV = _Path(__file__).parent.parent / "output" / "qb_agreement_2024_w1-4.csv"
+# Resolved through the package, not __file__: the mutation harness copies tests into a
+# temp dir, where __file__ no longer sits under the repo root.
+QB_AGREEMENT_CSV = _Path(nfl_predictor.__file__).resolve().parents[2] / "output" / "qb_agreement_2024_w1-4.csv"
 
 
 def test_committed_csv_reproduces_the_reported_agreement_rate():
@@ -53,6 +58,7 @@ def test_committed_csv_reproduces_the_reported_agreement_rate():
     assert abs(agree / n - 0.922) < 1e-3
 
 
+@pytest.mark.network
 def test_committed_csv_has_no_fabricated_disagreements():
     """The review flagged ATL 'Matt Ryan' in 2024, which cannot be right -- he last
     played for ATL in 2021. Every id in the CSV must be a real 2024 QB."""
@@ -66,6 +72,7 @@ def test_committed_csv_has_no_fabricated_disagreements():
         assert r["actual_qb_id"] in known, f"{r['team']} w{r['week']}: unknown actual id"
 
 
+@pytest.mark.network
 def test_expected_starters_serving_view_covers_every_named_game_once_per_team():
     view = expected_starters_serving_view(2024, [1])
     assert len(view) >= 32
@@ -73,6 +80,7 @@ def test_expected_starters_serving_view_covers_every_named_game_once_per_team():
     assert len(teams) == len(set(teams)), "a team appears twice in one week"
 
 
+@pytest.mark.network
 def test_the_serving_view_is_built_from_the_depth_chart_not_the_box_score():
     """Both sides exist, but serving may only read the chart side.
 
