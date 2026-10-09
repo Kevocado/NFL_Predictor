@@ -93,9 +93,17 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
     the gate can never emit Edge/Risk-capable rows before a type is proven.
     """
     out: list[dict] = []
+    directed_types: set[str] = set()
     for d in duels[:limit]:
-        proven = (lift_gate or {}).get(d.id.split(":")[0], False)
-        toward_pick = None if (pick_side is None or not proven) else (d.toward == pick_side)
+        duel_type = d.id.split(":")[0]
+        proven = (lift_gate or {}).get(duel_type, False)
+        # The lift test validates the STRONGEST duel of a type per game, so only that one (the first of its type in
+        # the strongest-first order `matchups_for_game` returns) may carry a direction. The opposite-direction
+        # duel of the same type was never tested and stays neutral context.
+        eligible = proven and duel_type not in directed_types
+        toward_pick = None if (pick_side is None or not eligible) else (d.toward == pick_side)
+        if eligible and pick_side is not None:
+            directed_types.add(duel_type)
         out.append({
             "id": d.id,
             "attacker": d.attacker,
