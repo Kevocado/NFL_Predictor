@@ -25,6 +25,9 @@ from ..config import (
 from ..data import depth_charts, injuries, player_stats, schedules, teams as teams_data
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
+from ..data.forecast import forecast_for
+from ..data.forecast_cache import ForecastCache
+from ..data.weather_cache import _kickoff_utc
 from ..data.pbp_agg import load_pbp_agg, team_game_efficiency, qb_games
 from ..features import build as feature_build
 from ..features import player_usage
@@ -34,6 +37,9 @@ from ..odds import value_bets
 from ..tracking import store
 
 router = APIRouter(prefix="/api")
+
+# In-process forecast cache for upcoming games; a few hours of staleness is fine for a weather icon.
+_forecast_cache = ForecastCache(ttl=timedelta(hours=3), fetch=forecast_for)
 
 logger = logging.getLogger(__name__)
 
@@ -348,7 +354,14 @@ def _get_games_live(season: int, week: int):
     # into per-cell Python objects so None actually sticks (and other
     # values, e.g. gameday's pd.Timestamp, pass through unchanged).
     games = games.astype(object).where(pd.notna(games), None)
-    return games.to_dict("records")
+    records = games.to_dict("records")
+    # Attach kickoff-hour conditions to upcoming games only (no scores yet).
+    for game in records:
+        if game.get("home_score") is None and game.get("away_score") is None:
+            conditions = _forecast_cache.get(game.get("stadium"), _kickoff_utc(game))
+            if conditions is not None:
+                game["conditions"] = conditions
+    return records
 
 
 @router.get("/teams/{team}/form")
