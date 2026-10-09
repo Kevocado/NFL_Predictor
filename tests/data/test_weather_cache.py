@@ -122,6 +122,19 @@ def test_kickoff_utc_falls_back_when_gametime_is_absent():
     assert _kickoff_utc({"gameday": "2025-09-04"}).endswith("Z")
 
 
+def test_kickoff_utc_passes_an_already_utc_timestamp_straight_through():
+    """The weekly schedule normalizes `gameday` to the UTC instant (tz-naive)
+    and carries no `gametime`; re-applying the ET offset would push a 1pm UTC
+    kickoff eight hours past itself, flipping it into the wrong day/hour."""
+    import pandas as pd
+    from nfl_predictor.data.weather_cache import _kickoff_utc
+
+    # The exact shape `fetch_week_games` hands the games route:
+    assert _kickoff_utc({"gameday": pd.Timestamp("2026-09-07 13:00:00")}) == "2026-09-07T13:00:00Z"
+    # The same instant written with a 'T' separator:
+    assert _kickoff_utc({"gameday": "2026-09-07T13:00:00"}) == "2026-09-07T13:00:00Z"
+
+
 def test_the_hour_requested_is_the_kickoff_hour(tmp_path):
     asked = []
 
