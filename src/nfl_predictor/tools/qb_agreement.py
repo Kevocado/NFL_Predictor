@@ -189,12 +189,16 @@ def main() -> None:
     print(f"team-weeks: {n}   agree: {agree}   rate: {rate:.3f}")
     if unavailable:
         print(f"unavailable: {unavailable} (no expected/actual data)")
+    if failed_weeks:
+        print(f"failed: {len(failed_weeks)} week(s) - " + ", ".join(f"week {w}: {e}" for w, e in failed_weeks))
+        return 1
     if all_disagreements:
         print("\nDisagreements (week, game_id, team, expected_qb_id, actual_qb_id):")
         for tup in all_disagreements:
             print(f"  {tup}")
     else:
         print("\nNo disagreements found.")
+    return 0
 
     if args.output:
         Path(args.output).parent.mkdir(parents=True, exist_ok=True)

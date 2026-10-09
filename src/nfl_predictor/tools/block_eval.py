@@ -106,7 +106,8 @@ def evaluate_block(games_df, aux, block: str, candidate: str = "ridge") -> dict:
         "brier_delta": float(base[1].mean() - withb[1].mean()), "brier_ci": brier_ci,
         "gap_base": gap_base, "gap_block": gap_block, "gap_ci": gap_ci,
         "total_mae": total_mae,
-        "clears": bool(mae_ci[0] > 0 and brier_ci[0] > 0 and gap_ci[0] > 0),
+        "clears": bool(mae_ci[0] > 0 and brier_ci[0] > 0 and gap_ci[0] > 0
+                       and (total_mae is None or total_mae["clears"])),
     }
 
 def load_recent_nfl_data(start_year: int = 2000, end_year: int = None) -> tuple[pd.DataFrame, feature_build.Aux]:
@@ -138,7 +139,9 @@ def load_recent_nfl_data(start_year: int = 2000, end_year: int = None) -> tuple[
     missing = sorted(set(seasons) - set(loaded))
     if missing:
         print(f"Warning: no efficiency/qb_games for seasons {missing} -- "
-              f"those games' epa/qb features are NaN, which drags the block down on them alone")
+              f"dropping those games from evaluation")
+        # Drop games from seasons with missing PBP data so we don't score with NaN features
+        games_df = games_df[~games_df["season"].isin(missing)].reset_index(drop=True)
     aux = feature_build.Aux(efficiency=efficiency, qb_games=qb_games_df, upcoming_starters={})
     return games_df, aux
 
