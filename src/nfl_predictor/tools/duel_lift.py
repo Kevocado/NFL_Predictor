@@ -27,28 +27,36 @@ _ROOT = Path(__file__).resolve().parents[3]  # src/nfl_predictor/tools -> repo r
 
 def lift(rows, seed: int = 0, n_boot: int = 2000) -> dict:
     """Bootstrap 95% CI of the mean residual lift. Passes when there are enough
-    games and the lower bound is positive -- an effect the noise could have
-    produced is not proof."""
+    INDEPENDENT games and the lower bound is positive -- an effect the noise
+    could have produced is not proof. Rows are one-per-game-per-duel-type (see
+    build_rows); `n_games` counts unique game_ids so a duplicated game can
+    never inflate the sample."""
     rows = [r for r in rows if r["toward"] in (-1, 1)]
     n = len(rows)
-    if n < MIN_N:
-        return {"n": n, "mean_lift": None, "ci": (None, None), "passes": False}
+    games = {r["game_id"] for r in rows if r.get("game_id")}
+    n_games = len(games) if games else n
+    if n_games < MIN_N:
+        return {"n": n, "n_games": n_games, "mean_lift": None, "ci": (None, None), "passes": False}
     x = np.asarray([r["toward"] * (float(r["actual_margin"]) - float(r["model_margin"])) for r in rows], float)
     rng = np.random.default_rng(seed)
     means = rng.choice(x, size=(n_boot, n), replace=True).mean(axis=1)
     lo, hi = float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
-    return {"n": n, "mean_lift": float(x.mean()), "ci": (lo, hi), "passes": bool(lo > 0)}
+    return {"n": n, "n_games": n_games, "mean_lift": float(x.mean()), "ci": (lo, hi), "passes": bool(lo > 0)}
 
 
 def load_lift_results(path: str | Path | None = None) -> dict[str, bool]:
     """duel type -> proven, from data/duel_lift.json. Absent/unreadable file is
-    {} -- the gate has simply not run, so nothing is proven."""
+    {} -- the gate has simply not run, so nothing is proven. The root must be an
+    object and `passes` a JSON boolean: a string like \"false\" is not proof."""
     path = Path(path) if path is not None else _ROOT / "data" / "duel_lift.json"
     try:
         raw = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
         return {}
-    return {k: bool(v.get("passes")) for k, v in raw.items() if isinstance(v, dict) and "passes" in v}
+    if not isinstance(raw, dict):
+        return {}
+    return {k: v["passes"] for k, v in raw.items()
+            if isinstance(v, dict) and isinstance(v.get("passes"), bool)}
 
 
 def build_rows(games_df, aux, min_gap: int = 8, candidate: str = "ridge") -> list[dict]:
@@ -70,11 +78,23 @@ def build_rows(games_df, aux, min_gap: int = 8, candidate: str = "ridge") -> lis
             as_of = pd.Timestamp(game.gameday)
             duels = matchups_for_game(game.home_team, game.away_team, games_df,
                                       aux.efficiency, as_of, int(game.season), min_gap=min_gap)
+            # One observation per game and duel type: the two directional duels
+            # of a type share the same margins and their toward signs cancel in
+            # the mean, so counting rows (or resampling them) would inflate the
+            # sample and flatten the statistic. The headline lens is the duel
+            # with the larger |gap| (ties favour the home attack, deterministically).
+            best: dict[str, tuple[float, object]] = {}
             for d in duels:
+                t = d.id.split(":")[0]
+                gap = abs(d.attacker_rank - d.defender_rank)
+                if t not in best or gap > best[t][0] or (gap == best[t][0] and d.id.endswith(":home")):
+                    best[t] = (gap, d)
+            for t, (gap, d) in best.items():
                 rows.append({
-                    "duel": d.id.split(":")[0],
+                    "duel": t,
+                    "game_id": str(game.game_id),
                     "toward": 1 if d.toward == "home" else -1,
-                    "gap": abs(d.attacker_rank - d.defender_rank),
+                    "gap": gap,
                     "actual_margin": float(game.margin),
                     "model_margin": float(model_margin),
                 })
