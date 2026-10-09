@@ -401,36 +401,6 @@ def _context(game: dict, home_rest: Any, away_rest: Any) -> dict:
         context["roof"] = str(roof)
     if home_rest is not None and away_rest is not None:
         context["rest"] = f"Rest {home_rest:.0f} v {away_rest:.0f} days"
-    # AI plan Task 3: matchup duels in neutral context (no Edge/Risk label until Task 10)
-    # Until the lift gate passes, toward_pick stays None (neutral) for every row.
-    # The lift gate checks that model residuals are normally distributed (Shapiro-Wilk p >= 0.05).
-    # Defined inline to avoid importing from the unmerged signals worktree.
-    from scipy import stats as _stats
-    import numpy as np
-    _rng = np.random.default_rng(42)
-    _residuals = _rng.standard_normal(200)
-    _stat, _p = _stats.shapiro(_residuals)
-    gate_ok = bool(_p >= 0.05)
-    home_team = game.get("home_team", "")
-    away_team = game.get("away_team", "")
-    context["matchups"] = [
-        {"id": f"pass_off_vs_pass_def:home", "attacker": home_team, "defender": away_team,
-         "stat": "passing offence", "foil": "pass defence",
-         "attacker_rank": 1, "defender_rank": 2, "n_teams": 32,
-         "toward_pick": True if gate_ok else None},
-        {"id": f"pass_off_vs_pass_def:away", "attacker": away_team, "defender": home_team,
-         "stat": "passing offence", "foil": "pass defence",
-         "attacker_rank": 1, "defender_rank": 2, "n_teams": 32,
-         "toward_pick": False if gate_ok else None},
-        {"id": f"rush_off_vs_rush_def:home", "attacker": home_team, "defender": away_team,
-         "stat": "rushing offence", "foil": "rush defence",
-         "attacker_rank": 1, "defender_rank": 2, "n_teams": 32,
-         "toward_pick": True if gate_ok else None},
-        {"id": f"rush_off_vs_rush_def:away", "attacker": away_team, "defender": home_team,
-         "stat": "rushing offence", "foil": "rush defence",
-         "attacker_rank": 1, "defender_rank": 2, "n_teams": 32,
-         "toward_pick": False if gate_ok else None},
-    ]
     # Injuries deliberately absent: the cached nflverse report goes stale,
     # and the explainer gets injuries from ESPN news instead.
     return context
