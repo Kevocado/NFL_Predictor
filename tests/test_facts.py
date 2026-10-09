@@ -435,6 +435,13 @@ def live(monkeypatch):
         facts_mod.routes, "_load_game_history",
         lambda season: pd.DataFrame([{"game_id": "other", "rating_diff": 0.0, "home_rest_days": 6, "away_rest_days": 6}]),
     )
+    # Same offline rule for the efficiency aux the task-3 duels read: a live
+    # facts request would otherwise fetch 8 seasons of nflverse play-by-play.
+    monkeypatch.setattr(
+        facts_mod.routes, "_load_aux_cached",
+        lambda season: facts_mod.routes.feature_build.Aux(
+            efficiency=pd.DataFrame(), qb_games=pd.DataFrame(), upcoming_starters={}),
+    )
     # Not stubbed: `routes._load_models_cached` runs the real `manifest.load_models`
     # against the committed artefacts. That is deliberate -- this fixture stubs the
     # feature builder because a live facts request would otherwise need a schedule
@@ -472,6 +479,104 @@ def live(monkeypatch):
         }},
     )
     return TestClient(app)
+
+
+@pytest.fixture
+def upcoming(monkeypatch):
+    """PUBLIC_MODE off and the game not yet started: the bundle may compute
+    duels here, and the pick comes from today's live read (`_current_prediction`)
+    rather than a stored row. Every data source is stubbed so no test reaches
+    nflverse or the model files (offline is a hard rule for this module)."""
+    monkeypatch.setattr(facts_mod, "PUBLIC_MODE", False)
+    monkeypatch.setattr(facts_mod, "_now", lambda: NOW)
+    future = lambda: pd.DataFrame([_game(gameday="2026-10-11T00:20:00")])  # noqa: E731
+    records = lambda: [_game(gameday="2026-10-11T00:20:00")]  # noqa: E731
+    monkeypatch.setattr(facts_mod.routes.schedules, "fetch_week_games", lambda season, week: future())
+    monkeypatch.setattr(facts_mod.routes, "get_games", lambda season, week: records())
+    monkeypatch.setattr(facts_mod.routes, "get_player_props", lambda season, week: [])
+    monkeypatch.setattr(facts_mod.routes, "_load_game_history", lambda season: pd.DataFrame([{"game_id": "other"}]))
+    monkeypatch.setattr(facts_mod.routes, "_load_aux_cached",
+                        lambda season: facts_mod.routes.feature_build.Aux(
+                            efficiency=pd.DataFrame(), qb_games=pd.DataFrame(), upcoming_starters={}))
+    monkeypatch.setattr(facts_mod, "_current_prediction", lambda season, week, game_id: _prediction())
+    monkeypatch.setattr(facts_mod.store, "get_predictions_for_week", lambda season, week, games_df: [])
+    monkeypatch.setattr(
+        facts_mod.routes.feature_build, "build_features_for_game",
+        lambda home, away, history, gameday=None, blocks=None, aux=None, starters=None, game_schedule=None: pd.Series(
+            {c: float(i + 1) for i, c in enumerate(facts_mod.routes.feature_build.FEATURE_COLUMNS)}
+            | {"rating_diff": 7.0, "home_rest_days": 6, "away_rest_days": 6},
+            dtype=float,
+        ),
+    )
+    monkeypatch.setattr(
+        facts_mod.store, "get_track_record",
+        lambda: {"games": {"n_resolved": 0, "pct_moneyline_correct": 0.0, "n_rebuilt": 0,
+                           "pre_kickoff": {"n_resolved": 0, "pct_moneyline_correct": 0.0}}},
+    )
+    return TestClient(app)
+
+
+def test_facts_carry_matchups_for_an_upcoming_game(upcoming, monkeypatch):
+    """AI plan Task 3: an upcoming game's facts bundle carries the duels, and
+    `pick_side` is derived from the bundle's own pick (BAL, home, here)."""
+    duel_rows = [{"id": "pass_off_vs_pass_def:home", "attacker": "KC", "defender": "BAL", "stat": "passing offence",
+                  "foil": "pass defence", "attacker_rank": 3, "defender_rank": 28, "n_teams": 32, "toward_pick": True}]
+    seen = {}
+
+    def fake_matchup_rows(home, away, games_df, efficiency, as_of, season, pick_side):
+        seen["pick_side"] = pick_side
+        return duel_rows
+
+    monkeypatch.setattr(facts_mod, "_matchup_rows", fake_matchup_rows)
+    body = upcoming.get(f"/facts/{GAME_ID}").json()
+    assert body["context"]["matchups"] == duel_rows
+    assert seen["pick_side"] == "home"
+    assert seen["pick_side"] != None  # noqa: E711 - a None pick_side would mean duels were never wired
+
+
+def test_public_bundle_never_carries_matchups(public, monkeypatch):
+    """Task 3's honesty gate: PUBLIC_MODE reads the snapshot only, so a public
+    bundle carries no duels at all until the snapshot itself carries what they
+    need (same rule as the rating-gap driver)."""
+    _install_snapshot(monkeypatch, _snapshot())
+    body = public.get(f"/facts/{GAME_ID}").json()
+    assert "matchups" not in body["context"]
+
+
+def test_matchup_rows_returns_empty_without_efficiency_data():
+    """No efficiency frame -> no duels, never a fabricated row."""
+    from nfl_predictor.api.facts import _matchup_rows
+    assert _matchup_rows("KC", "BAL", pd.DataFrame(), pd.DataFrame(),
+                         as_of="2026-10-01", season=2026, pick_side="home") == []
+
+
+def test_matchup_rows_builds_real_duels_from_ranked_efficiency():
+    """The real composition: efficiency ranks -> duels -> context rows, with the
+    gap-scaled strength fallback (data/duel_gaps.json is absent on a fresh tree).
+    T1 (best offence, best defence) hosting T10 (worst at both) makes both duels
+    by the min_gap=8 rule, favourite T1, toward the home pick."""
+    from nfl_predictor.api.facts import _matchup_rows
+    teams = [f"T{i}" for i in range(1, 11)]
+    rows = []
+    for game_no in (1, 2, 3):
+        for i, team in enumerate(teams):
+            off = 1.0 - i * 0.2          # T1 best, T10 worst
+            defence = -1.0 + i * 0.2     # T1 best (most negative), T10 worst
+            rows.append({"game_id": f"g{game_no}", "team": team,
+                         "epa_off_pass": off, "epa_def_pass": defence,
+                         "epa_off_rush": off * 0.5, "epa_def_rush": defence * 0.5})
+    efficiency = pd.DataFrame(rows)
+    games = pd.DataFrame({"game_id": ["g1", "g2", "g3"],
+                          "gameday": pd.to_datetime(["2026-09-10", "2026-09-17", "2026-09-24"]),
+                          "season": [2026, 2026, 2026]})
+    out = _matchup_rows("T1", "T10", games, efficiency, as_of="2026-10-01", season=2026, pick_side="home")
+    assert out, "expected real duels between the strongest and weakest teams"
+    assert out[0]["attacker"] == "T1" and out[0]["defender"] == "T10"
+    assert all(r["stat"] and r["foil"] for r in out), "the DUELS nouns must fill stat/foil, never ''"
+    # The :home duels read strongest-offence vs weakest-defence (1 vs 10); the
+    # :away duels read the weakest offence vs the strongest defence (10 vs 1).
+    assert all(1 <= r["attacker_rank"] <= 10 and 1 <= r["defender_rank"] <= 10 for r in out)
+    assert all(r["toward_pick"] is True for r in out), "a favourite facing the worst team edges toward the pick"
 
 
 def test_live_started_game_never_computes_a_model_and_uses_the_stored_row(live, monkeypatch):

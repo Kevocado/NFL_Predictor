@@ -1,5 +1,6 @@
 """Tests for NFL matchups (Task 2)."""
 from __future__ import annotations
+import numpy as np
 import pandas as pd
 from nfl_predictor.signals import matchups, duel
 
@@ -94,3 +95,26 @@ def test_proven_type_directs_only_the_headline_duel():
     # Only the headline duel (largest gap, here the :home attack) may be
     # directed; the opposite-direction duel the lift never measured stays neutral.
     assert by_id == {"pass_off_vs_pass_def:away": None, "pass_off_vs_pass_def:home": True}
+
+
+def test_load_history_gaps_is_empty_when_the_file_is_absent(tmp_path):
+    assert matchups.load_history_gaps(tmp_path / "missing.json") == {}
+
+
+def test_load_history_gaps_reads_per_type_float_arrays(tmp_path):
+    p = tmp_path / "duel_gaps.json"
+    p.write_text('{"pass_off_vs_pass_def": [5, 10, 20, 30], "rush_off_vs_rush_def": []}')
+    loaded = matchups.load_history_gaps(p)
+    assert loaded["pass_off_vs_pass_def"].tolist() == [5.0, 10.0, 20.0, 30.0]
+    assert "rush_off_vs_rush_def" not in loaded, "an empty list means no history, not a zero-length history"
+
+
+def test_strength_without_history_ranks_the_bigger_gap_higher():
+    # No duel_gaps.json -> the gap-scaled fallback: a 25-place gap outranks 10.
+    assert duel.edge_strength(25.0, np.array([]), 32) > duel.edge_strength(10.0, np.array([]), 32)
+
+
+def test_strength_with_history_is_a_lower_tail_percentile():
+    # With history, strength is how often a past |gap| was <= this one: 10 beats
+    # 4 and 6 but not 25 -> 2/3, which the raw gap-scaled fallback can never say.
+    assert duel.edge_strength(10.0, np.array([4.0, 6.0, 25.0])) == 2 / 3

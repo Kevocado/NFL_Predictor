@@ -6,6 +6,9 @@ there are fewer than `MIN_GAMES` and the answer is no duels, which is better tha
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -18,6 +21,18 @@ DUELS = [
     ("pass_off_vs_pass_def", "epa_off_pass", "epa_def_pass", "passing offence", "pass defence"),
     ("rush_off_vs_rush_def", "epa_off_rush", "epa_def_rush", "rushing offence", "rush defence"),
 ]
+
+
+def load_history_gaps(path: str | Path | None = None) -> dict[str, np.ndarray]:
+    """Past absolute rank gaps per duel type, from `data/duel_gaps.json` (written by the Task 10 tool
+    from the walk-forward games). An absent file or an absent type yields {}, which sends
+    `edge_strength` down the gap-scaled fallback (Task 1) instead of a percentile."""
+    path = Path(path) if path is not None else Path(__file__).resolve().parents[3] / "data" / "duel_gaps.json"
+    try:
+        raw = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {k: np.asarray(v, dtype=float) for k, v in raw.items() if isinstance(v, list) and v}
 
 
 def _recent_means(efficiency: pd.DataFrame, games_df: pd.DataFrame, as_of: pd.Timestamp, season: int) -> pd.DataFrame:
