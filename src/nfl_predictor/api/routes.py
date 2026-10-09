@@ -26,7 +26,7 @@ from ..data import depth_charts, injuries, player_stats, schedules, teams as tea
 from ..data import team_efficiency as team_efficiency_mod
 from ..data import player_season as player_season_mod
 from ..data.forecast import forecast_for
-from ..data.forecast_cache import ForecastCache
+from ..data.forecast_cache import FetchBudget, ForecastCache
 from ..data.weather_cache import _kickoff_utc
 from ..data.pbp_agg import load_pbp_agg, team_game_efficiency, qb_games
 from ..features import build as feature_build
@@ -355,12 +355,19 @@ def _get_games_live(season: int, week: int):
     # values, e.g. gameday's pd.Timestamp, pass through unchanged).
     games = games.astype(object).where(pd.notna(games), None)
     records = games.to_dict("records")
-    # Attach kickoff-hour conditions to upcoming games only (no scores yet).
-    for game in records:
-        if game.get("home_score") is None and game.get("away_score") is None:
-            conditions = _forecast_cache.get(game.get("stadium"), _kickoff_utc(game))
-            if conditions is not None:
-                game["conditions"] = conditions
+    # Attach kickoff-hour conditions to upcoming games only (no scores yet), in
+    # kickoff order and under a per-request fetch budget: the nearest games get
+    # their chip first, and a cold process makes at most a handful of Open-Meteo
+    # calls instead of one per game (cached games never spend the budget).
+    budget = FetchBudget(max_fetches=6)
+    upcoming = sorted(
+        (g for g in records if g.get("home_score") is None and g.get("away_score") is None),
+        key=_kickoff_utc,
+    )
+    for game in upcoming:
+        conditions = _forecast_cache.get(game.get("stadium"), _kickoff_utc(game), budget=budget)
+        if conditions is not None:
+            game["conditions"] = conditions
     return records
 
 

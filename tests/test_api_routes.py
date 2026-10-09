@@ -69,7 +69,7 @@ def test_upcoming_game_gets_conditions(client, monkeypatch):
     """An upcoming game (no scores) carries conditions from the forecast cache."""
     monkeypatch.setattr(
         routes, "_forecast_cache",
-        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None: {"kind": "rain", "temp_f": 50, "source": "open-meteo"}})(),
+        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None, budget=None: {"kind": "rain", "temp_f": 50, "source": "open-meteo"}})(),
     )
     body = client.get("/api/games?season=2025&week=1").json()
     assert body[0]["conditions"] == {"kind": "rain", "temp_f": 50, "source": "open-meteo"}
@@ -79,7 +79,7 @@ def test_final_game_has_no_conditions(client, monkeypatch):
     """A final game (scores present) never gets conditions."""
     monkeypatch.setattr(
         routes, "_forecast_cache",
-        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None: {"kind": "rain"}})(),
+        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None, budget=None: {"kind": "rain"}})(),
     )
     monkeypatch.setattr(
         routes.schedules, "fetch_week_games",
@@ -97,7 +97,7 @@ def test_none_conditions_leaves_no_key(client, monkeypatch):
     """A None result from the cache leaves no conditions key on the game."""
     monkeypatch.setattr(
         routes, "_forecast_cache",
-        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None: None})(),
+        type("FakeCache", (), {"get": lambda self, stadium, kickoff, now=None, budget=None: None})(),
     )
     body = client.get("/api/games?season=2025&week=1").json()
     assert "conditions" not in body[0]

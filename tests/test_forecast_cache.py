@@ -1,7 +1,7 @@
 """Forecast cache: a few hours of staleness is fine for a weather icon; a failure is never remembered."""
 from datetime import datetime, timedelta, timezone
 
-from nfl_predictor.data.forecast_cache import ForecastCache
+from nfl_predictor.data.forecast_cache import FetchBudget, ForecastCache
 
 NOW = datetime(2026, 10, 7, 12, 0, tzinfo=timezone.utc)
 
@@ -27,3 +27,19 @@ def test_a_failed_fetch_is_not_cached_as_none_forever():
     cache = ForecastCache(ttl=timedelta(hours=3), fetch=lambda s, k, now: next(results))
     assert cache.get("Lambeau Field", "2026-10-11T17:00:00Z", NOW) is None
     assert cache.get("Lambeau Field", "2026-10-11T17:00:00Z", NOW + timedelta(minutes=1)) == {"kind": "clear"}
+
+
+def test_a_fetch_budget_halts_live_fetches_but_never_cached_ones():
+    calls = []
+    cache = ForecastCache(ttl=timedelta(hours=3), fetch=lambda s, k, now: calls.append(s) or {"kind": "rain"})
+    budget = FetchBudget(max_fetches=1)
+    # First game spends the budget's single live fetch.
+    assert cache.get("Lambeau Field", "2026-10-11T17:00:00Z", NOW, budget) == {"kind": "rain"}
+    # Second game: budget exhausted -> miss, no network call, and the value is
+    # NOT stored (a later pass with a fresh budget retries it).
+    assert cache.get("SoFi Stadium", "2026-10-11T23:00:00Z", NOW, budget) is None
+    assert calls == ["Lambeau Field"]
+    # A fresh request's budget can still serve from the warm cache.
+    fresh = FetchBudget(max_fetches=1)
+    assert cache.get("Lambeau Field", "2026-10-11T17:00:00Z", NOW, fresh) == {"kind": "rain"}
+    assert len(calls) == 1

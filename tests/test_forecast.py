@@ -61,5 +61,12 @@ def test_missing_kickoff_hour_is_none():
     assert forecast_for("Lambeau Field", KICK, NOW, get=lambda *a, **k: _Resp(body)) is None
 
 
+def test_offset_iso_reads_the_utc_hour_not_the_local_one():
+    # 19:00 +02:00 is 17:00 UTC; the response's 17:00Z slot must win, not a
+    # "19:00" slice of the raw string.
+    out = forecast_for("Lambeau Field", "2026-10-11T19:00:00+02:00", NOW, get=lambda *a, **k: _Resp(_body()))
+    assert out == {"kind": "rain", "temp_f": 50, "wind_mph": 15, "precip_pct": 70, "source": "open-meteo"}
+
+
 def test_unknown_stadium_is_none():
     assert forecast_for("Nowhere Park", KICK, NOW, get=lambda *a, **k: _Resp(_body())) is None

@@ -40,10 +40,13 @@ def forecast_for(stadium: str, kickoff_utc_iso: str, now: datetime | None = None
     if coords is None:
         return None
     now = now or datetime.now(timezone.utc)
-    kickoff = datetime.fromisoformat(kickoff_utc_iso.replace("Z", "+00:00"))
+    # Normalize any offset the caller's ISO carries before slicing: the request
+    # and the hour match are UTC, so a "+02:00" instant must not read its local
+    # date/hour off the raw string.
+    kickoff = datetime.fromisoformat(kickoff_utc_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
     if not (now - timedelta(hours=6) <= kickoff <= now + timedelta(days=HORIZON_DAYS)):
         return None
-    day = kickoff_utc_iso[:10]
+    day = kickoff.strftime("%Y-%m-%d")
     params = {
         "latitude": coords[0], "longitude": coords[1], "start_date": day, "end_date": day, "timezone": "UTC",
         "hourly": "temperature_2m,precipitation_probability,weather_code,wind_speed_10m",
@@ -52,7 +55,7 @@ def forecast_for(stadium: str, kickoff_utc_iso: str, now: datetime | None = None
         response = get(FORECAST_URL, params=params, timeout=15)
         response.raise_for_status()
         hourly = response.json()["hourly"]
-        i = next(i for i, t in enumerate(hourly["time"]) if t[:13] == kickoff_utc_iso[:13])
+        i = next(i for i, t in enumerate(hourly["time"]) if t[:13] == kickoff.strftime("%Y-%m-%dT%H"))
         kind = kind_for(hourly["weather_code"][i])
         if kind is None:
             return None
