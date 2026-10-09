@@ -92,3 +92,26 @@ def test_strength_with_history_is_a_lower_tail_percentile():
     # With history, strength is how often a past |gap| was <= this one: 10 beats
     # 4 and 6 but not 25 -> 2/3, which the raw gap-scaled fallback can never say.
     assert duel.edge_strength(10.0, np.array([4.0, 6.0, 25.0])) == 2 / 3
+
+
+def _duel(duel_id, toward, strength):
+    from nfl_predictor.signals.duel import Duel
+    return Duel(duel_id, "A", "B", "passing offence", "pass defence", 3, 28, 32, toward, strength)
+
+
+def test_only_the_strongest_duel_of_a_proven_type_is_directed():
+    duels = [_duel("pass_off_vs_pass_def:home", "home", 0.9), _duel("pass_off_vs_pass_def:away", "away", 0.4)]
+    ctx = matchups.to_context(duels, pick_side="home", lift_gate={"pass_off_vs_pass_def": True})
+    assert ctx[0]["toward_pick"] is True
+    assert ctx[1]["toward_pick"] is None      # the opposite-direction duel was never validated
+
+
+def test_types_are_gated_independently():
+    duels = [_duel("pass_off_vs_pass_def:home", "home", 0.9), _duel("rush_off_vs_rush_def:away", "away", 0.8)]
+    ctx = matchups.to_context(duels, pick_side="home", lift_gate={"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True})
+    assert ctx[0]["toward_pick"] is True and ctx[1]["toward_pick"] is False
+
+
+def test_no_pick_directs_nothing_and_does_not_consume_the_slot():
+    duels = [_duel("pass_off_vs_pass_def:home", "home", 0.9)]
+    assert matchups.to_context(duels, pick_side=None, lift_gate={"pass_off_vs_pass_def": True})[0]["toward_pick"] is None

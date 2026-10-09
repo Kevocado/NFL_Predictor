@@ -588,8 +588,16 @@ def test_matchup_rows_builds_real_duels_from_ranked_efficiency(monkeypatch):
     monkeypatch.setattr(facts_mod, "load_lift_results",
                         lambda: {"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True})
     directed = _matchup_rows("T1", "T10", games, efficiency, as_of="2026-10-01", season=2026, pick_side="home")
-    assert all(r["toward_pick"] is True for r in directed), \
-        "a favourite facing the worst team edges toward the pick once proven"
+    # Once a type is proven only its STRONGEST duel (the one the lift test validated) carries a direction; the
+    # opposite-direction duel of the same type stays neutral context.
+    by_type = {}
+    for r in directed:
+        by_type.setdefault(r["id"].split(":")[0], []).append(r["toward_pick"])
+    assert by_type, "expected rows for both duel types"
+    for duel_type, flags in by_type.items():
+        assert sum(f is not None for f in flags) == 1, f"{duel_type}: exactly one directed row, got {flags}"
+        assert all(f is True for f in flags if f is not None), \
+            "a favourite facing the worst team edges toward the pick once proven"
 
 
 def test_live_started_game_never_computes_a_model_and_uses_the_stored_row(live, monkeypatch):
