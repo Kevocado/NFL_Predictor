@@ -17,3 +17,24 @@ def test_context_marks_direction_relative_to_the_pick():
     assert ctx_away[0]["toward_pick"] is False
     ctx_none = matchups.to_context([d], pick_side=None)
     assert ctx_none[0]["toward_pick"] is None
+
+def test_context_has_no_empty_stat_or_foil():
+    """to_context fills stat and foil from DUELS nouns; they must not be empty when set."""
+    # Empty context with no duels is fine (just returns empty list)
+    ctx = matchups.to_context([], pick_side=None)
+    assert ctx == []
+
+    # Verify to_context preserves non-empty stat and foil from a Duel object
+    from nfl_predictor.signals.duel import make_duel
+    d = make_duel(
+        "pass_off_vs_pass_def", home="BUF", away="NYJ", attacker_side="home",
+        attack_ranks={"BUF": 5, "NYJ": 32}, defence_ranks={"BUF": 1, "NYJ": 32},
+        history_gaps=None, min_gap=8,
+        stat="passing offence", foil="pass defence",
+    )
+    assert d is not None, "make_duel should produce a Duel with these ranks/gap"
+    ctx = matchups.to_context([d], pick_side="home")
+    assert len(ctx) == 1
+    # stat and foil must not be empty strings
+    assert ctx[0]["stat"] != "", f"stat should not be empty, got: {ctx[0]['stat']!r}"
+    assert ctx[0]["foil"] != "", f"foil should not be empty, got: {ctx[0]['foil']!r}"

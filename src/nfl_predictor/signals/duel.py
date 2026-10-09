@@ -29,7 +29,7 @@ def edge_strength(gap: float, history: np.ndarray | list, n_teams: int|None=None
 
 def make_duel(duel_id: str, *, home: str, away: str, attacker_side: str,
               attack_ranks: dict[str, int], defence_ranks: dict[str, int], history_gaps=None,
-              min_gap: int = 8) -> Duel | None:
+              min_gap: int = 8, stat: str = "", foil: str = "") -> Duel | None:
     """The duel of `attacker_side`'s attack against the other side's defence, or None when too close."""
     attacker = home if attacker_side == "home" else away
     defender = away if attacker_side == "home" else home
@@ -43,7 +43,7 @@ def make_duel(duel_id: str, *, home: str, away: str, attacker_side: str,
     toward = attacker_side if gap > 0 else ("away" if attacker_side == "home" else "home")
     history = np.array([], float) if history_gaps is None else np.asarray(history_gaps, float)
     return Duel(
-        duel_id, attacker, defender, "", "",
+        duel_id, attacker, defender, stat, foil,
         a, d, len(attack_ranks), toward,
         edge_strength(gap, history, len(attack_ranks))
     )

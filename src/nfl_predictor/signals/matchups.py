@@ -57,6 +57,7 @@ def matchups_for_game(
                 home=home, away=away, attacker_side=attacker_side,
                 attack_ranks=attack_ranks, defence_ranks=defence_ranks,
                 history_gaps=history_gaps.get(duel_id, np.array([])), min_gap=min_gap,
+                stat=attack_noun, foil=defence_noun,
             )
             if d is not None:
                 out.append(d)
@@ -73,8 +74,8 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4) -> list
             "id": d.id,
             "attacker": d.attacker,
             "defender": d.defender,
-            "stat": "",
-            "foil": "",
+            "stat": d.stat,
+            "foil": d.foil,
             "attacker_rank": d.attacker_rank,
             "defender_rank": d.defender_rank,
             "n_teams": d.n_teams,
