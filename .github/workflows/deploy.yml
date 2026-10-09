@@ -55,11 +55,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
+      - uses: docker/setup-buildx-action@v3
+
+      # Build with a registry layer cache. The Dockerfile installs dependencies from pyproject.toml alone, so an
+      # unchanged dependency set is a cache HIT here and the ~1.2 GB layer keeps the same digest across commits:
+      # the VPS then pulls only the thin app layers per deploy instead of a fresh 1.2 GB (it filled to 100% on
+      # 2026-10-09). The cache lives in GHCR as :buildcache, not on the VPS, and is only ever pulled by CI.
+      # provenance is off so the pushed image stays a plain single-manifest image for `compose pull`.
       - name: Build and push NFL Predictor image
-        run: |
-          docker build -t ghcr.io/kevocado/nfl-predictor:${{ github.sha }} -t ghcr.io/kevocado/nfl-predictor:latest .
-          docker push ghcr.io/kevocado/nfl-predictor:${{ github.sha }}
-          docker push ghcr.io/kevocado/nfl-predictor:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          provenance: false
+          tags: |
+            ghcr.io/kevocado/nfl-predictor:${{ github.sha }}
+            ghcr.io/kevocado/nfl-predictor:latest
+          cache-from: type=registry,ref=ghcr.io/kevocado/nfl-predictor:buildcache
+          cache-to: type=registry,ref=ghcr.io/kevocado/nfl-predictor:buildcache,mode=max
 
 
   # Legacy. Azure is being cut over to the VPS, so this stays off unless the
