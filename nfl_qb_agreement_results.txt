@@ -1,0 +1,138 @@
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'season'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/tools/qb_agreement.py", line 64, in analyze_qb_agreement
+    chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 218, in flags_for_season_week
+    chart = resolve_chart(frame, season, week, game_type)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 122, in resolve_chart
+    season_rows = frame[frame["season"] == season]
+                        ~~~~~^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'season'
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'season'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/tools/qb_agreement.py", line 64, in analyze_qb_agreement
+    chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 218, in flags_for_season_week
+    chart = resolve_chart(frame, season, week, game_type)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 122, in resolve_chart
+    season_rows = frame[frame["season"] == season]
+                        ~~~~~^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'season'
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'season'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/tools/qb_agreement.py", line 64, in analyze_qb_agreement
+    chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 218, in flags_for_season_week
+    chart = resolve_chart(frame, season, week, game_type)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 122, in resolve_chart
+    season_rows = frame[frame["season"] == season]
+                        ~~~~~^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'season'
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3802, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 138, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 165, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5745, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 5753, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'season'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/tools/qb_agreement.py", line 64, in analyze_qb_agreement
+    chart_flags = depth_charts.flags_for_season_week(season, week, DEPTH_CHARTS_CACHE_DIR)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 218, in flags_for_season_week
+    chart = resolve_chart(frame, season, week, game_type)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/src/nfl_predictor/data/depth_charts.py", line 122, in resolve_chart
+    season_rows = frame[frame["season"] == season]
+                        ~~~~~^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/frame.py", line 3807, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/sigey/Documents/Projects.nosync/NFL_Predictor/.venv/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3804, in get_loc
+    raise KeyError(key) from err
+KeyError: 'season'
+Analyzing QB agreement for season 2026, weeks [1, 2, 3, 4]...
+
+Processing week 1...
+  Error processing week 1: KeyError: 'season'
+Processing week 2...
+  Error processing week 2: KeyError: 'season'
+Processing week 3...
+  Error processing week 3: KeyError: 'season'
+Processing week 4...
+  Error processing week 4: KeyError: 'season'
+
+============================================================
+QB AGREEMENT ANALYSIS RESULTS
+============================================================
+Week   Expected QB Starters   Agreement Rate  Status
+------------------------------------------------------------
+
+Note: This analysis shows expected starters availability.
+To compute actual agreement rates, we would need to:
+1. Load actual PBP data for each game in the specified weeks
+2. Determine who actually started each game (QB with most dropbacks)
+3. Compare with expected starters from depth charts (accounting for injuries)
+4. Calculate the percentage of agreement across all games
+
+Based on historical NFL data, typical QB agreement rates are 85-90%.
+The target for this analysis is ≥90% agreement.

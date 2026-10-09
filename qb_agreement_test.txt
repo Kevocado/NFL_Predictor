@@ -1,0 +1,16 @@
+Analyzing QB agreement for season 2024, weeks [3]...
+
+Processing week 3...
+  Warning: No expected starters data for week 3
+
+======================================================================
+QB AGREEMENT ANALYSIS RESULTS
+======================================================================
+Week   Expected Starters    Agreement Rate  Status
+----------------------------------------------------------------------
+3      0                    0.000           ✗ Below target (<90%)
+
+No disagreements found.
+
+Note: Actual starter defined as QB with most passing yards in the game.
+To improve accuracy, consider using snap counts or other metrics.
