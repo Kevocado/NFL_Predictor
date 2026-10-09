@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
-from nfl_predictor.tools.block_eval import paired_bootstrap, calibration_gap, evaluate_block
-from nfl_predictor.features import build
 from epa_fixtures import make_games, make_pbp
+
 from nfl_predictor.data import pbp_agg
+from nfl_predictor.evaluate import walk_forward
+from nfl_predictor.features import build
+from nfl_predictor.tools import block_eval
+from nfl_predictor.tools.block_eval import calibration_gap, evaluate_block, paired_bootstrap
 
 
 def test_bootstrap_interval_excludes_zero_for_a_real_gain():
@@ -39,3 +42,107 @@ def test_evaluate_block_runs_on_epa_fixtures():
     assert "clears" in result
     assert isinstance(result["clears"], bool)
     assert result["n_games"] > 0
+
+# --- added by the block-eval results PR ---------------------------------------
+
+from nfl_predictor.tools import qb_agreement
+from nfl_predictor.tools.block_eval import (
+    _per_game_totals,
+    paired_bootstrap_gap,
+)
+
+
+def test_pandas_is_imported_so_load_recent_nfl_data_can_concat():
+    """Regression: the module referenced pd.* with pandas never imported, so every
+    run of the CLI died with NameError after loading all the fixtures."""
+    assert block_eval.pd is pd
+
+
+def test_gap_bootstrap_positive_when_the_block_narrows_the_gap():
+    base = [0.050, 0.055, 0.060, 0.058, 0.062]
+    blk = [0.020, 0.019, 0.021, 0.022, 0.018]
+    lo, hi = paired_bootstrap_gap(base, blk)
+    assert lo > 0, f"a real narrowing must have a CI above zero, got {lo}"
+
+
+def test_gap_bootstrap_spans_zero_when_the_two_gaps_are_indistinguishable():
+    """0.0287 vs 0.0288 is noise, not an improvement, and the interval has to say so."""
+    base = [0.0287, 0.0288, 0.0286, 0.0289, 0.0285]
+    blk = [0.0288, 0.0287, 0.0289, 0.0286, 0.0290]
+    lo, hi = paired_bootstrap_gap(base, blk)
+    assert lo < 0 < hi, f"an indistinguishable pair must straddle zero, got {lo}, {hi}"
+
+
+def test_gap_bootstrap_handles_no_folds():
+    assert paired_bootstrap_gap([], []) == (0.0, 0.0)
+
+
+def _games_with_weather(seasons=(2023, 2024, 2025), weeks=6):
+    """make_games plus the roof/temp/wind the conditions block reads.
+
+    The shared epa fixture is intentionally weather-free, and the conditions block
+    raises KeyError on `roof` rather than defaulting it, so this test supplies it
+    instead of widening the shared fixture for everyone.
+    """
+    games = make_games(seasons=seasons, weeks=weeks)
+    rng = np.random.default_rng(7)
+    games = games.copy()
+    games["roof"] = rng.choice(["outdoors", "dome"], size=len(games))
+    games["temp"] = rng.integers(8, 95, size=len(games)).astype(float)
+    games["wind"] = rng.integers(0, 22, size=len(games)).astype(float)
+    return games
+
+
+def test_evaluate_block_reports_gap_interval_and_total_mae_for_conditions():
+    """conditions is claimed for TOTALS, so the result carries total MAE."""
+    games = _games_with_weather()
+    pbp = make_pbp(games)
+    aux = build.Aux(pbp_agg.team_game_efficiency(pbp), pbp_agg.qb_games(pbp))
+    result = evaluate_block(games, aux, "conditions", candidate="ridge")
+    assert result["gap_ci"] is not None
+    assert result["total_mae"] is not None
+    assert set(result["total_mae"]) >= {"delta", "ci", "clears"}
+    assert isinstance(result["total_mae"]["clears"], bool)
+
+
+def test_per_game_totals_matches_error_length():
+    games = make_games(seasons=(2023, 2024, 2025), weeks=6)
+    folds = walk_forward.prepare_folds(games)
+    errs = _per_game_totals(folds, "ridge")
+    assert errs.size > 0
+    assert (errs >= 0).all(), "abs error is never negative"
+
+
+
+def test_qb_agreement_module_exposes_the_expected_and_actual_starter_paths():
+    for fn in ("agreement", "get_expected_starters", "get_actual_starters",
+               "expected_starters_serving_view", "main"):
+        assert hasattr(qb_agreement, fn), f"qb_agreement is missing {fn}"
+
+
+def test_serving_realistic_aux_reports_its_coverage_loss():
+    """Slicing qb_games to the expected starter silently drops that QB's history
+    wherever he has no prior row, so the loss has to be measurable."""
+    eff = pd.DataFrame(columns=["game_id", "team"])
+    qb = pd.DataFrame([
+        {"game_id": "g1", "team": "A", "qb_id": "q1"},
+        {"game_id": "g1", "team": "B", "qb_id": "q2"},
+        {"game_id": "g2", "team": "A", "qb_id": "q3"},
+        {"game_id": "g2", "team": "B", "qb_id": "q2"},
+    ])
+    aux = build.Aux(eff, qb, {})
+    # A's chart QB in g2 is q1, but q2 actually played -- the mismatch is the point.
+    expected = {("g1", "A"): "q1", ("g2", "A"): "q1", ("g2", "B"): "q9"}
+    out = block_eval.with_serving_realistic_qb_games(aux, expected)
+    kept = set(zip(out.qb_games["game_id"], out.qb_games["team"]))
+    assert ("g1", "A") in kept          # chart named q1, q1 has the row: history survives
+    assert ("g2", "A") not in kept      # chart named q1 but q3 played: history is dropped
+    assert not any(t == "B" for _, t in kept)   # chart named q9, who has no row at all
+    assert out.upcoming_starters == expected, "the chart view must travel with the aux"
+
+
+def test_serving_realistic_aux_is_a_noop_without_expectations():
+    aux = build.Aux(pd.DataFrame(),
+                    pd.DataFrame({"game_id": ["g"], "team": ["A"], "qb_id": ["q"]}), {})
+    out = block_eval.with_serving_realistic_qb_games(aux, {})
+    assert out is aux

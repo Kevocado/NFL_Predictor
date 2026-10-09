@@ -110,7 +110,11 @@ PYTHON = ROOT / ".venv/bin/python"
 # absent -- a scan that quietly got smaller and still reported "no reference
 # found". That half is closed over there (`tracked_artifacts.require`); the
 # copy-side floor is `_check_the_copy_is_whole` below.
-COPY_DIRS = ["src", "tests", "models", ".github", "scripts"]
+# `output` is here because tests/test_qb_agreement.py reads the committed
+# output/qb_agreement_2024_w1-4.csv and derives the reported 0.922 from it. The
+# manifest is an allowlist, so a directory the suite reads has to be named -- that
+# is the same class of defect that lost `scripts` for months.
+COPY_DIRS = ["src", "tests", "models", ".github", "scripts", "output"]
 COPY_FILES = ["pyproject.toml"]
 DATA_GLOBS = ["data/*.json"]
 FRONTEND_FILES = [

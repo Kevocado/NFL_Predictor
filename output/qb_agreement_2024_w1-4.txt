@@ -1,0 +1,29 @@
+Analyzing QB agreement for season 2024, weeks [1, 2, 3, 4]...
+
+Processing week 1...
+  expected starters: 32  agreement rate: 1.000
+Processing week 2...
+  expected starters: 32  agreement rate: 0.969
+Processing week 3...
+  expected starters: 32  agreement rate: 0.875
+Processing week 4...
+  expected starters: 32  agreement rate: 0.844
+
+======================================================================
+QB AGREEMENT (expected-from-depth-chart vs actual)
+======================================================================
+team-weeks: 128   agree: 118   rate: 0.922
+
+Disagreements (week, game_id, team, expected_qb_id, actual_qb_id):
+  (2, '2024_02_IND_GB', 'GB', '00-0036264', '00-0038128')
+  (3, '2024_03_GB_TEN', 'GB', '00-0036264', '00-0038128')
+  (3, '2024_03_MIA_SEA', 'MIA', '00-0036212', '00-0037327')
+  (3, '2024_03_LAC_PIT', 'PIT', '00-0029263', '00-0036945')
+  (3, '2024_03_CAR_LV', 'CAR', '00-0039150', '00-0027973')
+  (4, '2024_04_TEN_MIA', 'TEN', '00-0039152', '00-0034771')
+  (4, '2024_04_PIT_IND', 'IND', '00-0039164', '00-0026158')
+  (4, '2024_04_TEN_MIA', 'MIA', '00-0037327', '00-0035993')
+  (4, '2024_04_PIT_IND', 'PIT', '00-0029263', '00-0036945')
+  (4, '2024_04_CIN_CAR', 'CAR', '00-0039150', '00-0027973')
+
+Per-team-week details written to output/qb_agreement_2024_w1-4.csv
