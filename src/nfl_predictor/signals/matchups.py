@@ -65,6 +65,21 @@ def matchups_for_game(
     return out
 
 
+def _headline_ids(duels: list[Duel]) -> set[str]:
+    """The duel(s) the residual-lift headline lens validates per type: the
+    largest |rank gap|, ties to the home attack -- the same rule build_rows
+    (duel_lift.py) uses to sample one observation per game+type. Everything
+    else is a direction the lift never measured."""
+    best: dict[str, tuple[float, str]] = {}
+    for d in duels:
+        t = d.id.split(":")[0]
+        gap = abs(d.attacker_rank - d.defender_rank)
+        cur = best.get(t)
+        if cur is None or gap > cur[0] or (gap == cur[0] and d.id.endswith(":home")):
+            best[t] = (gap, d.id)
+    return {d_id for _, d_id in best.values()}
+
+
 def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
                lift_gate: dict[str, bool] | None = None) -> list[dict]:
     """Facts-bundle form. `toward_pick` is True when the duel favours the pick
@@ -76,11 +91,18 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
     The gate is FAIL CLOSED: `lift_gate=None` behaves exactly like `{}` (nothing
     is proven), so there is no "ungated" mode -- a caller that forgets to wire
     the gate can never emit Edge/Risk-capable rows before a type is proven.
+
+    Within a proven type only the HEADLINE duel may be directed: build_rows
+    (duel_lift.py) samples one duel per game+type -- the largest |rank gap|,
+    ties to the home attack -- and the opposite-direction duel of the same type
+    favours the other side, which the lift never measured. Directing it would
+    certify an Edge/Risk the gate did not validate, so it stays neutral.
     """
+    headline = _headline_ids(duels[:limit])
     out: list[dict] = []
     for d in duels[:limit]:
         proven = (lift_gate or {}).get(d.id.split(":")[0], False)
-        toward_pick = None if (pick_side is None or not proven) else (d.toward == pick_side)
+        toward_pick = None if (pick_side is None or not proven or d.id not in headline) else (d.toward == pick_side)
         out.append({
             "id": d.id,
             "attacker": d.attacker,
