@@ -71,11 +71,15 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
     AND the residual-lift gate (Task 10) has proven the duel's TYPE: `lift_gate`
     maps a duel type (\"pass_off_vs_pass_def\", id without the :side suffix) to
     whether it passes. Unproven (missing/failing) types ship `toward_pick` None
-    -- neutral context, never Edge or Risk. `lift_gate=None` means the gate has
-    not been wired and toward_pick follows the pick as before."""
+    -- neutral context, never Edge or Risk.
+
+    The gate is FAIL CLOSED: `lift_gate=None` behaves exactly like `{}` (nothing
+    is proven), so there is no "ungated" mode -- a caller that forgets to wire
+    the gate can never emit Edge/Risk-capable rows before a type is proven.
+    """
     out: list[dict] = []
     for d in duels[:limit]:
-        proven = lift_gate is None or lift_gate.get(d.id.split(":")[0], False)
+        proven = (lift_gate or {}).get(d.id.split(":")[0], False)
         toward_pick = None if (pick_side is None or not proven) else (d.toward == pick_side)
         out.append({
             "id": d.id,

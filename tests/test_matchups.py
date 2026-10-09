@@ -11,12 +11,19 @@ def test_unknown_team_yields_no_duels():
 
 def test_context_marks_direction_relative_to_the_pick():
     d = duel.Duel(id="x", attacker="A", defender="B", stat="s", foil="f", attacker_rank=1, defender_rank=5, n_teams=32, toward="home", strength=0.5)
+    # Fail-closed: without a gate (the resolver's job, not this module's), no
+    # type is proven, so even with a pick every row is neutral context.
     ctx = matchups.to_context([d], pick_side="home")
-    assert ctx[0]["toward_pick"] is True
+    assert ctx[0]["toward_pick"] is None
     ctx_away = matchups.to_context([d], pick_side="away")
-    assert ctx_away[0]["toward_pick"] is False
+    assert ctx_away[0]["toward_pick"] is None
     ctx_none = matchups.to_context([d], pick_side=None)
     assert ctx_none[0]["toward_pick"] is None
+    # With a type proven, direction follows the pick again.
+    ctx_proven = matchups.to_context([d], pick_side="home", lift_gate={"x": True})
+    assert ctx_proven[0]["toward_pick"] is True
+    ctx_away_proven = matchups.to_context([d], pick_side="away", lift_gate={"x": True})
+    assert ctx_away_proven[0]["toward_pick"] is False
 
 def test_context_has_no_empty_stat_or_foil():
     """to_context fills stat and foil from DUELS nouns; they must not be empty when set."""
@@ -59,5 +66,5 @@ def test_lift_gate_keeps_toward_pick_only_for_proven_types():
     assert matchups.to_context([d], pick_side="home", lift_gate={"pass_off_vs_pass_def": False})[0]["toward_pick"] is None
     # A loaded-but-empty file (gate has never run) proves nothing -> neutral.
     assert matchups.to_context([d], pick_side="home", lift_gate={})[0]["toward_pick"] is None
-    # Gate not wired at all -> pick direction as before (Task 1/2 behaviour).
-    assert matchups.to_context([d], pick_side="home")[0]["toward_pick"] is True
+    # Gate not wired at all -> fail closed: identical to {}, never Edge/Risk.
+    assert matchups.to_context([d], pick_side="home")[0]["toward_pick"] is None
