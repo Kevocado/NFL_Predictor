@@ -140,7 +140,7 @@ def main() -> None:
     weeks = args.weeks or [1, 2, 3, 4]
 
     print(f"Analyzing QB agreement for season {season}, weeks {weeks}...\n")
-    rows, all_disagreements = [], []
+    rows, all_disagreements, failed_weeks = [], [], []
     for week in weeks:
         print(f"Processing week {week}...")
         expected = get_expected_starters(season, week)
