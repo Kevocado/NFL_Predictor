@@ -65,11 +65,18 @@ def matchups_for_game(
     return out
 
 
-def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4) -> list[dict]:
-    """Facts-bundle form. `toward_pick` is True when the duel favours the pick."""
+def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
+               lift_gate: dict[str, bool] | None = None) -> list[dict]:
+    """Facts-bundle form. `toward_pick` is True when the duel favours the pick
+    AND the residual-lift gate (Task 10) has proven the duel's TYPE: `lift_gate`
+    maps a duel type (\"pass_off_vs_pass_def\", id without the :side suffix) to
+    whether it passes. Unproven (missing/failing) types ship `toward_pick` None
+    -- neutral context, never Edge or Risk. `lift_gate=None` means the gate has
+    not been wired and toward_pick follows the pick as before."""
     out: list[dict] = []
     for d in duels[:limit]:
-        toward_pick = None if pick_side is None else (d.toward == pick_side)
+        proven = lift_gate is None or lift_gate.get(d.id.split(":")[0], False)
+        toward_pick = None if (pick_side is None or not proven) else (d.toward == pick_side)
         out.append({
             "id": d.id,
             "attacker": d.attacker,
