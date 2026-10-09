@@ -550,11 +550,14 @@ def test_matchup_rows_returns_empty_without_efficiency_data():
                          as_of="2026-10-01", season=2026, pick_side="home") == []
 
 
-def test_matchup_rows_builds_real_duels_from_ranked_efficiency():
+def test_matchup_rows_builds_real_duels_from_ranked_efficiency(monkeypatch):
     """The real composition: efficiency ranks -> duels -> context rows, with the
     gap-scaled strength fallback (data/duel_gaps.json is absent on a fresh tree).
     T1 (best offence, best defence) hosting T10 (worst at both) makes both duels
-    by the min_gap=8 rule, favourite T1, toward the home pick."""
+    by the min_gap=8 rule, favourite T1. Without data/duel_lift.json the gate
+    has never run, so every row is neutral -- direction only returns once the
+    lift gate proves the types (claude-review wiring rule)."""
+    import nfl_predictor.api.facts as facts_mod
     from nfl_predictor.api.facts import _matchup_rows
     teams = [f"T{i}" for i in range(1, 11)]
     rows = []
@@ -576,7 +579,17 @@ def test_matchup_rows_builds_real_duels_from_ranked_efficiency():
     # The :home duels read strongest-offence vs weakest-defence (1 vs 10); the
     # :away duels read the weakest offence vs the strongest defence (10 vs 1).
     assert all(1 <= r["attacker_rank"] <= 10 and 1 <= r["defender_rank"] <= 10 for r in out)
-    assert all(r["toward_pick"] is True for r in out), "a favourite facing the worst team edges toward the pick"
+    # No data/duel_lift.json on this tree -> the Task 10 gate proves nothing,
+    # so even a favourite facing the worst team stays neutral context.
+    assert all(r["toward_pick"] is None for r in out), \
+        "an absent duel_lift.json must mean toward_pick None everywhere, even with a pick"
+
+    # Wire the gate: once the types are proven, direction returns.
+    monkeypatch.setattr(facts_mod, "load_lift_results",
+                        lambda: {"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True})
+    directed = _matchup_rows("T1", "T10", games, efficiency, as_of="2026-10-01", season=2026, pick_side="home")
+    assert all(r["toward_pick"] is True for r in directed), \
+        "a favourite facing the worst team edges toward the pick once proven"
 
 
 def test_live_started_game_never_computes_a_model_and_uses_the_stored_row(live, monkeypatch):
