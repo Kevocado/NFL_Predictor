@@ -26,6 +26,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from ..config import PUBLIC_MODE
+from ..tools.duel_lift import load_lift_results
 from ..tracking import store
 from . import routes
 
@@ -425,7 +426,10 @@ def _matchup_rows(home: str, away: str, games_df: pd.DataFrame, efficiency: pd.D
         return []
     duels = matchups_for_game(home, away, games_df, efficiency, as_of, season,
                               history_gaps=load_history_gaps())
-    return to_context(duels, pick_side)
+    # Fail-closed Task 10 gate: only duel types the residual-lift runs have
+    # proven (data/duel_lift.json) may claim a direction. An absent file --
+    # the gate has never run -- proves nothing, so every row is neutral.
+    return to_context(duels, pick_side, lift_gate=load_lift_results())
 
 
 def _result(game: dict, status: str, pick_timing: str, prediction: dict | None) -> dict | None:
