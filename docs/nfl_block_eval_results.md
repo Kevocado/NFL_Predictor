@@ -19,19 +19,52 @@ games are identical and the tool raises if game counts diverge. `--candidate rid
 *Conditions is claimed for **totals**, so it also gets total MAE:* **+0.0449**
 [−0.0042, 0.0949] — positive is better on totals, but the CI straddles zero.
 
-## The two agreement runs for QB
+## The two QB runs, same games both sides
 
-The QB block reads *who started*. Training can use the real starter from play-by-play, but a
-serving path only has the pre-game depth chart. So the block is evaluated twice:
+The QB block reads *who started*. Training can use the real starter off play-by-play, but a
+serving path only has the pre-game depth chart. So the block is evaluated twice — and both runs
+must cover the **same** held-out games, or the comparison is confounded by the game range.
 
-| QB block feed | N | MAE Δ | MAE 95% CI | Brier Δ | Brier 95% CI | Clears |
-|---|---|---|---|---|---|---|
-| Actual starter (play-by-play) — what training sees | 6499 | +0.0726 | [0.0198, 0.1256] | +0.0034 | [0.0020, 0.0047] | No |
-| **Depth-chart expected starter — what serving sees** | 6499 | **−0.0026** | [−0.0353, 0.0289] | **+0.0008** | [0.0001, 0.0015] | No |
+**Depth charts only exist from 2001** (the 2000 feed 404s), so the honest comparison range is
+**2001–2024**. On that range:
 
-The headline MAE gain (+0.0726) **collapses to −0.0026 inside the noise band** once the block is
-fed the starter a serving path could actually name. The Brier gain survives but shrinks ~4×
-(0.0034 → 0.0008). The MAE advantage was lookahead: the block knew who really started.
+| QB feed | N | MAE Δ | MAE 95% CI | Brier Δ | Brier 95% CI | Gap Δ 95% CI | Clears |
+|---|---|---|---|---|---|---|---|
+| Actual starter (what training sees) | 5947 | **+0.0871** | [0.0337, 0.1408] | +0.0037 | [0.0024, 0.0051] | [−0.0163, 0.0246] | No |
+| **Expected starter (what serving sees)** | 5947 | **+0.0185** | [−0.0093, 0.0484] | **+0.0011** | [0.0003, 0.0019] | [−0.0175, 0.0101] | No |
+
+Same folds, same N. The MAE point estimate survives in sign but **shrinks 4.7×** and its
+confidence interval drops below zero: `+0.0871 [0.0337, 0.1408]` → `+0.0185 [−0.0093, 0.0484]`. The
+Brier gain survives and shrinks 3.4×. Neither clears, because the calibration gap does not narrow
+on either feed. So the honest verdict on the QB block is: *a real but small Brier gain, no
+demonstrated MAE gain once you feed it the starter serving could actually name.*
+
+### What the serving run gives up — measured, not assumed
+
+`--serving-realistic-qb` prints the coverage cost, because slicing `qb_games` to the expected
+starter discards that QB's history for any game where he has no prior rows:
+
+```
+SERVING-REALISTIC QB: 6281 games carry an expected starter from the depth chart;
+  6081 of them (96.8% of the named games) have that QB's history in qb_games
+```
+
+On the wider 2000–2025 range the drop-off is concentrated exactly where you would expect:
+
+| team-game slots | count | share |
+|---|---|---|
+| Total in the training frame | 14034 | |
+| With a depth-chart expected starter | 12528 | 89.3% |
+| With **no** expected starter | 1506 | 10.7% |
+
+Of those 1506: **518 are every 2000 game** (the feed does not exist), **570 are 2025** (season in
+progress, so no completed chart resolves), and the rest are 14–32 a year — byes and teams whose
+chart is missing for that week. Separately, of the games that *do* name a starter, **7.7%** name a
+QB with no prior `qb_games` row, so serving has no history for him and the block sees a cold start.
+
+So the serving-realistic number is a lower bound in two directions: it excludes games serving
+genuinely cannot answer, and for 7.7% of the rest it hands the model *less* than a real serving
+system would have.
 
 ## EPA — localising the damage (fold depth, not season)
 
@@ -100,28 +133,71 @@ the headline number is reproducible from the committed file rather than trusted.
 
 ## DEFAULT_BLOCKS: no change, stays `()`
 
-Nothing clears on the serving-realistic feed. `epa` and `conditions` damage MAE; `conditions`
-also fails on total MAE; and `qb`'s MAE advantage does not survive the switch from the actual to
-the expected starter. Flipping any of them into `DEFAULT_BLOCKS` would mean serving a block whose
-measured gain only exists with information the serving path does not have.
+No block clears on all three of MAE, Brier and the paired gap interval:
+
+- **`epa`** — MAE Δ is **−0.0506 [−0.0928, −0.0066]**, a genuine loss, and the damage is
+  concentrated in the early folds.
+- **`conditions`** — MAE Δ is −0.0150 and its total MAE is +0.0449 [−0.0042, 0.0949], straddling
+  zero. Not demonstrated to help either metric.
+- **`qb`** — the closest. Brier Δ **is** positive with the CI above zero on both feeds
+  (+0.0037 [0.0024, 0.0051] on the actual starter, +0.0011 [0.0003, 0.0019] on the expected
+  one). But its MAE CI drops below zero the moment you feed it the starter serving could name,
+  and the calibration gap does not narrow on either feed. A one-sided gain in one metric is not
+  the bar.
+
+Flipping any of them in would mean serving a block whose MAE advantage is not demonstrated under
+serving information. `DEFAULT_BLOCKS` stays `()`.
+
+*Nothing here is flipped without the maintainer's decision — this PR reports, it does not change
+`DEFAULT_BLOCKS`.*
+
 
 ## Reproduction
 
+All commands run from the repo root with the project venv:
+
 ```bash
-PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python -m nfl_predictor.tools.block_eval \
+VENV="PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python"
+
+# Block eval, all three blocks, every season available (the headline table)
+$VENV -m nfl_predictor.tools.block_eval \
   --blocks epa qb conditions --start-year 2000 --end-year 2025 | tee output/block_eval_overall.txt
 
-PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python -m nfl_predictor.tools.block_eval \
-  --blocks qb --start-year 2000 --end-year 2025 --serving-realistic-qb \
+# The two QB runs, on the SAME range and same folds, because depth charts only exist from 2001
+$VENV -m nfl_predictor.tools.block_eval \
+  --blocks qb --start-year 2001 --end-year 2024 | tee output/block_eval_qb_actual_starter.txt
+
+$VENV -m nfl_predictor.tools.block_eval \
+  --blocks qb --start-year 2001 --end-year 2024 --serving-realistic-qb \
   | tee output/block_eval_qb_serving_realistic.txt
 
-PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python -m nfl_predictor.tools.block_eval \
+# EPA era split, to localise the damage
+$VENV -m nfl_predictor.tools.block_eval \
   --blocks epa --start-year 2010 --end-year 2025 | tee output/block_eval_epa_2010plus.txt
+$VENV -m nfl_predictor.tools.block_eval \
+  --blocks epa --start-year 2000 --end-year 2009  | tee output/block_eval_epa_pre2010.txt
 
-PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python -m nfl_predictor.tools.block_eval \
-  --blocks epa --start-year 2000 --end-year 2009 | tee output/block_eval_epa_pre2010.txt
-
-PYTHONPATH=src:.venv/lib/python3.11/site-packages .venv/bin/python -m nfl_predictor.tools.qb_agreement \
+# QB agreement, plus the committed raw per-team-week CSV
+$VENV -m nfl_predictor.tools.qb_agreement \
   --season 2024 --weeks 1 2 3 4 --output output/qb_agreement_2024_w1-4.csv \
   | tee output/qb_agreement_2024_w1-4.txt
+
+# Full suite
+$VENV -m pytest tests/ -q
+# -> 1207 passed, 24 skipped, exit 0
 ```
+
+`main()` returns a nonzero exit status when any requested block fails, so an automated caller
+cannot read `0` as "this table is every block I asked for".
+
+## Files committed as evidence
+
+| File | What it is |
+|---|---|
+| `output/block_eval_overall.txt` | the three-block, 2000–2025 run |
+| `output/block_eval_qb_actual_starter.txt` | QB on the actual starter, 2001–2024 |
+| `output/block_eval_qb_serving_realistic.txt` | QB on the depth-chart expected starter, 2001–2024, with its coverage line |
+| `output/block_eval_epa_2010plus.txt` | EPA, 2010–2025 |
+| `output/block_eval_epa_pre2010.txt` | EPA, 2000–2009 |
+| `output/qb_agreement_2024_w1-4.csv` | raw per-team-week expected/actual rows the 0.922 is derived from |
+| `output/qb_agreement_2024_w1-4.txt` | the agreement run's own output |

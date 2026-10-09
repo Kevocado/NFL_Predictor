@@ -127,7 +127,6 @@ def expected_starters_serving_view(season: int, weeks: list[int]) -> dict:
 
 
 def main() -> None:
-    import argparse
     import csv
 
     parser = argparse.ArgumentParser(description="How often does the expected starter actually start?")

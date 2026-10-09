@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
-from nfl_predictor.tools.block_eval import paired_bootstrap, calibration_gap, evaluate_block
-from nfl_predictor.features import build
 from epa_fixtures import make_games, make_pbp
+
 from nfl_predictor.data import pbp_agg
 from nfl_predictor.evaluate import walk_forward
+from nfl_predictor.features import build
 from nfl_predictor.tools import block_eval
+from nfl_predictor.tools.block_eval import calibration_gap, evaluate_block, paired_bootstrap
 
 
 def test_bootstrap_interval_excludes_zero_for_a_real_gain():
@@ -44,10 +45,11 @@ def test_evaluate_block_runs_on_epa_fixtures():
 
 # --- added by the block-eval results PR ---------------------------------------
 
-from nfl_predictor.tools.block_eval import (  # noqa: E402
-    paired_bootstrap_gap, _per_fold_gap, _per_game_totals, load_recent_nfl_data, main as block_eval_main,
+from nfl_predictor.tools import qb_agreement
+from nfl_predictor.tools.block_eval import (
+    _per_game_totals,
+    paired_bootstrap_gap,
 )
-from nfl_predictor.tools import qb_agreement  # noqa: E402
 
 
 def test_pandas_is_imported_so_load_recent_nfl_data_can_concat():
@@ -111,7 +113,36 @@ def test_per_game_totals_matches_error_length():
     assert (errs >= 0).all(), "abs error is never negative"
 
 
+
 def test_qb_agreement_module_exposes_the_expected_and_actual_starter_paths():
     for fn in ("agreement", "get_expected_starters", "get_actual_starters",
                "expected_starters_serving_view", "main"):
         assert hasattr(qb_agreement, fn), f"qb_agreement is missing {fn}"
+
+
+def test_serving_realistic_aux_reports_its_coverage_loss():
+    """Slicing qb_games to the expected starter silently drops that QB's history
+    wherever he has no prior row, so the loss has to be measurable."""
+    eff = pd.DataFrame(columns=["game_id", "team"])
+    qb = pd.DataFrame([
+        {"game_id": "g1", "team": "A", "qb_id": "q1"},
+        {"game_id": "g1", "team": "B", "qb_id": "q2"},
+        {"game_id": "g2", "team": "A", "qb_id": "q3"},
+        {"game_id": "g2", "team": "B", "qb_id": "q2"},
+    ])
+    aux = build.Aux(eff, qb, {})
+    # A's chart QB in g2 is q1, but q2 actually played -- the mismatch is the point.
+    expected = {("g1", "A"): "q1", ("g2", "A"): "q1", ("g2", "B"): "q9"}
+    out = block_eval.with_serving_realistic_qb_games(aux, expected)
+    kept = set(zip(out.qb_games["game_id"], out.qb_games["team"]))
+    assert ("g1", "A") in kept          # chart named q1, q1 has the row: history survives
+    assert ("g2", "A") not in kept      # chart named q1 but q3 played: history is dropped
+    assert not any(t == "B" for _, t in kept)   # chart named q9, who has no row at all
+    assert out.upcoming_starters == expected, "the chart view must travel with the aux"
+
+
+def test_serving_realistic_aux_is_a_noop_without_expectations():
+    aux = build.Aux(pd.DataFrame(),
+                    pd.DataFrame({"game_id": ["g"], "team": ["A"], "qb_id": ["q"]}), {})
+    out = block_eval.with_serving_realistic_qb_games(aux, {})
+    assert out is aux

@@ -1,4 +1,3 @@
-import pandas as pd
 from nfl_predictor.tools.qb_agreement import agreement
 
 
@@ -29,14 +28,16 @@ def test_missing_values_on_either_side_never_count_as_agreement():
 
 # --- added by the block-eval results PR ---------------------------------------
 
-import csv as _csv  # noqa: E402
-from pathlib import Path as _Path  # noqa: E402
+import csv as _csv
+from pathlib import Path as _Path
 
-import nfl_predictor  # noqa: E402
-import pytest  # noqa: E402
+import pytest
 
-from nfl_predictor.tools.qb_agreement import (  # noqa: E402
-    get_expected_starters, get_actual_starters, expected_starters_serving_view,
+import nfl_predictor
+from nfl_predictor.tools.qb_agreement import (
+    expected_starters_serving_view,
+    get_actual_starters,
+    get_expected_starters,
 )
 
 # The committed raw output of the exact command in docs/nfl_block_eval_results.md, so the

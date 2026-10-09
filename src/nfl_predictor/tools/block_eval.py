@@ -3,16 +3,14 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from nfl_predictor.evaluate import walk_forward as wf
-from nfl_predictor.models import game_outcome
-from nfl_predictor.data import schedules
-from nfl_predictor.data.pbp_agg import load_pbp_agg, team_game_efficiency, qb_games
 from nfl_predictor.config import DEPTH_CHARTS_CACHE_DIR
+from nfl_predictor.data import schedules
+from nfl_predictor.data.pbp_agg import load_pbp_agg, qb_games, team_game_efficiency
+from nfl_predictor.evaluate import walk_forward as wf
 from nfl_predictor.features import build as feature_build
 
 
@@ -103,7 +101,7 @@ def evaluate_block(games_df, aux, block: str, candidate: str = "ridge") -> dict:
         tci = paired_bootstrap(tb, tw)
         total_mae = {"delta": float(tb.mean() - tw.mean()), "ci": tci, "clears": bool(tci[0] > 0)}
     return {
-        "block": block, "n_games": int(len(base[0])),
+        "block": block, "n_games": len(base[0]),
         "mae_delta": float(base[0].mean() - withb[0].mean()), "mae_ci": mae_ci,
         "brier_delta": float(base[1].mean() - withb[1].mean()), "brier_ci": brier_ci,
         "gap_base": gap_base, "gap_block": gap_block, "gap_ci": gap_ci,
@@ -151,7 +149,6 @@ def serving_realistic_expected_starters(season_range, cache_dir=DEPTH_CHARTS_CAC
     This is ALL a serving path may use: the chart is published pre-game, so it never sees who
     actually started. It is fed to the qb block as `upcoming_starters`.
     """
-    from nfl_predictor.data import depth_charts as _dc
 
     out = {}
     for season in season_range:
@@ -229,7 +226,7 @@ def _fmt_ci(ci) -> str:
     return f"[{ci[0]:.4f}, {ci[1]:.4f}]"
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description="Evaluate NFL feature blocks")
     parser.add_argument("--blocks", nargs="+", required=True, help="e.g. epa qb conditions")
     parser.add_argument("--start-year", type=int, default=2000)
@@ -242,26 +239,37 @@ def main() -> None:
     args = parser.parse_args()
 
     games_df, aux = load_recent_nfl_data(args.start_year, args.end_year)
+    if games_df.empty:
+        print("Error: no games loaded")
+        raise SystemExit(1)
     if args.serving_realistic_qb:
         expected = serving_realistic_expected_starters(
             sorted(games_df["season"].astype(int).unique())
         )
         aux = with_serving_realistic_qb_games(aux, expected)
-        print(f"SERVING-REALISTIC QB: {len(expected)} games carry an expected starter from the depth chart")
-    if games_df.empty:
-        print("Error: no games loaded")
-        raise SystemExit(1)
+        # Report the honest cost of serving on the chart: a game whose expected starter
+        # has no prior rows in qb_games loses his history entirely, so the block sees
+        # a cold start rather than a read.
+        covered = aux.qb_games["game_id"].nunique() if getattr(aux, "qb_games", None) is not None else 0
+        named = len({k[0] for k in expected})
+        print(f"SERVING-REALISTIC QB: {named} games carry an expected starter from the depth chart;")
+        print(f"  {covered} of them ({covered / named:.1%} of the named games) have that QB's "
+              f"history in qb_games" if named else "  no games named")
 
     print(f"Loaded {len(games_df)} games. Evaluating blocks: {', '.join(args.blocks)} (candidate={args.candidate})\n")
 
-    results = []
+    results, failures = [], []
     for block in args.blocks:
         print(f"Evaluating block: {block}...")
         try:
             results.append(evaluate_block(games_df, aux, block, args.candidate))
         except Exception as e:
+            # A failing block is reported and makes the run exit nonzero, so automation
+            # cannot read "0" as "this table is every block I asked for".
+            failures.append((block, e))
             print(f"Error evaluating block {block}: {e}")
             import traceback
+
             traceback.print_exc()
 
     print("\n" + "=" * 96)
@@ -272,9 +280,6 @@ def main() -> None:
     print(hdr)
     print("-" * len(hdr))
     for r in results:
-        if r is None:
-            print(f"{'ERROR':<11}")
-            continue
         print(f"{r['block']:<11} {r['n_games']:>5} {r['mae_delta']:>9.4f} {_fmt_ci(r['mae_ci']):>21} "
               f"{r['brier_delta']:>9.4f} {_fmt_ci(r['brier_ci']):>21} "
               f"{r['gap_base']:>7.4f} {r['gap_block']:>7.4f} {_fmt_ci(r['gap_ci']):>21} "
@@ -283,9 +288,12 @@ def main() -> None:
             tm = r["total_mae"]
             print(f"{'  ^ total MAE':<11} {'':>5} {tm['delta']:>9.4f} {_fmt_ci(tm['ci']):>21} "
                   f"{'(positive = block better on TOTALS)':>9}")
+    for block, err in failures:
+        print(f"{block:<11}  FAILED: {err}")
     print("=" * 96)
     print("Sign convention: delta = base - block, so POSITIVE means the block is better (MAE/Brier lower).")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
