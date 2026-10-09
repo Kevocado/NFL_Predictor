@@ -26,6 +26,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from ..config import PUBLIC_MODE
+from ..tools.duel_lift import load_lift_results
 from ..tracking import store
 from . import routes
 
@@ -385,7 +386,7 @@ def _drivers(game: dict, season: int, home_team: str, away_team: str, live_ok: b
     return drivers
 
 
-def _context(game: dict, home_rest: Any, away_rest: Any) -> dict:
+def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | None = None) -> dict:
     context: dict[str, Any] = {}
     temp = _num(game.get("temp"))
     wind = _num(game.get("wind"))
@@ -401,9 +402,34 @@ def _context(game: dict, home_rest: Any, away_rest: Any) -> dict:
         context["roof"] = str(roof)
     if home_rest is not None and away_rest is not None:
         context["rest"] = f"Rest {home_rest:.0f} v {away_rest:.0f} days"
+    # AI plan Task 3: the offence-versus-defence duels, computed in `get_facts`
+    # (which has the season, the pick and the live/non-public gate) and handed
+    # in here so the context builder never reaches for a data source itself.
+    # Neutral until Task 10: every row travels with whatever toward_pick the
+    # caller computed (None when there is no pick), never a label.
+    if matchups:
+        context["matchups"] = matchups
     # Injuries deliberately absent: the cached nflverse report goes stale,
     # and the explainer gets injuries from ESPN news instead.
     return context
+
+
+def _matchup_rows(home: str, away: str, games_df: pd.DataFrame, efficiency: pd.DataFrame,
+                  as_of, season: int, pick_side: str | None) -> list[dict]:
+    """The real offence-versus-defence duel rows for one game, or [] when the
+    efficiency data cannot back them. `games_df` carries per-game gameday/season
+    (the same schedule frame the aux efficiency was built from); efficiency
+    ranks come from play-by-play known before `as_of`, never after it.
+    """
+    from ..signals.matchups import load_history_gaps, matchups_for_game, to_context
+    if efficiency is None or len(efficiency) == 0:
+        return []
+    duels = matchups_for_game(home, away, games_df, efficiency, as_of, season,
+                              history_gaps=load_history_gaps())
+    # Fail-closed Task 10 gate: only duel types the residual-lift runs have
+    # proven (data/duel_lift.json) may claim a direction. An absent file --
+    # the gate has never run -- proves nothing, so every row is neutral.
+    return to_context(duels, pick_side, lift_gate=load_lift_results())
 
 
 def _result(game: dict, status: str, pick_timing: str, prediction: dict | None) -> dict | None:
@@ -517,6 +543,25 @@ def get_facts(game_id: str) -> dict:
     else:
         props_rows, players_unavailable = _props(season, week)
 
+    # Matchup duels, for an UPCOMING game in live (non-public) mode only:
+    # ranking current-season efficiency is a live computation from play-by-play,
+    # the same rule the rating-gap driver lives by, so a public bundle (which is
+    # snapshot-only by law) never invents a duel it cannot back with data it
+    # actually computed. Fail-open: no efficiency, no duels, no crash.
+    pick_side = None
+    if pick is not None:
+        pick_side = "home" if pick["label"] == home_team else "away"
+    matchups_rows: list[dict] = []
+    if not started and not PUBLIC_MODE:
+        try:
+            aux = routes._load_aux_cached(season)
+            matchups_rows = _matchup_rows(
+                home_team, away_team, routes._load_game_history(season),
+                aux.efficiency, game.get("gameday"), season, pick_side,
+            )
+        except Exception:
+            logger.info("matchups unavailable for game_id=%s", game_id)
+
     return {
         "sport": "nfl",
         "id": game_id,
@@ -529,7 +574,7 @@ def get_facts(game_id: str) -> dict:
         # Player props and the live rating gap are rebuilt/computed now, so a
         # started game quotes neither; rest and divisional status are fixed.
         "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
-        "context": _context(game, game.get("home_rest"), game.get("away_rest")),
+        "context": _context(game, game.get("home_rest"), game.get("away_rest"), matchups=matchups_rows),
         "players": [] if started else _players(props_rows, {home_team, away_team}),
         # True when props exist upstream but could not be produced, so a consumer
         # can say "unavailable" rather than rendering an empty list, which is
