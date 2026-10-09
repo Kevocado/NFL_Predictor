@@ -47,16 +47,29 @@ REQUEST_INTERVAL_SECONDS = 0.2
 
 
 def _kickoff_utc(game: dict) -> str:
-    """The game's kickoff as an ISO-8601 UTC instant.
+    """The game's kickoff as an ISO-8601 UTC instant, for either data shape.
 
-    nflverse publishes `gametime` as an ET clock string ("20:20"); `gameday` is a
-    bare date. Eastern is UTC-4 from the second Sunday in March to the first in
-    November and UTC-5 either side, which is enough resolution for weather.
+    nflverse's game cache stores `gameday` as a bare date and `gametime` as an
+    Eastern clock string ("20:20"), so the ET->UTC offset is applied (Eastern is
+    BEHIND UTC, so a 1pm EST kickoff is 18:00Z, eight hours later, not earlier).
+
+    The weekly schedule, however, already normalizes `gameday` to the UTC instant
+    (tz-naive after tz_convert('UTC').tz_localize(None)) and carries no
+    `gametime`. A gameday with a time of day is that instant as-is: adding the ET
+    offset again would push a 1pm kickoff eight hours past itself.
     """
     from datetime import datetime, timedelta, timezone
 
     raw = str(game.get("gametime") or "").strip()
     day = str(game.get("gameday"))
+    full = day.strip().replace(" ", "T")
+    # A time of day in gameday means the instant is already in the string (UTC).
+    if any(c in full for c in ":") and raw == "":
+        try:
+            return datetime.fromisoformat(full).strftime("%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            pass  # fall through to the ET path for a malformed timestamp
+
     try:
         kickoff_et = datetime.fromisoformat(f"{day}T{raw or '13:00'}")
     except ValueError:
@@ -68,8 +81,6 @@ def _kickoff_utc(game: dict) -> str:
     dst_end = datetime(year, 11, 1)
     dst_end += timedelta(days=(6 - dst_end.weekday()) % 7)
     in_dst = dst_start < kickoff_et < dst_end
-    # Eastern is BEHIND UTC, so ET -> UTC ADDS the offset. Subtracting would put a
-    # 1pm EST kickoff at 08:00Z, eight hours early.
     return (kickoff_et + timedelta(hours=4 if in_dst else 5)).replace(
         tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 

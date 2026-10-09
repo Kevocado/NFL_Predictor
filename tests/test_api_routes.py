@@ -75,6 +75,31 @@ def test_upcoming_game_gets_conditions(client, monkeypatch):
     assert body[0]["conditions"] == {"kind": "rain", "temp_f": 50, "source": "open-meteo"}
 
 
+def test_schedule_shaped_upcoming_game_gets_conditions(client, monkeypatch):
+    """The weekly schedule hands `gameday` as the UTC instant and no `gametime`;
+    the games route must read that instant as-is (not re-apply the ET offset,
+    which would push it eight hours -- and a late kickoff a full day -- off)."""
+    weekday_records = [{
+        "game_id": "2025_01_BAL_KC", "season": 2025, "week": 1,
+        "gameday": pd.Timestamp("2025-09-05 00:20:00"), "home_team": "BAL", "away_team": "KC",
+        "home_score": None, "away_score": None, "spread_line": -2.5, "total_line": 46.5,
+    }]
+    monkeypatch.setattr(routes.schedules, "fetch_week_games",
+                        lambda season, week: pd.DataFrame(weekday_records))
+    seen = {}
+
+    class _CapturingCache:
+        def get(self, stadium, kickoff_iso, now=None, budget=None):
+            seen["kickoff"] = kickoff_iso
+            return {"kind": "rain", "temp_f": 50, "source": "open-meteo"}
+
+    monkeypatch.setattr(routes, "_forecast_cache", _CapturingCache())
+    body = client.get("/api/games?season=2025&week=1").json()
+    assert body[0]["conditions"] == {"kind": "rain", "temp_f": 50, "source": "open-meteo"}
+    assert seen["kickoff"] == "2025-09-05T00:20:00Z", \
+        "an already-UTC gameday must pass through untouched, not get the ET offset"
+
+
 def test_final_game_has_no_conditions(client, monkeypatch):
     """A final game (scores present) never gets conditions."""
     monkeypatch.setattr(
