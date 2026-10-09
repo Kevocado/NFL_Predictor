@@ -15,6 +15,7 @@ def agreement(actual: dict, expected: dict) -> dict:
     is "we do not know", never a match — otherwise a week with no depth charts anywhere
     reports a perfect rate.
     """
+    # Count all actual games; agreement only where both sides known
     n = len(actual)
     agree = sum(1 for k, q in actual.items() if q is not None and expected.get(k) is not None and expected.get(k) == q)
     return {"n": n, "agree": agree, "rate": agree / n if n else 0.0,
@@ -145,10 +146,19 @@ def main() -> None:
         expected = get_expected_starters(season, week)
         actual = get_actual_starters(season, week)
         if not expected:
-            print(f"  Warning: no expected starters for week {week}")
+            print(f"  Unavailable: no expected starters for week {week}")
+            rows.append({"season": season, "week": week, "game_id": "", "team": "",
+                         "expected_qb_id": "", "actual_qb_id": "",
+                         "match": False, "status": "no_expected"})
             continue
         if not actual:
-            print(f"  Warning: no actual starters for week {week}")
+            print(f"  Unavailable: no actual starters for week {week}")
+            for key, exp_id in expected.items():
+                rows.append({
+                    "season": season, "week": week, "game_id": key[0], "team": key[1],
+                    "expected_qb_id": exp_id, "actual_qb_id": "",
+                    "match": False, "status": "no_actual",
+                })
             continue
         agr = agreement(actual, expected)
         disagreements = []
@@ -170,10 +180,15 @@ def main() -> None:
     if not rows:
         print("No rows produced.")
         return
-    n = sum(1 for r in rows)
-    agree = sum(1 for r in rows if r["match"])
+    # Agreement rate only over rows where both sides are known
+    known = [r for r in rows if r.get("status", "") == ""]
+    n = len(known)
+    agree = sum(1 for r in known if r["match"])
     rate = agree / n if n else 0.0
+    unavailable = len(rows) - n
     print(f"team-weeks: {n}   agree: {agree}   rate: {rate:.3f}")
+    if unavailable:
+        print(f"unavailable: {unavailable} (no expected/actual data)")
     if all_disagreements:
         print("\nDisagreements (week, game_id, team, expected_qb_id, actual_qb_id):")
         for tup in all_disagreements:
@@ -183,10 +198,12 @@ def main() -> None:
 
     if args.output:
         Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+        fieldnames = ["season", "week", "game_id", "team", "expected_qb_id", "actual_qb_id", "match", "status"]
         with open(args.output, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(rows)
+            for r in rows:
+                writer.writerow({k: r.get(k, "") for k in fieldnames})
         print(f"\nPer-team-week details written to {args.output}")
 
 
