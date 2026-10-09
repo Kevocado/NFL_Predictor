@@ -32,7 +32,16 @@ def load_history_gaps(path: str | Path | None = None) -> dict[str, np.ndarray]:
         raw = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError):
         return {}
-    return {k: np.asarray(v, dtype=float) for k, v in raw.items() if isinstance(v, list) and v}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, np.ndarray] = {}
+    for k, v in raw.items():
+        if isinstance(v, list) and v:
+            try:
+                out[k] = np.asarray(v, dtype=float)
+            except (TypeError, ValueError):
+                continue
+    return out
 
 
 def _recent_means(efficiency: pd.DataFrame, games_df: pd.DataFrame, as_of: pd.Timestamp, season: int) -> pd.DataFrame:
