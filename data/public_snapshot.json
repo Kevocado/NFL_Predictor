@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-08T18:56:28.484681+00:00",
+  "generated_at": "2026-10-09T01:17:08.550146+00:00",
   "season": 2026,
   "current_week": 5,
   "weeks": {
@@ -16137,7 +16137,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 9.5,
-          "total_line": 48.5
+          "total_line": 49.5
         },
         {
           "game_id": "2026_05_PHI_JAX",
@@ -16174,7 +16174,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": -2.5,
           "total_line": 45.5
         },
         {
@@ -16193,7 +16193,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -7.0,
+          "spread_line": -6.5,
           "total_line": 42.5
         },
         {
@@ -16289,7 +16289,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -7.5,
-          "total_line": 38.5
+          "total_line": 37.5
         },
         {
           "game_id": "2026_05_NYG_WAS",
@@ -16308,7 +16308,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.5,
-          "total_line": 41.5
+          "total_line": 42.5
         },
         {
           "game_id": "2026_05_DEN_LAC",
@@ -21677,8 +21677,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
-          "total_line": 40.5
+          "spread_line": -3.0,
+          "total_line": 41.5
         },
         {
           "game_id": "2026_06_TEN_IND",
@@ -21772,8 +21772,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -3.0,
-          "total_line": 39.5
+          "spread_line": null,
+          "total_line": null
         },
         {
           "game_id": "2026_06_ARI_LA",
@@ -21848,8 +21848,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
-          "total_line": 50.5
+          "spread_line": null,
+          "total_line": null
         },
         {
           "game_id": "2026_06_WAS_SF",
@@ -92143,7 +92143,7 @@
       "point_diff": -12.0,
       "projected_wins": 9.2,
       "projected_losses": 7.8,
-      "projected_point_diff": 13.3,
+      "projected_point_diff": 13.2,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -92287,7 +92287,7 @@
       "point_diff": -25.0,
       "projected_wins": 7.0,
       "projected_losses": 10.0,
-      "projected_point_diff": -7.5,
+      "projected_point_diff": -7.4,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
