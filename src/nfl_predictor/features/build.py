@@ -143,13 +143,15 @@ def build_features_for_game(
 
     `gameday` is the game's date; None means today (an ad-hoc "if they played now" request). `starters` maps each team
     to its expected starting QB id for the `qb` block (never guessed: an unknown starter is a neutral, "new" QB).
-    `game_schedule` is an optional dict with the upcoming game's schedule data (roof, temp, wind) from the schedule.
+    `game_schedule` is optional schedule data for the upcoming game (roof, temp, wind): a dict or a pandas Series.
     """
     played = games_df[games_df["home_score"].notna() & games_df["away_score"].notna()].copy()
     when = pd.Timestamp(gameday) if gameday is not None else pd.Timestamp.now().normalize()
     # Read scheduled conditions (roof/temp/wind) for the upcoming game from the schedule.
     # The schedule may carry roof/temp/wind for upcoming games; fall back to NaN if absent.
-    if game_schedule:
+    # `game_schedule` is a dict in some callers and the schedule ROW (a pandas Series) in the live routes: test
+    # None/length, never truthiness (a Series raises on `if series:`).
+    if game_schedule is not None and len(game_schedule) > 0:
         roof = game_schedule.get("roof", np.nan)
         temp = game_schedule.get("temp", np.nan)
         wind = game_schedule.get("wind", np.nan)
