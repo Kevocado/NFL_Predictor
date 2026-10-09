@@ -584,12 +584,19 @@ def test_matchup_rows_builds_real_duels_from_ranked_efficiency(monkeypatch):
     assert all(r["toward_pick"] is None for r in out), \
         "an absent duel_lift.json must mean toward_pick None everywhere, even with a pick"
 
-    # Wire the gate: once the types are proven, direction returns.
+    # Wire the gate: once the types are proven, direction returns -- but
+    # only for the headline duel per type (largest |gap|, tie -> :home).
+    # Here both directions have equal gap=9, so :home is headline for each type.
     monkeypatch.setattr(facts_mod, "load_lift_results",
                         lambda: {"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True})
     directed = _matchup_rows("T1", "T10", games, efficiency, as_of="2026-10-01", season=2026, pick_side="home")
-    assert all(r["toward_pick"] is True for r in directed), \
-        "a favourite facing the worst team edges toward the pick once proven"
+    by_id = {r["id"]: r["toward_pick"] for r in directed}
+    assert by_id == {
+        "pass_off_vs_pass_def:home": True,
+        "pass_off_vs_pass_def:away": None,
+        "rush_off_vs_rush_def:home": True,
+        "rush_off_vs_rush_def:away": None,
+    }, "only the headline duel per type is directed; the opposite direction stays neutral"
 
 
 def test_live_started_game_never_computes_a_model_and_uses_the_stored_row(live, monkeypatch):
