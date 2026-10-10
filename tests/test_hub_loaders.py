@@ -71,3 +71,28 @@ def test_nothing_published_yet_gives_empty_frame_and_caches_nothing(monkeypatch,
     df = getattr(mod, loader)(mod.CURRENT_SEASON)
     assert df.empty and list(df.columns) == getattr(mod, cols)
     assert list(tmp_path.iterdir()) == []
+
+
+def test_hub_weekly_falls_back_to_stats_player_when_the_old_release_404s(monkeypatch):
+    """nflverse moved the table; the hub showed zero players while predictions (which had a fallback) worked."""
+    import nfl_data_py
+
+    def gone(years, columns=None):
+        raise OSError("HTTP Error 404: Not Found")
+
+    seen = {}
+
+    def fake_read(url, columns):
+        seen["url"], seen["columns"] = url, columns
+        row = {c: 0 for c in columns} | {"player_id": "q1", "team": "KC", "season": 2026, "week": 1}
+        return pd.DataFrame([row], columns=columns)
+
+    monkeypatch.setattr(nfl_data_py, "import_weekly_data", gone)
+    monkeypatch.setattr(ps, "_read_parquet", fake_read)
+    out = ps._import_weekly([2026], ps.HUB_WEEKLY_COLUMNS)
+
+    assert list(out.columns) == ps.HUB_WEEKLY_COLUMNS
+    assert out.loc[0, "recent_team"] == "KC"
+    assert "stats_player_week_2026.parquet" in seen["url"]
+    assert "team" in seen["columns"] and "passing_interceptions" in seen["columns"]
+    assert "recent_team" not in seen["columns"] and "interceptions" not in seen["columns"]

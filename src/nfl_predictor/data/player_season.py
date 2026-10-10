@@ -18,10 +18,27 @@ HUB_WEEKLY_COLUMNS = ["player_id", "player_display_name", "position", "recent_te
 HUB_CACHE_DIR = CACHE_DIR / "hub_weekly"
 
 
+# nflverse stopped publishing `player_stats` (what nfl_data_py reads) and moved the same table to `stats_player`
+# with two renamed columns. data/player_stats.py already falls back for the model; the hub had no fallback, so the
+# hub showed zero players while predictions kept working. Same rename map as that module.
+_STATS_PLAYER_URL = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.parquet"
+_STATS_PLAYER_RENAMES = {"recent_team": "team", "interceptions": "passing_interceptions"}
+
+
+def _read_parquet(url: str, columns: list[str]) -> pd.DataFrame:
+    return pd.read_parquet(url, columns=columns, engine="auto")
+
+
 def _import_weekly(years: list[int], columns: list[str]) -> pd.DataFrame:
     import nfl_data_py as nfl
 
-    return nfl.import_weekly_data(years, columns=columns)
+    try:
+        return nfl.import_weekly_data(years, columns=columns)
+    except Exception:  # the old release 404s for seasons it no longer publishes
+        remote = [_STATS_PLAYER_RENAMES.get(c, c) for c in columns]
+        frames = [_read_parquet(_STATS_PLAYER_URL.format(year=y), remote) for y in years]
+        back = {v: k for k, v in _STATS_PLAYER_RENAMES.items()}
+        return pd.concat(frames, ignore_index=True).rename(columns=back)[columns]
 
 
 def load_hub_weekly(season: int) -> pd.DataFrame:
