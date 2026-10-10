@@ -11,7 +11,7 @@ def test_unknown_team_yields_no_duels():
     assert matchups.matchups_for_game("ZZZ", "YYY", pd.DataFrame(), pd.DataFrame(), as_of="2024-01-01", season=2024) == []
 
 def test_context_marks_direction_relative_to_the_pick():
-    d = duel.Duel(id="x", attacker="A", defender="B", stat="s", foil="f", attacker_rank=1, defender_rank=5, n_teams=32, toward="home", strength=0.5)
+    d = duel.Duel(id="x", attacker="A", defender="B", stat="s", foil="f", attacker_rank=1, defender_rank=20, n_teams=32, toward="home", strength=0.5)
     # Fail-closed: without a gate (the resolver's job, not this module's), no
     # type is proven, so even with a pick every row is neutral context.
     ctx = matchups.to_context([d], pick_side="home")
@@ -115,3 +115,45 @@ def test_types_are_gated_independently():
 def test_no_pick_directs_nothing_and_does_not_consume_the_slot():
     duels = [_duel("pass_off_vs_pass_def:home", "home", 0.9)]
     assert matchups.to_context(duels, pick_side=None, lift_gate={"pass_off_vs_pass_def": True})[0]["toward_pick"] is None
+
+
+# ---- complete display rows (hub#104 Matchup table) -------------------------------------------------------------
+def _league32():
+    """32 teams, 3 played games, committed-frame columns. Rank == team number for every column except rush defence,
+    where T5 and T18 swap (T5 = 18th, T18 = 5th): PHI@JAX-style, exactly one of T5(home)/T20(away)'s four duels
+    (away rush attack #20 vs home rush defence #18, gap 2) sits below the NFL gap of 8."""
+    rows = []
+    for gid in ("g1", "g2", "g3"):
+        for i in range(1, 33):
+            rush_def_rank = {5: 18, 18: 5}.get(i, i)
+            rows.append({"game_id": gid, "team": f"T{i}", "epa_off_pass": 1.0 - i * 0.05, "epa_def_pass": -1.0 + i * 0.05,
+                         "epa_off_rush": 0.5 - i * 0.02, "epa_def_rush": -0.5 + rush_def_rank * 0.02})
+    games = pd.DataFrame({"game_id": ["g1", "g2", "g3"], "season": [2026] * 3,
+                          "gameday": pd.to_datetime(["2026-09-10", "2026-09-17", "2026-09-24"])})
+    return pd.DataFrame(rows), games
+
+
+def test_every_duel_type_has_both_directions_regardless_of_gap():
+    eff, games = _league32()
+    new = matchups.matchups_for_game("T5", "T20", games, eff, "2026-10-04", 2026)
+    old = matchups.matchups_for_game("T5", "T20", games, eff, "2026-10-04", 2026, min_gap=8)  # the pre-change call
+    assert len(old) == 3 and len(new) == 4
+    for t, _, _, _, _ in matchups.DUELS:
+        assert {d.id for d in new if d.id.split(":")[0] == t} == {f"{t}:home", f"{t}:away"}
+    below = next(d for d in new if d.id not in {o.id for o in old})
+    assert below.id == "rush_off_vs_rush_def:away" and abs(below.attacker_rank - below.defender_rank) == 2
+    assert [d.strength for d in new] == sorted((d.strength for d in new), reverse=True)
+
+
+def test_below_gap_duel_never_carries_a_direction_even_when_its_type_is_proven():
+    eff, games = _league32()
+    duels = matchups.matchups_for_game("T5", "T20", games, eff, "2026-10-04", 2026)
+    gate = {"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True}
+    for pick in ("home", "away"):
+        ctx = {r["id"]: r for r in matchups.to_context(duels, pick, lift_gate=gate)}
+        assert ctx["rush_off_vs_rush_def:away"]["toward_pick"] is None  # gap 2 < 8
+        assert ctx["rush_off_vs_rush_def:home"]["toward_pick"] is not None  # gap 15, strongest of its type
+    # a lone below-gap duel of a proven type stays neutral and does not use up the type's slot
+    from nfl_predictor.signals.duel import Duel
+    close = Duel("pass_off_vs_pass_def:home", "A", "B", "s", "f", 10, 12, 32, "home", 0.9)
+    assert matchups.to_context([close], "home", lift_gate={"pass_off_vs_pass_def": True})[0]["toward_pick"] is None

@@ -1,5 +1,6 @@
 """The refresh job stores each upcoming game's duels in the snapshot (production is PUBLIC_MODE and never ranks
 play-by-play at request time)."""
+import json
 import numpy as np
 import pandas as pd
 
@@ -64,3 +65,23 @@ def test_a_week_with_nothing_upcoming_never_loads_play_by_play(monkeypatch):
     played = {"game_id": "p1", "home_team": "A", "away_team": "B", "home_score": 20, "away_score": 17}
     assert ps._build_week_matchups(2026, [played]) == {}
     assert ps._build_week_matchups(2026, []) == {}
+
+
+def test_stored_rows_are_the_complete_set_and_facts_serves_all_four(monkeypatch):
+    from nfl_predictor.api import facts
+    from nfl_predictor.signals.matchups import DUELS
+    from test_matchups import _league32
+    eff, hist = _league32()
+    monkeypatch.setattr(ps, "_current_season_efficiency", lambda season: eff)
+    monkeypatch.setattr(ps.routes, "_load_game_history", lambda season: hist)
+    g = {"game_id": "u1", "home_team": "T5", "away_team": "T20", "home_score": None, "away_score": None,
+         "gameday": pd.Timestamp("2026-10-04")}
+    stored = ps._build_week_matchups(2026, [g])["u1"]
+    ids = {r["id"] for r in stored}
+    assert ids == {f"{t[0]}:{side}" for t in DUELS for side in ("home", "away")}
+    monkeypatch.setattr(facts, "_snapshot_week", lambda season, week, gid: {"matchups": {"u1": stored}})
+    monkeypatch.setattr(facts, "load_lift_results", lambda: {"pass_off_vs_pass_def": True, "rush_off_vs_rush_def": True})
+    served = facts._stored_matchup_rows(2026, 5, "u1", "home")
+    assert {r["id"] for r in served} == ids
+    assert next(r for r in served if r["id"] == "rush_off_vs_rush_def:away")["toward_pick"] is None
+    print(json.dumps(served))

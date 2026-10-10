@@ -55,9 +55,12 @@ def _recent_means(efficiency: pd.DataFrame, games_df: pd.DataFrame, as_of: pd.Ti
 
 def matchups_for_game(
     home: str, away: str, games_df: pd.DataFrame, efficiency: pd.DataFrame, as_of, season: int,
-    history_gaps: dict[str, np.ndarray] | None = None, min_gap: int = 8,
+    history_gaps: dict[str, np.ndarray] | None = None, min_gap: int = 0,
 ) -> list[Duel]:
-    """Up to four duels (two kinds x two directions), strongest first. Empty when either team lacks data."""
+    """Up to four duels (two kinds x two directions), strongest first. Empty when either team lacks data.
+
+    `min_gap` defaults to 0: ALL four display duels are returned, whatever the rank gap (a comparison table needs
+    both directions of every type). A caller that wants only meaningful gaps (the lift test) passes its own floor."""
     means = _recent_means(efficiency, games_df, pd.Timestamp(as_of), season)
     if home not in means.index or away not in means.index:
         return []
@@ -81,7 +84,7 @@ def matchups_for_game(
 
 
 def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
-               lift_gate: dict[str, bool] | None = None) -> list[dict]:
+               lift_gate: dict[str, bool] | None = None, min_gap: int = 8) -> list[dict]:
     """Facts-bundle form. `toward_pick` is True when the duel favours the pick
     AND the residual-lift gate (Task 10) has proven the duel's TYPE: `lift_gate`
     maps a duel type (\"pass_off_vs_pass_def\", id without the :side suffix) to
@@ -91,6 +94,9 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
     The gate is FAIL CLOSED: `lift_gate=None` behaves exactly like `{}` (nothing
     is proven), so there is no "ungated" mode -- a caller that forgets to wire
     the gate can never emit Edge/Risk-capable rows before a type is proven.
+
+    A duel whose |attacker_rank - defender_rank| is below `min_gap` is display-only: the lift test only ever
+    validated duels at or above the gap, so such a duel never carries a direction even when its type is proven.
     """
     out: list[dict] = []
     directed_types: set[str] = set()
@@ -100,7 +106,8 @@ def to_context(duels: list[Duel], pick_side: str | None, limit: int = 4,
         # The lift test validates the STRONGEST duel of a type per game, so only that one (the first of its type in
         # the strongest-first order `matchups_for_game` returns) may carry a direction. The opposite-direction
         # duel of the same type was never tested and stays neutral context.
-        eligible = proven and duel_type not in directed_types
+        eligible = (proven and duel_type not in directed_types
+                    and abs(d.attacker_rank - d.defender_rank) >= min_gap)
         toward_pick = None if (pick_side is None or not eligible) else (d.toward == pick_side)
         if eligible and pick_side is not None:
             directed_types.add(duel_type)
