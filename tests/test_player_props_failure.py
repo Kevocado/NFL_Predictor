@@ -143,6 +143,9 @@ def data_seams(monkeypatch):
     # per-game `except Exception` swallowed it; the offline guard is what made it
     # visible, which is the guard doing its job.
     monkeypatch.setattr(routes, "_load_game_history", lambda season: pd.DataFrame())
+    # `_build_week` also stores each upcoming game's matchup duels, which reads current-season play-by-play
+    # (`load_pbp_agg` -> nflverse over the network). Empty efficiency means no duels; that path is unrelated to this one.
+    monkeypatch.setattr(public_snapshot, "_current_season_efficiency", lambda season: pd.DataFrame())
     monkeypatch.setattr(
         routes.schedules, "fetch_upcoming_games",
         lambda season, week: pd.DataFrame([_game_row(season, week)]),

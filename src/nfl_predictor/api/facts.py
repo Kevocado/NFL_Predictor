@@ -414,6 +414,14 @@ def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | 
     return context
 
 
+def _stored_matchup_rows(season: int, week: int, game_id: str, pick_side: str | None) -> list[dict]:
+    """The snapshot's stored duels for this game as facts rows (fail closed on direction)."""
+    from ..signals.matchups import rows_to_duels, to_context
+    snap = _snapshot_week(season, week, game_id) or {}
+    rows = (snap.get("matchups") or {}).get(game_id) or []
+    return to_context(rows_to_duels(rows), pick_side, lift_gate=load_lift_results())
+
+
 def _matchup_rows(home: str, away: str, games_df: pd.DataFrame, efficiency: pd.DataFrame,
                   as_of, season: int, pick_side: str | None) -> list[dict]:
     """The real offence-versus-defence duel rows for one game, or [] when the
@@ -552,7 +560,15 @@ def get_facts(game_id: str) -> dict:
     if pick is not None:
         pick_side = "home" if pick["label"] == home_team else "away"
     matchups_rows: list[dict] = []
-    if not started and not PUBLIC_MODE:
+    if not started and PUBLIC_MODE:
+        # Public mode never ranks play-by-play itself: it serves the duels the refresh job STORED in the snapshot,
+        # with the pick-relative direction and the residual-lift gate applied now (fail closed: no lift data, no
+        # direction).
+        try:
+            matchups_rows = _stored_matchup_rows(season, week, game_id, pick_side)
+        except Exception:
+            logger.info("stored matchups unavailable for game_id=%s", game_id)
+    elif not started:
         try:
             aux = routes._load_aux_cached(season)
             matchups_rows = _matchup_rows(

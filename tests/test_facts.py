@@ -534,13 +534,55 @@ def test_facts_carry_matchups_for_an_upcoming_game(upcoming, monkeypatch):
     assert seen["pick_side"] != None  # noqa: E711 - a None pick_side would mean duels were never wired
 
 
-def test_public_bundle_never_carries_matchups(public, monkeypatch):
-    """Task 3's honesty gate: PUBLIC_MODE reads the snapshot only, so a public
-    bundle carries no duels at all until the snapshot itself carries what they
-    need (same rule as the rating-gap driver)."""
+def test_public_bundle_carries_no_matchups_when_the_snapshot_stored_none(public, monkeypatch):
+    """PUBLIC_MODE never ranks play-by-play itself: with no stored duels in the snapshot, no duels (never a
+    fabricated row)."""
     _install_snapshot(monkeypatch, _snapshot())
     body = public.get(f"/facts/{GAME_ID}").json()
     assert "matchups" not in body["context"]
+
+
+def _stored_duels():
+    # strongest first: the pass duel favours the home side (BAL), the rush duel favours the away side (KC)
+    return [
+        {"id": "pass_off_vs_pass_def:home", "attacker": "BAL", "defender": "KC", "stat": "passing offence",
+         "foil": "pass defence", "attacker_rank": 3, "defender_rank": 28, "n_teams": 32, "toward": "home", "strength": 0.9},
+        {"id": "rush_off_vs_rush_def:away", "attacker": "KC", "defender": "BAL", "stat": "rushing offence",
+         "foil": "run defence", "attacker_rank": 5, "defender_rank": 24, "n_teams": 32, "toward": "away", "strength": 0.6},
+    ]
+
+
+def _snapshot_with_stored_duels():
+    snap = _snapshot()
+    snap["weeks"]["5"]["matchups"] = {GAME_ID: _stored_duels()}
+    return snap
+
+
+def test_public_bundle_serves_the_stored_duels_neutral_until_the_lift_gate_proves_them(public, monkeypatch):
+    """The refresh job stores the duels; facts serve them. With no lift data nothing is directed, even with a pick."""
+    _install_snapshot(monkeypatch, _snapshot_with_stored_duels())
+    monkeypatch.setattr(facts_mod, "load_lift_results", lambda: {})
+    rows = public.get(f"/facts/{GAME_ID}").json()["context"]["matchups"]
+    assert [r["id"] for r in rows] == ["pass_off_vs_pass_def:home", "rush_off_vs_rush_def:away"]
+    assert rows[0]["attacker_rank"] == 3 and rows[0]["stat"] == "passing offence"
+    assert all(r["toward_pick"] is None for r in rows)
+
+
+def test_public_bundle_directs_only_proven_types_and_only_the_strongest(public, monkeypatch):
+    _install_snapshot(monkeypatch, _snapshot_with_stored_duels())
+    monkeypatch.setattr(facts_mod, "load_lift_results", lambda: {"pass_off_vs_pass_def": True})
+    rows = public.get(f"/facts/{GAME_ID}").json()["context"]["matchups"]
+    by_id = {r["id"]: r["toward_pick"] for r in rows}
+    assert by_id["rush_off_vs_rush_def:away"] is None          # type not proven
+    assert by_id["pass_off_vs_pass_def:home"] in (True, False)  # proven: directed relative to the pick
+
+
+def test_public_bundle_drops_a_malformed_stored_row_instead_of_guessing(public, monkeypatch):
+    snap = _snapshot_with_stored_duels()
+    snap["weeks"]["5"]["matchups"][GAME_ID].append({"id": "x"})
+    _install_snapshot(monkeypatch, snap)
+    monkeypatch.setattr(facts_mod, "load_lift_results", lambda: {})
+    assert len(public.get(f"/facts/{GAME_ID}").json()["context"]["matchups"]) == 2
 
 
 def test_matchup_rows_returns_empty_without_efficiency_data():
