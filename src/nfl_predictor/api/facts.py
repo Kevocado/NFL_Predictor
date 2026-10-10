@@ -448,7 +448,7 @@ def _stored_matchup_rows(season: int, week: int, game_id: str, pick_side: str | 
     from ..signals.matchups import rows_to_duels, to_context
     snap = _snapshot_week(season, week, game_id) or {}
     rows = (snap.get("matchups") or {}).get(game_id) or []
-    return to_context(rows_to_duels(rows), pick_side, lift_gate=load_lift_results())
+    return to_context(rows_to_duels(rows), pick_side, lift_gate=load_lift_results(), min_gap=8)
 
 
 def _matchup_rows(home: str, away: str, games_df: pd.DataFrame, efficiency: pd.DataFrame,
@@ -466,7 +466,7 @@ def _matchup_rows(home: str, away: str, games_df: pd.DataFrame, efficiency: pd.D
     # Fail-closed Task 10 gate: only duel types the residual-lift runs have
     # proven (data/duel_lift.json) may claim a direction. An absent file --
     # the gate has never run -- proves nothing, so every row is neutral.
-    return to_context(duels, pick_side, lift_gate=load_lift_results())
+    return to_context(duels, pick_side, lift_gate=load_lift_results(), min_gap=8)
 
 
 def _result(game: dict, status: str, pick_timing: str, prediction: dict | None) -> dict | None:
