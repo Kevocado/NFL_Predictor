@@ -137,6 +137,32 @@ def _players(props: list[dict], teams: set[str]) -> list[dict]:
     return out
 
 
+#: role -> (stat key on the prop row, stat label). Top passer is the best passing_yards row,
+#: top rusher the best rushing_yards row (any position), top receiver the best receiving_yards.
+_PLAYER_ROLES = (
+    ("top_rusher", "rushing_yards", "rushing yards"),
+    ("top_passer", "passing_yards", "passing yards"),
+    ("top_receiver", "receiving_yards", "receiving yards"),
+)
+
+
+def _player_context(props: list[dict], teams: list[str]) -> list[dict]:
+    """Each team's predicted top rusher/passer/receiver, for the explainer's context only.
+
+    Reads the same prop rows as `_players`. Listed-out players are already removed upstream
+    (`_get_player_props_live` drops them; the snapshot carries them separately in
+    `player_props_out`), so every row here is an available player. Pure: no I/O.
+    """
+    out: list[dict] = []
+    for team in teams:
+        for role, key, stat in _PLAYER_ROLES:
+            rows = [(v, p) for p in props if p.get("recent_team") == team and (v := _num(p.get(key))) is not None and v > 0]
+            if rows:
+                value, prop = max(rows, key=lambda r: r[0])
+                out.append({"team": team, "name": prop.get("player_name"), "role": role, "stat": stat, "value": round(value)})
+    return out
+
+
 def _record() -> dict | None:
     """Pre-kickoff-only accuracy, and the block is LABELLED that way, so it has to read the
     pre-kickoff figure.
@@ -386,7 +412,8 @@ def _drivers(game: dict, season: int, home_team: str, away_team: str, live_ok: b
     return drivers
 
 
-def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | None = None) -> dict:
+def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | None = None,
+             player_context: list[dict] | None = None) -> dict:
     context: dict[str, Any] = {}
     temp = _num(game.get("temp"))
     wind = _num(game.get("wind"))
@@ -409,6 +436,8 @@ def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | 
     # caller computed (None when there is no pick), never a label.
     if matchups:
         context["matchups"] = matchups
+    if player_context:
+        context["player_context"] = player_context
     # Injuries deliberately absent: the cached nflverse report goes stale,
     # and the explainer gets injuries from ESPN news instead.
     return context
@@ -590,7 +619,8 @@ def get_facts(game_id: str) -> dict:
         # Player props and the live rating gap are rebuilt/computed now, so a
         # started game quotes neither; rest and divisional status are fixed.
         "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
-        "context": _context(game, game.get("home_rest"), game.get("away_rest"), matchups=matchups_rows),
+        "context": _context(game, game.get("home_rest"), game.get("away_rest"), matchups=matchups_rows,
+                         player_context=_player_context(props_rows, [home_team, away_team])),
         "players": [] if started else _players(props_rows, {home_team, away_team}),
         # True when props exist upstream but could not be produced, so a consumer
         # can say "unavailable" rather than rendering an empty list, which is

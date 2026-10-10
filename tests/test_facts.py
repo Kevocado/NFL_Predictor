@@ -951,3 +951,43 @@ def test_the_contract_model_round_trips_players_unavailable(public, monkeypatch)
     assert "players_unavailable" in Facts.model_fields, (
         "the local contract model no longer declares the field, so nothing pins it"
     )
+
+
+# --- player_context (matchup-summary Task 3) -----------------------------
+
+def _real_snapshot_week(week: str) -> dict:
+    import json
+    from pathlib import Path
+    snap = json.loads((Path(facts_mod.__file__).parents[3] / "data" / "public_snapshot.json").read_text())
+    return {**snap, "weeks": {week: snap["weeks"][week]}}
+
+
+def test_player_context_from_the_real_committed_snapshot(public, monkeypatch):
+    snap = _real_snapshot_week("5")
+    _install_snapshot(monkeypatch, snap)
+    monkeypatch.setattr(facts_mod, "_now", lambda: datetime(2026, 10, 1, tzinfo=timezone.utc))
+    body = public.get("/facts/2026_05_PHI_JAX").json()
+    rows = body["context"]["player_context"]
+    # Structure only: the committed snapshot is rewritten every 3 hours, so no player names are asserted.
+    by = {(r["team"], r["role"]): r for r in rows}
+    assert {(t, role) for t in ("PHI", "JAX") for role in ("top_passer", "top_rusher", "top_receiver")} == set(by)
+    assert all(r["name"] for r in rows)
+    assert all(set(r) == {"team", "name", "role", "stat", "value"} for r in rows)
+    assert all(isinstance(r["value"], int) and r["value"] > 0 for r in rows) and len(rows) == 6
+    # props block unchanged
+    assert body["players"] and "player_context" not in body["players"][0]
+
+
+def test_player_context_never_names_a_listed_out_player():
+    snap = _real_snapshot_week("2")["weeks"]["2"]
+    out_ids = {p["player_id"] for p in snap["player_props_out"]}
+    assert out_ids
+    teams = sorted({p["recent_team"] for p in snap["player_props"]})
+    rows = facts_mod._player_context(snap["player_props"], teams)
+    names = {r["name"] for r in rows}
+    assert rows and not names & {p["player_name"] for p in snap["player_props_out"]}
+
+
+def test_player_context_empty_when_props_unavailable_or_game_started(public, monkeypatch):
+    _install_snapshot(monkeypatch, _snapshot(props=[]))
+    assert "player_context" not in public.get(f"/facts/{GAME_ID}").json()["context"]
