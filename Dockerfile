@@ -8,11 +8,20 @@ RUN npm run build
 FROM python:3.11-slim
 WORKDIR /app
 
+# Dependencies FIRST, from pyproject.toml alone. This is the ~1.2 GB layer (xgboost, pandas, scipy, scikit-learn).
+# It used to sit AFTER `COPY src/`, so every commit invalidated it and CI built a brand-new 1.2 GB layer with a
+# new digest each time; the VPS (38 GB) then held a full extra copy per deploy plus one for the rollback, and filled
+# to 100% on 2026-10-09. With the dependency install keyed only on pyproject.toml, an unchanged dependency set
+# reuses the SAME layer digest across commits and a deploy adds only the thin app layers.
+# `pip install -e .` needs the package directory to exist to resolve it, so a stub stands in for the real source;
+# the real source is copied right after and PYTHONPATH=/app/src (set below) is what the app imports from.
 COPY pyproject.toml ./
+RUN mkdir -p src/nfl_predictor && touch src/nfl_predictor/__init__.py \
+    && pip install --no-cache-dir -e . \
+    && rm -rf src
+
 COPY src/ ./src/
 COPY models/ ./models/
-
-RUN pip install --no-cache-dir -e .
 
 # The precomputed games/predictions/player-props this deployment actually
 # serves (see public_snapshot.py's module docstring) -- generated locally
