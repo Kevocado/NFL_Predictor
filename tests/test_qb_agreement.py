@@ -96,3 +96,35 @@ def test_the_serving_view_is_built_from_the_depth_chart_not_the_box_score():
     exp_w3 = get_expected_starters(2024, 3)
     act_w3 = get_actual_starters(2024, 3)
     assert exp_w3 != act_w3, "week 3 has known disagreements; the two paths must differ"
+
+
+# --- pre-kickoff only: no depth chart dated after the game --------------------
+
+import pandas as pd
+
+
+def _qb_chart(season, week, gsis, club="MIA"):
+    # Real feed dtypes: week is float64 (NaN for offseason rows), depth_team is a STRING.
+    return pd.DataFrame({
+        "season": [season, season], "club_code": [club, club],
+        "week": [float(week), float("nan")], "game_type": ["REG", "REG"],
+        "depth_team": ["1", "1"], "depth_position": ["QB", "QB"], "gsis_id": [gsis, gsis],
+    })
+
+
+def _patch_feed(monkeypatch, charts_by_season):
+    from nfl_predictor.data import depth_charts, schedules
+    monkeypatch.setattr(depth_charts, "load_depth_charts", lambda s, d, **k: charts_by_season.get(s))
+    games = pd.DataFrame({"game_id": ["g2"], "week": [2], "home_team": ["MIA"], "away_team": ["BUF"]})
+    monkeypatch.setattr(schedules, "fetch_week_games", lambda s, w: games)
+
+
+def test_a_chart_dated_after_the_game_is_never_the_expected_starter(monkeypatch):
+    """Week 2 must not be answered from a week-5 chart (it did: resolve_chart's "earliest" fallback)."""
+    _patch_feed(monkeypatch, {2024: _qb_chart(2024, 5, "future_qb")})
+    assert get_expected_starters(2024, 2) == {}
+
+
+def test_a_game_before_the_first_chart_uses_last_seasons_final_chart(monkeypatch):
+    _patch_feed(monkeypatch, {2024: _qb_chart(2024, 5, "future_qb"), 2023: _qb_chart(2023, 18, "last_year_qb")})
+    assert get_expected_starters(2024, 2) == {("g2", "MIA"): "last_year_qb"}

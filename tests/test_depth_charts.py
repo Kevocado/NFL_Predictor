@@ -158,18 +158,14 @@ class TestResolveChart:
         assert set(resolve_chart(two, 2024, 18)["week"]) == {18.0}
         assert set(resolve_chart(two, 2024, 17)["week"]) == {17.0}
 
-    def test_a_week_before_any_chart_falls_back_to_the_earliest_in_that_season(self):
-        # An upcoming week 1 game can have no chart at or before it in that
-        # season. The documented behaviour is to fall back to the EARLIEST
-        # available for that season, not to return nothing, so the feature
-        # survives the exact games that need it most. Returning nothing would
-        # silently downgrade every preseason opener to "Projected order".
+    def test_a_week_before_any_chart_returns_nothing_not_a_later_chart(self):
+        # A chart dated after the game is post-kickoff information: using it as
+        # the "expected" lineup leaks the future. Empty is the honest answer.
         early = frame(MIA_WK19[:3], season=2024, week=1)
         late = frame(MIA_WK19, season=2024, week=18)
         both = pd.concat([early, late], ignore_index=True)
 
-        fallback = resolve_chart(both, 2024, 0)  # before anything published
-        assert set(fallback["week"]) == {1.0}
+        assert resolve_chart(both, 2024, 0).empty  # before anything published
 
         # And a season with nothing at all is empty, not an error.
         assert resolve_chart(both, 1999, 3).empty
@@ -227,11 +223,10 @@ class TestTheRealLoadPath:
         assert flags["Malik Washington"]["position"] == "KR"
 
     def test_the_loader_reads_the_cache_rather_than_assuming_a_chart(self, cache_dir):
-        # A week with no published chart falls back to the earliest one, and
-        # that decision is made by `resolve_chart` inside this path. If the
-        # loader were stubbed or short-circuited, this would not hold.
-        flags = flags_for_season_week(2024, 0, cache_dir)
-        assert flags, "the earliest published chart should still answer a week-1 game"
+        # The only cached chart is week 19; a game at week 0 predates it, so it
+        # must not be used (post-kickoff data). Week 19 does use it.
+        assert flags_for_season_week(2024, 0, cache_dir) == {}
+        assert flags_for_season_week(2024, 19, cache_dir)
 
     def test_a_cached_but_empty_season_is_no_flags_not_an_error(self, tmp_path):
         frame(MIA_WK19).iloc[0:0].to_parquet(tmp_path / "depth_charts_2024.parquet")
