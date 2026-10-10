@@ -40,6 +40,50 @@ REBUILD_WEEKS_BEHIND = 1
 MAX_WEEK = 22
 
 
+def _current_season_efficiency(season: int):
+    """Team-game EPA efficiency for `season` only. The duels rank each team's last 8 games of the SAME season, so the
+    eight completed seasons `routes._load_aux_cached` also loads (a large play-by-play download on a cold CI runner)
+    are not needed here."""
+    from .data.pbp_agg import load_pbp_agg, team_game_efficiency
+    return team_game_efficiency(load_pbp_agg(season))
+
+
+def _build_week_matchups(season: int, games: list[dict], previous: dict | None = None) -> dict[str, list[dict]]:
+    """Offence-versus-defence duels for each UPCOMING game of the week, stored per game_id.
+
+    Production is PUBLIC_MODE: facts read this artifact and never rank play-by-play at request time, so the duels have
+    to be computed HERE (on the refresh job, which has the network) or they never reach a page. Stored undirected
+    (`toward` + `strength`): the pick-relative direction and the lift gate are applied when facts are served.
+    Fail-open: no efficiency data means no duels for the week (the previous week's stored duels are kept if the
+    efficiency load itself failed), never a fabricated row.
+    """
+    from .signals.matchups import duel_to_row, load_history_gaps, matchups_for_game
+
+    upcoming = [g for g in games if g.get("home_score") is None and g.get("away_score") is None]
+    if not upcoming:
+        return {}  # nothing to describe: do not pay for a play-by-play load (a started game is never described by today's ranks)
+    try:
+        efficiency = _current_season_efficiency(season)
+        history = routes._load_game_history(season)
+        if efficiency is None or len(efficiency) == 0:
+            return {}
+        gaps = load_history_gaps()
+    except Exception as exc:  # noqa: BLE001 - one failed load must not fail the whole snapshot
+        print(f"    ! matchups for week unavailable ({exc}); keeping the previous snapshot's")
+        return dict((previous or {}).get("matchups") or {})
+    out: dict[str, list[dict]] = {}
+    for game in upcoming:
+        try:
+            duels = matchups_for_game(game["home_team"], game["away_team"], history, efficiency,
+                                      game.get("gameday"), season, history_gaps=gaps)
+        except Exception as exc:  # noqa: BLE001
+            print(f"    ! no duels for {game.get('game_id')}: {exc}")
+            continue
+        if duels:
+            out[game["game_id"]] = [duel_to_row(d) for d in duels]
+    return out
+
+
 def _build_week(season: int, week: int, previous: dict | None = None) -> dict:
     """One week of precomputed data.
 
@@ -92,6 +136,7 @@ def _build_week(season: int, week: int, previous: dict | None = None) -> dict:
         "player_props": player_props,
         "player_props_status": props_status,
         "player_props_out": out_players,
+        "matchups": _build_week_matchups(season, games, previous),
     }
 
 
