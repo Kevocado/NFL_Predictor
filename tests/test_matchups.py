@@ -11,7 +11,7 @@ def test_unknown_team_yields_no_duels():
     assert matchups.matchups_for_game("ZZZ", "YYY", pd.DataFrame(), pd.DataFrame(), as_of="2024-01-01", season=2024) == []
 
 def test_context_marks_direction_relative_to_the_pick():
-    d = duel.Duel(id="x", attacker="A", defender="B", stat="s", foil="f", attacker_rank=1, defender_rank=5, n_teams=32, toward="home", strength=0.5)
+    d = duel.Duel(id="x", attacker="A", defender="B", stat="s", foil="f", attacker_rank=1, defender_rank=10, n_teams=32, toward="home", strength=0.5)
     # Fail-closed: without a gate (the resolver's job, not this module's), no
     # type is proven, so even with a pick every row is neutral context.
     ctx = matchups.to_context([d], pick_side="home")
@@ -115,3 +115,83 @@ def test_types_are_gated_independently():
 def test_no_pick_directs_nothing_and_does_not_consume_the_slot():
     duels = [_duel("pass_off_vs_pass_def:home", "home", 0.9)]
     assert matchups.to_context(duels, pick_side=None, lift_gate={"pass_off_vs_pass_def": True})[0]["toward_pick"] is None
+
+
+# --- Complete matchup table tests (both directions for every duel type) ----------
+
+
+def _league():
+    """Synthetic league with 4 teams for testing complete table."""
+    teams = ["BUF", "NYJ", "MIA", "NE"]
+    rows = []
+    # 3 games, each team plays each other once
+    for gid, (home, away) in enumerate([("BUF", "NYJ"), ("MIA", "NE"), ("BUF", "MIA")], 1):
+        for i, team in enumerate(teams):
+            off, dfn = 1.0 - i * 0.2, -1.0 + i * 0.2
+            rows.append({"game_id": f"g{gid}", "team": team, "epa_off_pass": off, "epa_def_pass": dfn,
+                         "epa_off_rush": off * 0.5, "epa_def_rush": dfn * 0.5})
+    eff = pd.DataFrame(rows)
+    games = pd.DataFrame({
+        "game_id": ["g1", "g2", "g3"],
+        "season": [2026] * 3,
+        "gameday": pd.to_datetime(["2026-09-10", "2026-09-17", "2026-09-24"])
+    })
+    return eff, games
+
+
+def test_matchups_for_game_complete_table_returns_all_four_duels():
+    """When complete_table=True, all 4 duels (2 types x 2 directions) are returned,
+    even when the rank gap is below min_gap. The small-gap duels have toward='neutral'."""
+    eff, games = _league()
+    # BUF vs NYJ: ranks are BUF=1, NYJ=2, MIA=3, NE=4 for attack (higher=better)
+    # For defence: lower=better, so BUF=4, NYJ=3, MIA=2, NE=1
+    # BUF attack (1) vs NYJ defence (3): gap = 3-1 = 2 < 8 -> SMALL gap
+    # NYJ attack (2) vs BUF defence (4): gap = 4-2 = 2 < 8 -> SMALL gap
+    # MIA attack (3) vs NE defence (1): gap = 1-3 = -2, abs=2 < 8 -> SMALL gap
+    # NE attack (4) vs MIA defence (2): gap = 2-4 = -2, abs=2 < 8 -> SMALL gap
+    # All 4 gaps are small (2), so WITHOUT complete_table, NO duels returned
+    # WITH complete_table, all 4 returned with toward='neutral'
+    duels_default = matchups.matchups_for_game("BUF", "NYJ", games, eff, as_of="2026-10-01", season=2026,
+                                               history_gaps={}, min_gap=8)
+    assert duels_default == [], "Without complete_table, small-gap duels should be filtered out"
+
+    duels_complete = matchups.matchups_for_game("BUF", "NYJ", games, eff, as_of="2026-10-01", season=2026,
+                                                history_gaps={}, min_gap=8, complete_table=True)
+    assert len(duels_complete) == 4, f"complete_table=True should return 4 duels, got {len(duels_complete)}"
+    # Check both directions for each type
+    types = {d.id.split(":")[0] for d in duels_complete}
+    assert types == {"pass_off_vs_pass_def", "rush_off_vs_rush_def"}
+    for d in duels_complete:
+        assert d.toward == "neutral", f"Small-gap duel should have toward='neutral', got {d.toward}"
+        assert d.strength >= 0
+
+
+def test_to_context_complete_table_small_gap_stays_neutral():
+    """A duel with small gap (below min_gap) must NEVER carry a direction in to_context,
+    even when its type is proven by the lift gate. The gap check is added to eligibility."""
+    from nfl_predictor.signals.duel import make_duel
+    # Small gap duel: BUF attack rank 15, NYJ defence rank 20 -> gap = 5 < 8
+    d = make_duel(
+        "pass_off_vs_pass_def:home", home="BUF", away="NYJ", attacker_side="home",
+        attack_ranks={"BUF": 15, "NYJ": 32}, defence_ranks={"BUF": 1, "NYJ": 20},
+        history_gaps=None, min_gap=8, stat="passing offence", foil="pass defence",
+        complete_table=True  # Force creation despite small gap
+    )
+    assert d is not None
+    assert d.toward == "neutral"
+    assert abs(d.defender_rank - d.attacker_rank) < 8
+
+    # Even with proven lift gate, small-gap duel must stay neutral
+    proven = {"pass_off_vs_pass_def": True}
+    ctx = matchups.to_context([d], pick_side="home", lift_gate=proven, min_gap=8)
+    assert ctx[0]["toward_pick"] is None, "Small-gap duel must stay neutral even with proven lift gate"
+    # Large gap duel with proven gate should be directed
+    d_large = make_duel(
+        "pass_off_vs_pass_def:home", home="BUF", away="NYJ", attacker_side="home",
+        attack_ranks={"BUF": 5, "NYJ": 32}, defence_ranks={"BUF": 1, "NYJ": 30},  # gap = 31
+        history_gaps=None, min_gap=8, stat="passing offence", foil="pass defence",
+    )
+    assert d_large is not None
+    assert d_large.toward == "home"
+    ctx_large = matchups.to_context([d_large], pick_side="home", lift_gate=proven, min_gap=8)
+    assert ctx_large[0]["toward_pick"] is True, "Large-gap proven duel should be directed"
