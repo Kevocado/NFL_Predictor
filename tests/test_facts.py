@@ -968,12 +968,12 @@ def test_player_context_from_the_real_committed_snapshot(public, monkeypatch):
     monkeypatch.setattr(facts_mod, "_now", lambda: datetime(2026, 10, 1, tzinfo=timezone.utc))
     body = public.get("/facts/2026_05_PHI_JAX").json()
     rows = body["context"]["player_context"]
+    # Structure only: the committed snapshot is rewritten every 3 hours, so no player names are asserted.
     by = {(r["team"], r["role"]): r for r in rows}
-    assert by[("PHI", "top_passer")]["name"] == "J.Hurts"
-    assert by[("JAX", "top_rusher")]["name"] == "B.Tuten"
-    assert by[("PHI", "top_receiver")]["name"] == "D.Smith"
+    assert {(t, role) for t in ("PHI", "JAX") for role in ("top_passer", "top_rusher", "top_receiver")} == set(by)
+    assert all(r["name"] for r in rows)
     assert all(set(r) == {"team", "name", "role", "stat", "value"} for r in rows)
-    assert all(isinstance(r["value"], int) for r in rows) and len(rows) == 6
+    assert all(isinstance(r["value"], int) and r["value"] > 0 for r in rows) and len(rows) == 6
     # props block unchanged
     assert body["players"] and "player_context" not in body["players"][0]
 
