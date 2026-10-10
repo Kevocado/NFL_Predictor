@@ -115,9 +115,8 @@ def _fetch_to(url: str, dest: Path, timeout: int) -> str:
 def resolve_chart(frame: pd.DataFrame, season: int, week: int, game_type: str = "REG") -> pd.DataFrame:
     """The most recent published chart at or before `week` for that season.
 
-    The current depth chart is what an upcoming game will use, and for a week 1
-    game that is **last season's** chart. Falling back to the newest available
-    frame beats returning nothing.
+    Never returns a chart dated after `week`: that would leak post-kickoff
+    information. Empty means "nothing published yet this season".
     """
     season_rows = frame[frame["season"] == season]
     if season_rows.empty:
@@ -126,21 +125,11 @@ def resolve_chart(frame: pd.DataFrame, season: int, week: int, game_type: str = 
     typed = pd.to_numeric(season_rows["week"], errors="coerce")
     eligible = season_rows[typed <= week]
     if eligible.empty:
-        # Nothing at or before this week -- take the EARLIEST frame we do have
-        # rather than nothing, because a season's first chart is a far better
-        # answer than "no depth-chart data" for a week 1 game.
-        #
-        # This has to *filter* to that one week, not merely sort by it. Sorting
-        # alone returned the whole season, mixing week 1 and week 18 rows into
-        # a single chart and reporting the same player twice at different slots.
-        earliest = typed.min()
-        logger.warning(
-            "depth charts: no chart at or before week %s in %s; falling back to week %s",
-            week,
-            season,
-            earliest,
-        )
-        return season_rows[typed == earliest]
+        # Every chart this season is dated AFTER the game. Using one would feed the
+        # game information from its own future, so answer "no chart" instead; the
+        # caller may fall back to the previous season's final chart.
+        logger.warning("depth charts: no chart at or before week %s in %s", week, season)
+        return season_rows.iloc[0:0]
 
     if game_type and "game_type" in eligible.columns:
         same_type = eligible[eligible["game_type"] == game_type]

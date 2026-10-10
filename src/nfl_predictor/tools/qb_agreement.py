@@ -59,6 +59,9 @@ def get_expected_starters(season: int, week: int) -> dict:
         club_to_game[row["away_team"]] = (row["game_id"], row["away_team"])
 
     chart = depth_charts.resolve_chart(chart_full, season, week)
+    if chart.empty:  # nothing published yet this season: last season's final chart
+        prev = depth_charts.load_depth_charts(season - 1, DEPTH_CHARTS_CACHE_DIR)
+        chart = depth_charts.resolve_chart(prev, season - 1, 99) if prev is not None and not prev.empty else chart
     if chart is None or chart.empty:
         return {}
 
