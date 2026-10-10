@@ -50,6 +50,11 @@ def fetch_schedules(seasons: list[int], force_refresh: bool = False) -> pd.DataF
     if missing:
         raw = _import_schedules(missing)
         fetched = raw[KEEP_COLUMNS].copy()
+        # `stadium` is NOT in KEEP_COLUMNS (older fixtures and cached seasons lack it) but it IS what the kickoff
+        # forecast keys on: the weekly schedule rows carried no stadium, so every game's lookup was `None` and the
+        # games route attached no weather. nflverse publishes it, so keep it when the upstream frame has it.
+        if "stadium" in raw.columns:
+            fetched["stadium"] = raw["stadium"].values
         # nfl_data_py's own "gameday" column is date-only (midnight) -- the
         # actual kickoff time lives in the separate "gametime" column, in US
         # Eastern local time (nflverse convention). Combine them and convert
