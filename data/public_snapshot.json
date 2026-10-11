@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-10T23:54:11.760843+00:00",
+  "generated_at": "2026-10-11T05:54:31.292078+00:00",
   "season": 2026,
   "current_week": 5,
   "weeks": {
@@ -16461,9 +16461,9 @@
           "stadium": "Gillette Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 63,
-            "wind_mph": 9,
-            "precip_pct": 2,
+            "temp_f": 61,
+            "wind_mph": 7,
+            "precip_pct": 8,
             "source": "open-meteo"
           }
         },
@@ -16530,7 +16530,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 43.5,
           "stadium": "Acrisure Stadium"
         },
@@ -16770,8 +16770,8 @@
         "2026_05_IND_PIT": {
           "home_win_prob": 0.526243288315415,
           "away_win_prob": 0.473756711684585,
-          "home_cover_prob": 0.4353577143505898,
-          "away_cover_prob": 0.5646422856494102,
+          "home_cover_prob": 0.45039904435830336,
+          "away_cover_prob": 0.5496009556416966,
           "over_prob": 0.5313809115485105,
           "under_prob": 0.4686190884514895,
           "predicted_margin": 0.8639841200792002,
@@ -22406,10 +22406,10 @@
           "total_line": 42.5,
           "stadium": "Empower Field at Mile High",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 60,
-            "wind_mph": 18,
-            "precip_pct": 8,
+            "kind": "clear",
+            "temp_f": 63,
+            "wind_mph": 7,
+            "precip_pct": 13,
             "source": "open-meteo"
           }
         },
@@ -22528,9 +22528,9 @@
           "stadium": "Gillette Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 46,
-            "wind_mph": 10,
-            "precip_pct": 13,
+            "temp_f": 40,
+            "wind_mph": 12,
+            "precip_pct": 9,
             "source": "open-meteo"
           }
         },
@@ -28526,14 +28526,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Soldier Field",
-          "conditions": {
-            "kind": "partly",
-            "temp_f": 58,
-            "wind_mph": 8,
-            "precip_pct": 13,
-            "source": "open-meteo"
-          }
+          "stadium": "Soldier Field"
         },
         {
           "game_id": "2026_07_PIT_NO",
@@ -28600,7 +28593,14 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "M&T Bank Stadium"
+          "stadium": "M&T Bank Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 61,
+            "wind_mph": 15,
+            "precip_pct": 9,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_TB_CAR",
@@ -28620,7 +28620,14 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Bank of America Stadium"
+          "stadium": "Bank of America Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 72,
+            "wind_mph": 6,
+            "precip_pct": 3,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_NYG_HOU",
@@ -96921,7 +96928,7 @@
       "point_diff": -32.0,
       "projected_wins": 7.8,
       "projected_losses": 9.2,
-      "projected_point_diff": -55.8,
+      "projected_point_diff": -55.9,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -96937,7 +96944,7 @@
       "point_diff": 4.0,
       "projected_wins": 8.2,
       "projected_losses": 8.8,
-      "projected_point_diff": -7.5,
+      "projected_point_diff": -7.6,
       "current_division_rank": 2,
       "projected_division_rank": 1,
       "division_rank_delta": 1
