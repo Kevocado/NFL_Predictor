@@ -4,10 +4,26 @@ features/rolling_form.py, applied per player instead of per team."""
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
-ROLL_STATS = ["passing_yards", "rushing_yards", "receiving_yards", "targets", "carries", "receptions"]
+ROLL_STATS = ["passing_yards", "rushing_yards", "receiving_yards", "targets", "carries", "receptions", "attempts", "completions"]
 PLAYER_FEATURE_COLUMNS = [f"{stat}_roll" for stat in ROLL_STATS]
+
+# Derived rolling features computed from the base rolling means
+# These are efficiency metrics: yards per attempt, yards per completion, yards per target, yards per carry
+DERIVED_ROLL_STATS = [
+    "yards_per_attempt",      # passing_yards_roll / attempts_roll
+    "yards_per_completion",   # passing_yards_roll / completions_roll
+    "yards_per_target",       # receiving_yards_roll / targets_roll
+    "yards_per_carry",        # rushing_yards_roll / carries_roll
+]
+
+# QB-specific: rushing yards and TDs for QBs (scrambles)
+QB_ROLL_STATS = ["rushing_yards", "rushing_tds"]
+
+# All feature columns: base rolling + derived + QB-specific
+ALL_PLAYER_FEATURE_COLUMNS = PLAYER_FEATURE_COLUMNS + [f"{s}_roll" for s in DERIVED_ROLL_STATS] + [f"qb_{s}_roll" for s in QB_ROLL_STATS]
 
 #: The window every rolling feature uses, in training and at serving alike.
 DEFAULT_ROLL_WINDOW = 5
@@ -42,7 +58,7 @@ PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
 #: and because a declared list that silently drifts is worth being able to compare
 #: against. `tests/test_qb_passing_td.py` asserts the two agree, so drift here is
 #: caught -- but it is a documentation constant now, not the guard.
-SERVING_FEATURE_COLUMNS = [*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
+SERVING_FEATURE_COLUMNS = [*ALL_PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]
 
 #: Version of the `anytime_td` DEFINITION (not of the code -- of the label).
 #: Bump this whenever `anytime_td_actual`'s arithmetic changes. It is recorded in
@@ -79,6 +95,45 @@ def _add_rolling(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.Data
     grouped = df.groupby("player_id")
     for stat in ROLL_STATS:
         df[f"{stat}_roll"] = grouped[stat].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean())
+    # QB-specific rolling: rushing yards and TDs for QBs
+    if "position" in df.columns:
+        qb_mask = df["position"] == "QB"
+        for stat in QB_ROLL_STATS:
+            df.loc[qb_mask, f"qb_{stat}_roll"] = grouped[stat].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean()).where(qb_mask)
+    return df
+
+
+def _compute_derived_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute derived efficiency features from base rolling means.
+    
+    These are efficiency ratios: yards per attempt, yards per completion, 
+    yards per target, yards per carry.
+    """
+    df = df.copy()
+    # yards_per_attempt = passing_yards_roll / attempts_roll
+    df["yards_per_attempt_roll"] = np.where(
+        df["attempts_roll"] > 0,
+        df["passing_yards_roll"] / df["attempts_roll"],
+        np.nan
+    )
+    # yards_per_completion = passing_yards_roll / completions_roll
+    df["yards_per_completion_roll"] = np.where(
+        df["completions_roll"] > 0,
+        df["passing_yards_roll"] / df["completions_roll"],
+        np.nan
+    )
+    # yards_per_target = receiving_yards_roll / targets_roll
+    df["yards_per_target_roll"] = np.where(
+        df["targets_roll"] > 0,
+        df["receiving_yards_roll"] / df["targets_roll"],
+        np.nan
+    )
+    # yards_per_carry = rushing_yards_roll / carries_roll
+    df["yards_per_carry_roll"] = np.where(
+        df["carries_roll"] > 0,
+        df["rushing_yards_roll"] / df["carries_roll"],
+        np.nan
+    )
     return df
 
 
@@ -126,12 +181,11 @@ def anytime_td_actual(rushing_tds, receiving_tds) -> float:
 
 def build_player_training_frame(player_stats_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     df = _add_rolling(player_stats_df)
+    df = _compute_derived_features(df)
 
-    # The LABEL only. `PLAYER_FEATURE_COLUMNS` is untouched, so no model changes
-    # shape; and `predict_props` scores a live row from features alone, so the
-    # only artefact affected is one refitted against this label.
+    # The LABEL only. `ALL_PLAYER_FEATURE_COLUMNS` is the complete feature set.
     df["anytime_td"] = anytime_td_actual(df["rushing_tds"], df["receiving_tds"]).astype(int)
-    return df, PLAYER_FEATURE_COLUMNS
+    return df, ALL_PLAYER_FEATURE_COLUMNS
 
 
 def build_features_for_player(
@@ -202,29 +256,53 @@ def build_features_for_player(
     if history.empty:
         return None
     prior = history.tail(window)
+    # Get player position for QB-specific features
+    player_pos = prior["position"].iloc[-1] if "position" in prior.columns and not prior.empty else None
+    is_qb = (player_pos == "QB")
+
+    base_features = {
+        f"{stat}_roll": float(prior[stat].mean()) if not prior.empty else float("nan")
+        for stat in ROLL_STATS
+    }
+    # Derived efficiency features
+    derived_features = {}
+    if not prior.empty:
+        # yards_per_attempt = passing_yards_roll / attempts_roll
+        if prior["attempts"].mean() > 0:
+            derived_features["yards_per_attempt_roll"] = float(prior["passing_yards"].mean() / prior["attempts"].mean())
+        else:
+            derived_features["yards_per_attempt_roll"] = float("nan")
+        # yards_per_completion
+        if prior["completions"].mean() > 0:
+            derived_features["yards_per_completion_roll"] = float(prior["passing_yards"].mean() / prior["completions"].mean())
+        else:
+            derived_features["yards_per_completion_roll"] = float("nan")
+        # yards_per_target
+        if prior["targets"].mean() > 0:
+            derived_features["yards_per_target_roll"] = float(prior["receiving_yards"].mean() / prior["targets"].mean())
+        else:
+            derived_features["yards_per_target_roll"] = float("nan")
+        # yards_per_carry
+        if prior["carries"].mean() > 0:
+            derived_features["yards_per_carry_roll"] = float(prior["rushing_yards"].mean() / prior["carries"].mean())
+        else:
+            derived_features["yards_per_carry_roll"] = float("nan")
+    else:
+        derived_features = {f"{f}_roll": float("nan") for f in DERIVED_ROLL_STATS}
+
+    # QB-specific rushing features
+    qb_features = {}
+    if is_qb and not prior.empty:
+        qb_features["qb_rushing_yards_roll"] = float(prior["rushing_yards"].mean())
+        qb_features["qb_rushing_tds_roll"] = float(prior["rushing_tds"].mean())
+    else:
+        qb_features = {"qb_rushing_yards_roll": float("nan"), "qb_rushing_tds_roll": float("nan")}
+
     return pd.Series(
-        {
-            f"{stat}_roll": float(prior[stat].mean()) if not prior.empty else float("nan")
-            for stat in ROLL_STATS
-        }
+        base_features
+        | derived_features
+        | qb_features
         | {
-            # `passing_tds_roll`, the QB passing-TD model's own rolling feature,
-            # on the same discipline as every neighbour above: the mean of the
-            # `window` games strictly before the target week, which is exactly
-            # what `shift(1).rolling(window, min_periods=1).mean()` produces for
-            # the target row in training (`with_passing_tds_roll`). It was fitted
-            # on but never emitted here, so every QB was projected from
-            # `fillna(0)` on this column -- a constant-zero feature against a
-            # fitted coefficient.
-            #
-            # `models/manifest.py::_assert_artefact_columns_are_served`, reached
-            # from `load_models`, now audits this model's OWN fitted columns against
-            # what THIS FUNCTION returns -- read by calling it, not by reading
-            # `SERVING_FEATURE_COLUMNS`. Note that a subset rule alone would not
-            # have caught the original bug's inverse: the model records a column
-            # the builder does not emit, which is the subset direction, but a
-            # model missing a column is the direction that needs the exact
-            # comparison the audit also makes.
             PASSING_TDS_ROLL_COLUMN: float(prior["passing_tds"].mean())
             if not prior.empty else float("nan")
         }

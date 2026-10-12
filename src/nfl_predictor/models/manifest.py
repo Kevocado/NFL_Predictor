@@ -225,7 +225,7 @@ def artifact_fingerprint(player_feature_cols: list[str], feature_cols: list[str]
       passed. A subset test cannot see an artefact that is missing a feature. (It
       is worth being precise about how weak that guard was, since this paragraph
       reads as though it described a working one: it was called with
-      `player_usage.PLAYER_FEATURE_COLUMNS` and compared against a constant
+      `player_usage.ALL_PLAYER_FEATURE_COLUMNS` and compared against a constant
       DEFINED as that list plus one column, so it evaluated `X ⊆ X + 1`, opened no
       pickle, and could not fail. See `_assert_servable_columns`.)
     * The label is never recomputed at serving. `predict_props` scores the
@@ -289,7 +289,7 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
     past. It read green only because the committed artefact happened to be up to
     date; a guard that is right by coincidence is not a guard.
 
-    `player_usage.PLAYER_FEATURE_COLUMNS` is the authority instead, because it is
+    `player_usage.ALL_PLAYER_FEATURE_COLUMNS` is the authority instead, because it is
     the one thing training and serving both derive from: `train_all` fits the
     player models on the list `build_player_training_frame` returns (that
     constant) and `player_props.predict_props` reindexes a live row by
@@ -311,7 +311,7 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
     manifest's old list and scoring the committed models on it: the new feature
     is silently never used. Nothing here can see it either: as of this commit the
     ONLY fitted-vs-served guard, `_assert_servable_columns`, was called once, with
-    `player_usage.PLAYER_FEATURE_COLUMNS`, from a body that read
+    `player_usage.ALL_PLAYER_FEATURE_COLUMNS`, from a body that read
     `player_usage.SERVING_FEATURE_COLUMNS` -- a player-side constant defined as
     that same list plus `passing_tds_roll`, so it evaluated `X ⊆ X + 1` and
     inspected no model. Its verdict would have been about the wrong models even if
@@ -346,7 +346,7 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
     # expectation comes from the artefact it is checking cannot detect the
     # artefact drifting from the code -- see the docstring.
     current = artifact_fingerprint(
-        player_usage.PLAYER_FEATURE_COLUMNS, feature_build.FEATURE_COLUMNS)
+        player_usage.ALL_PLAYER_FEATURE_COLUMNS, feature_build.FEATURE_COLUMNS)
     expected_features = current["player_feature_cols"]
     fitted_features = list(recorded.get("player_feature_cols") or [])
     if fitted_features != expected_features:
@@ -486,7 +486,7 @@ def _assert_servable_columns(
     is not the vacuous comparison it used to be. The first version of this guard
     had no such parameter and read `player_usage.SERVING_FEATURE_COLUMNS` from
     inside the body; the sole call site in `load_models` passed
-    `player_usage.PLAYER_FEATURE_COLUMNS`, and that constant is defined as
+    `player_usage.ALL_PLAYER_FEATURE_COLUMNS`, and that constant is defined as
     `[*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]` -- so the guard evaluated
     `X ⊆ X + 1`, a tautology, and no player pickle's fitted columns were ever
     read. Forcing the caller to state the serving set makes that shape impossible
@@ -501,7 +501,7 @@ def _assert_servable_columns(
 
     Two call sites, and both pass a list that is not the artefact's own: the
     fit-time check inside `_fit_qb_passing_td`, on the columns it is about to fit,
-    and `load_models` on `player_usage.PLAYER_FEATURE_COLUMNS`. The QB passing-TD
+    and `load_models` on `player_usage.ALL_PLAYER_FEATURE_COLUMNS`. The QB passing-TD
     artefact's own recorded columns go through
     `_assert_artefact_columns_are_served` in `_load_passing_td_model` instead.
     """
@@ -615,7 +615,7 @@ def _assert_artefact_columns_are_served(
     DECLARED list against the CODE's list and never opens a pickle. Three-way
     agreement is what is needed and this is the missing third leg.
 
-    `expected_cols` is the CODE's constant (`player_usage.PLAYER_FEATURE_COLUMNS`
+    `expected_cols` is the CODE's constant (`player_usage.ALL_PLAYER_FEATURE_COLUMNS`
     / `feature_build.FEATURE_COLUMNS`), not the manifest's copy, for the same
     reason `_verify_artifact_fingerprint` reads the code: it has already pinned
     the manifest's copy to that constant, so reading the manifest here would only
@@ -927,7 +927,7 @@ def load_models() -> dict:
       the serving builder actually emits. It is the only check that reads
       `feature_names_in_`, and it is the only one that can see the artefact.
 
-    The old call here was `_assert_servable_columns(player_usage.PLAYER_FEATURE_COLUMNS, ...)`
+    The old call here was `_assert_servable_columns(player_usage.ALL_PLAYER_FEATURE_COLUMNS, ...)`
     against a body that read `player_usage.SERVING_FEATURE_COLUMNS`, a constant
     defined as `[*PLAYER_FEATURE_COLUMNS, PASSING_TDS_ROLL_COLUMN]` -- so it
     compared a list with itself plus one, on the player side only, and inspected
@@ -954,18 +954,18 @@ def load_models() -> dict:
     # `passing_tds_roll`, which is deliberately NOT in `PLAYER_FEATURE_COLUMNS` --
     # and is audited in `_load_passing_td_model` against its own recorded columns.
     _assert_servable_columns(
-        player_usage.PLAYER_FEATURE_COLUMNS,
-        "the player models' training columns (player_usage.PLAYER_FEATURE_COLUMNS)",
+        player_usage.ALL_PLAYER_FEATURE_COLUMNS,
+        "the player models' training columns (player_usage.ALL_PLAYER_FEATURE_COLUMNS)",
         player_serving, "player_usage.build_features_for_player")
 
     player_models = {"feature_cols": manifest["player_feature_cols"]}
 
-    # Every player artefact is fitted on `player_usage.PLAYER_FEATURE_COLUMNS` and
+    # Every player artefact is fitted on `player_usage.ALL_PLAYER_FEATURE_COLUMNS` and
     # is scored by `predict_props` on `manifest["player_feature_cols"]`, which
     # `_verify_artifact_fingerprint` has already pinned to that constant. So the
     # artefact's own `feature_names_in_` has to equal it -- and this is the check
     # that fails when it does not.
-    expected_player = list(player_usage.PLAYER_FEATURE_COLUMNS)
+    expected_player = list(player_usage.ALL_PLAYER_FEATURE_COLUMNS)
 
     anytime_td = _load_pickle(_artifact_path(ANYTIME_TD_MODEL_FILENAME))
     _assert_artefact_columns_are_served(

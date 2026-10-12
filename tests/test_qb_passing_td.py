@@ -568,14 +568,18 @@ def _qb_panel(n_qbs: int = 12, seasons: tuple[int, ...] = (2022, 2023, 2024),
         for season in seasons:
             for week in range(1, weeks + 1):
                 yards = float(np.clip(rng.normal(255 * arm, 45), 40, None))
+                attempts = int(np.clip(rng.poisson(35 * arm), 15, 50))
+                completions = int(np.clip(rng.binomial(attempts, 0.65), 10, attempts))
                 rows.append({
-                    "player_id": player_id, "player_name": f"QB {qb}", "position": "QB",
+                    "player_id": f"00-{qb:03d}", "player_name": f"QB {qb}", "position": "QB",
                     "recent_team": "KC", "season": season, "week": week,
                     "passing_yards": yards,
                     "passing_tds": int(np.clip(rng.poisson(yards / 175.0), 0, 7)),
                     "rushing_yards": float(rng.normal(6, 8)), "rushing_tds": 0,
                     "receiving_yards": 0.0, "receiving_tds": 0,
                     "receptions": 0, "targets": 0, "carries": float(rng.normal(1.5, 2)),
+                    "attempts": attempts,
+                    "completions": completions,
                 })
     return pd.DataFrame(rows)
 
@@ -587,14 +591,18 @@ def _qb_history(n_weeks: int = 14, player_id: str = QB_ID, season: int = QB_SEAS
     rows = []
     for week in range(1, n_weeks + 1):
         yards = float(rng.normal(255, 45))
+        attempts = int(np.clip(rng.poisson(35), 15, 50))
+        completions = int(np.clip(rng.binomial(attempts, 0.65), 10, attempts))
         rows.append({
             "player_id": player_id, "player_name": "A. QB", "position": "QB",
             "recent_team": "KC", "season": season, "week": week,
-            "passing_yards": yards,
+            "passing_yards": float(rng.normal(255, 45)),
             "passing_tds": int(np.clip(rng.poisson(yards / 175.0), 0, 6)),
             "rushing_yards": float(rng.normal(6, 8)), "rushing_tds": 0,
             "receiving_yards": 0.0, "receiving_tds": 0,
             "receptions": 0, "targets": 0, "carries": float(rng.normal(1.5, 2)),
+            "attempts": attempts,
+            "completions": completions,
         })
     return pd.DataFrame(rows)
 
@@ -713,10 +721,10 @@ def test_the_fitted_feature_list_is_a_subset_of_what_serving_emits():
 
     served = set(manifest._player_serving_columns())
     assert set(qbt.MU_FEATURE_COLUMNS) | {player_usage.PASSING_TDS_ROLL_COLUMN} <= served
-    assert set(player_usage.PLAYER_FEATURE_COLUMNS) <= served
+    assert set(player_usage.ALL_PLAYER_FEATURE_COLUMNS) <= served
     # Nothing fitted is served, nothing served is unfitted-but-modelled: the
     # serving row is exactly the fitted columns plus `passing_tds_roll`.
-    assert served - set(player_usage.PLAYER_FEATURE_COLUMNS) == {
+    assert served - set(player_usage.ALL_PLAYER_FEATURE_COLUMNS) == {
         player_usage.PASSING_TDS_ROLL_COLUMN}
 
     # And the declared constant still agrees with what the builder emits. If this
@@ -765,7 +773,7 @@ def test_serving_emits_exactly_the_declared_serving_columns():
     served = player_usage.build_features_for_player(QB_ID, history, season=QB_SEASON, week=6)
     assert set(served.index) == set(player_usage.SERVING_FEATURE_COLUMNS)
     assert player_usage.SERVING_FEATURE_COLUMNS == [
-        *player_usage.PLAYER_FEATURE_COLUMNS, player_usage.PASSING_TDS_ROLL_COLUMN
+        *player_usage.ALL_PLAYER_FEATURE_COLUMNS, player_usage.PASSING_TDS_ROLL_COLUMN
     ]
 
 

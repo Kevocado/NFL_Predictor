@@ -78,6 +78,7 @@ KEEP_COLUMNS = [
     "player_id", "player_name", "position", "recent_team", "season", "week",
     "passing_yards", "passing_tds", "rushing_yards", "rushing_tds",
     "receiving_yards", "receiving_tds", "receptions", "targets", "carries",
+    "attempts", "completions",
 ]
 
 

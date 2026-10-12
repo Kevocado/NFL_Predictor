@@ -81,6 +81,11 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
     # rolling usage (shift(1)-then-rolling)
     "passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll",
     "targets_roll", "carries_roll", "receptions_roll",
+    "attempts_roll", "completions_roll",
+    # derived efficiency metrics
+    "yards_per_attempt", "yards_per_completion", "yards_per_target", "yards_per_carry",
+    # QB-specific rushing
+    "qb_rushing_yards_roll", "qb_rushing_tds_roll",
     # opponent defence vs position
     "opp_pass_yds_allowed_roll", "opp_rush_yds_allowed_roll", "opp_rec_yds_allowed_roll",
     # game context, knowable pre-kickoff

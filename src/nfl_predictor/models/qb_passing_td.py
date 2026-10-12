@@ -73,7 +73,7 @@ MODEL_LINE_SOURCE = "model_line"
 MIN_MODEL_LINE = 0.5
 
 #: Rolling usage stats the mu model reads, on top of `passing_tds_roll` itself.
-MU_FEATURE_COLUMNS = ["passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll"]
+MU_FEATURE_COLUMNS = ["rushing_yards_roll", "receiving_yards_roll"]
 
 
 @dataclass(frozen=True)
