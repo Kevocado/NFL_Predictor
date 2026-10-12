@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-12T10:56:56.725053+00:00",
+  "generated_at": "2026-10-12T21:19:17.459176+00:00",
   "season": 2026,
   "current_week": 5,
   "weeks": {
@@ -17288,13 +17288,13 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 41.5,
+          "total_line": 40.5,
           "stadium": "Empower Field at Mile High",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 56,
-            "wind_mph": 15,
-            "precip_pct": 41,
+            "temp_f": 55,
+            "wind_mph": 12,
+            "precip_pct": 60,
             "source": "open-meteo"
           }
         },
@@ -17315,7 +17315,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 43.5,
+          "total_line": 42.5,
           "stadium": "Wembley Stadium"
         },
         {
@@ -17335,7 +17335,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.0,
-          "total_line": 47.5,
+          "total_line": 48.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
             "kind": "dome",
@@ -17361,7 +17361,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -3.5,
+          "spread_line": -4.5,
           "total_line": 40.5,
           "stadium": "Huntington Bank Field"
         },
@@ -17382,7 +17382,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 43.5,
+          "total_line": 44.5,
           "stadium": "Lucas Oil Stadium",
           "conditions": {
             "kind": "dome",
@@ -17409,13 +17409,13 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.0,
-          "total_line": 44.5,
+          "total_line": 43.5,
           "stadium": "Gillette Stadium",
           "conditions": {
             "kind": "clear",
             "temp_f": 49,
-            "wind_mph": 6,
-            "precip_pct": 4,
+            "wind_mph": 9,
+            "precip_pct": 0,
             "source": "open-meteo"
           }
         },
@@ -17456,7 +17456,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 1.5,
-          "total_line": 42.5,
+          "total_line": 41.5,
           "stadium": "Lincoln Financial Field"
         },
         {
@@ -17516,7 +17516,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 8.5,
-          "total_line": 43.5,
+          "total_line": 42.5,
           "stadium": "GEHA Field at Arrowhead Stadium"
         },
         {
@@ -17586,8 +17586,8 @@
           "away_win_prob": 0.598053179448662,
           "home_cover_prob": 0.4921287016819349,
           "away_cover_prob": 0.5078712983180651,
-          "over_prob": 0.4990348425261065,
-          "under_prob": 0.5009651574738935,
+          "over_prob": 0.5314643632010514,
+          "under_prob": 0.4685356367989486,
           "predicted_margin": -3.2589694171937307,
           "predicted_total": 41.47026824951172,
           "sigma": 13.12453702446608,
@@ -17599,8 +17599,8 @@
           "away_win_prob": 0.3387523073364479,
           "home_cover_prob": 0.5742838454197725,
           "away_cover_prob": 0.4257161545802275,
-          "over_prob": 0.6082820805314356,
-          "under_prob": 0.3917179194685644,
+          "over_prob": 0.6391602317191688,
+          "under_prob": 0.3608397682808312,
           "predicted_margin": 5.4581105085565484,
           "predicted_total": 46.877681732177734,
           "sigma": 13.12453702446608,
@@ -17612,8 +17612,8 @@
           "away_win_prob": 0.5238498567174861,
           "home_cover_prob": 0.5670077259539306,
           "away_cover_prob": 0.43299227404606944,
-          "over_prob": 0.4689535261053185,
-          "under_prob": 0.5310464738946815,
+          "over_prob": 0.43672753074641335,
+          "under_prob": 0.5632724692535866,
           "predicted_margin": -0.7850885447250526,
           "predicted_total": 46.54264450073242,
           "sigma": 13.12453702446608,
@@ -17623,8 +17623,8 @@
         "2026_06_BAL_CLE": {
           "home_win_prob": 0.34146574479495373,
           "away_win_prob": 0.6585342552050463,
-          "home_cover_prob": 0.4436229180631951,
-          "away_cover_prob": 0.5563770819368049,
+          "home_cover_prob": 0.4738493803632382,
+          "away_cover_prob": 0.5261506196367618,
           "over_prob": 0.6234208817777691,
           "under_prob": 0.3765791182222309,
           "predicted_margin": -5.360928885285897,
@@ -17638,8 +17638,8 @@
           "away_win_prob": 0.22832722819578088,
           "home_cover_prob": 0.5835621730759207,
           "away_cover_prob": 0.41643782692407927,
-          "over_prob": 0.5219296427267037,
-          "under_prob": 0.4780703572732963,
+          "over_prob": 0.489479705005471,
+          "under_prob": 0.510520294994529,
           "predicted_margin": 9.769472712435164,
           "predicted_total": 44.17588424682617,
           "sigma": 13.12453702446608,
@@ -17651,8 +17651,8 @@
           "away_win_prob": 0.2184895670843766,
           "home_cover_prob": 0.5963661433565886,
           "away_cover_prob": 0.40363385664341145,
-          "over_prob": 0.5206664869628175,
-          "under_prob": 0.4793335130371825,
+          "over_prob": 0.5529812449967065,
+          "under_prob": 0.44701875500329347,
           "predicted_margin": 10.201761835658333,
           "predicted_total": 45.13691711425781,
           "sigma": 13.12453702446608,
@@ -17677,8 +17677,8 @@
           "away_win_prob": 0.4082631451792842,
           "home_cover_prob": 0.5468573592578161,
           "away_cover_prob": 0.4531426407421839,
-          "over_prob": 0.48399089192355604,
-          "under_prob": 0.516009108076444,
+          "over_prob": 0.5164441464852924,
+          "under_prob": 0.48355585351470765,
           "predicted_margin": 3.045090691107882,
           "predicted_total": 42.00670623779297,
           "sigma": 13.12453702446608,
@@ -17716,8 +17716,8 @@
           "away_win_prob": 0.24121913850514365,
           "home_cover_prob": 0.5218289609446839,
           "away_cover_prob": 0.4781710390553161,
-          "over_prob": 0.6968133976598807,
-          "under_prob": 0.3031866023401193,
+          "over_prob": 0.7246221274117389,
+          "under_prob": 0.2753778725882611,
           "predicted_margin": 9.218495204201975,
           "predicted_total": 49.83222198486328,
           "sigma": 13.12453702446608,
@@ -23639,10 +23639,10 @@
           "total_line": null,
           "stadium": "Soldier Field",
           "conditions": {
-            "kind": "partly",
+            "kind": "cloudy",
             "temp_f": 69,
-            "wind_mph": 8,
-            "precip_pct": 21,
+            "wind_mph": 9,
+            "precip_pct": 19,
             "source": "open-meteo"
           }
         },
@@ -23714,9 +23714,9 @@
           "stadium": "M&T Bank Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 56,
-            "wind_mph": 3,
-            "precip_pct": 31,
+            "temp_f": 64,
+            "wind_mph": 10,
+            "precip_pct": 15,
             "source": "open-meteo"
           }
         },
@@ -23741,9 +23741,9 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 64,
-            "wind_mph": 2,
-            "precip_pct": 16,
+            "temp_f": 76,
+            "wind_mph": 10,
+            "precip_pct": 4,
             "source": "open-meteo"
           }
         },
