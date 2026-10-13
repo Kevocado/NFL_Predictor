@@ -28,7 +28,12 @@ logger = logging.getLogger(__name__)
 #: already routes it here, so an artifact makes the tick price it automatically.
 #: Without one the tick skipped every reception prop and reported a clean week
 #: while a third of the book went unexamined.
-MARKETS = ("passing_yards", "rushing_yards", "receiving_yards", "receptions")
+#:
+#: NOTE 2026-10-12: `receptions` excluded from the gate pending a
+#: count-appropriate model. It is a discrete count, not continuous yardage;
+#: the yardage quantile regressor cannot calibrate it (worst gap 0.138,
+#: overconfident in 7/8 buckets -- see b3331be). Re-add with a Poisson model.
+MARKETS = ("passing_yards", "rushing_yards", "receiving_yards")
 
 #: Positions that actually get a line for each market. Fitting a WR's
 #: rushing-yards model would be fitting a market nobody quotes.
@@ -45,7 +50,10 @@ MARKET_POSITIONS = {
     "passing_yards": ("QB",),
     "rushing_yards": ("RB",),
     "receiving_yards": ("WR", "TE"),
-    "receptions": ("WR", "TE", "RB"),
+    # NOTE 2026-10-12: `receptions` excluded pending a count-appropriate model.
+    # Discrete counts need Poisson, not the yardage quantile regressor
+    # (worst gap 0.138, see b3331be and MARKETS note above).
+    # "receptions": ("WR", "TE", "RB"),
 }
 
 #: THE feature list — the single authority for both the offline gate and the
@@ -96,6 +104,22 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
     # opportunity and form, all lagged
     "snap_share", "snap_share_trend", "opp_share", "form_deviation",
     "separation_avg",
+    # interaction features: products of *independent* signals. The 2026-10-12
+    # ablation proved deterministic re-expressions of existing features (the
+    # efficiency ratios) add nothing for a depth-3 XGBoost; products the trees
+    # cannot build themselves do. Batch 1 (expected_air_yards,
+    # target_concentration, wind_pass_interaction, expected_plays) measured
+    # mean yardage ΔMAE -0.082 over 17/21 folds (re-measured after fixing an
+    # opponent-tempo mapping bug). Batch 2 (rz_carry_share,
+    # pressure_exposure, protection_time, gunslinger -- see
+    # features/interactions.py::EXPERIMENTAL_COLUMNS) measured +0.026 / 4/21
+    # and stays OUT until it clears the bar with better data.
+    # Built by `features/interactions.py`, wired into
+    # `scripts/train_quantile_props.py::build_feature_frame` after
+    # `add_matchup_features` / `add_availability_features` (it reads
+    # `high_wind_flag` and `ol_injuries_out` off the frame).
+    "expected_air_yards", "target_concentration", "wind_pass_interaction",
+    "expected_plays",
 )
 
 
