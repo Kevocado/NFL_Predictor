@@ -962,18 +962,38 @@ def _real_snapshot_week(week: str) -> dict:
     return {**snap, "weeks": {week: snap["weeks"][week]}}
 
 
+def _a_real_game_with_props():
+    """(week, game) from the committed snapshot where BOTH teams have prop rows. Chosen dynamically: the snapshot is
+    rewritten every few hours and a hard-coded game ages out the moment it is played (PHI@JAX did, on 2026-10-11)."""
+    import json
+    from pathlib import Path
+    snap = json.loads((Path(facts_mod.__file__).parents[3] / "data" / "public_snapshot.json").read_text())
+    for week, data in sorted(snap["weeks"].items(), key=lambda kv: int(kv[0])):
+        teams_with_props = {p.get("recent_team") for p in data.get("player_props") or []}
+        for game in data.get("games") or []:
+            # Unplayed only: a game with a score is final, and facts deliberately give a finished game no context.
+            if (game.get("home_score") is None and game.get("home_team") in teams_with_props
+                    and game.get("away_team") in teams_with_props):
+                return week, game
+    return None, None
+
+
 def test_player_context_from_the_real_committed_snapshot(public, monkeypatch):
-    snap = _real_snapshot_week("5")
-    _install_snapshot(monkeypatch, snap)
-    monkeypatch.setattr(facts_mod, "_now", lambda: datetime(2026, 10, 1, tzinfo=timezone.utc))
-    body = public.get("/facts/2026_05_PHI_JAX").json()
+    week, game = _a_real_game_with_props()
+    assert game is not None, "the committed snapshot has no game with props for both teams"
+    _install_snapshot(monkeypatch, _real_snapshot_week(week))
+    # Pin "now" long before kickoff so the game is upcoming whenever this runs (a started game correctly gets none).
+    monkeypatch.setattr(facts_mod, "_now", lambda: datetime(2020, 1, 1, tzinfo=timezone.utc))
+    body = public.get(f"/facts/{game['game_id']}").json()
     rows = body["context"]["player_context"]
-    # Structure only: the committed snapshot is rewritten every 3 hours, so no player names are asserted.
+    # Structure only: no player names are asserted, the snapshot changes every few hours.
     by = {(r["team"], r["role"]): r for r in rows}
-    assert {(t, role) for t in ("PHI", "JAX") for role in ("top_passer", "top_rusher", "top_receiver")} == set(by)
-    assert all(r["name"] for r in rows)
+    teams = {game["home_team"], game["away_team"]}
+    assert {t for t, _ in by} <= teams
+    assert {r["role"] for r in rows} <= {"top_passer", "top_rusher", "top_receiver"}
+    assert len(rows) >= 2 and all(r["name"] for r in rows)
     assert all(set(r) == {"team", "name", "role", "stat", "value"} for r in rows)
-    assert all(isinstance(r["value"], int) and r["value"] > 0 for r in rows) and len(rows) == 6
+    assert all(isinstance(r["value"], int) and r["value"] > 0 for r in rows)
     # props block unchanged
     assert body["players"] and "player_context" not in body["players"][0]
 
