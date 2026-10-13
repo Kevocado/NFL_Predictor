@@ -81,4 +81,4 @@ def load_pickle(path):
     if manifest.PASSING_TD_MODEL_FILENAME in name:
         return passing_td_payload(
             [player_usage.PASSING_TDS_ROLL_COLUMN, *qb_passing_td.MU_FEATURE_COLUMNS])
-    return fitted_on(list(player_usage.PLAYER_FEATURE_COLUMNS))
+    return fitted_on(list(player_usage.ALL_PLAYER_FEATURE_COLUMNS))

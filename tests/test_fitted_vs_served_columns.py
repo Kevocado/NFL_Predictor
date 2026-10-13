@@ -84,13 +84,14 @@ def _player_history_frame() -> pd.DataFrame:
 
     Columns are what `player_usage.ROLL_STATS` names plus `passing_tds`, so this
     frame can also be used to ask the serving builder what it emits rather than
-    trusting the declared constant.
+    trusting the declared constant. `rushing_tds` is included for the
+    QB-specific rolling (`QB_ROLL_STATS`); it is not in `ROLL_STATS` itself.
     """
     return pd.DataFrame(
         [
             {"player_id": "p1", "season": 2024, "week": week,
              **{stat: float(10 + week + i) for i, stat in enumerate(player_usage.ROLL_STATS)},
-             "passing_tds": float(week % 3)}
+             "passing_tds": float(week % 3), "rushing_tds": float(week % 2)}
             for week in (1, 2, 3, 4)
         ]
     )
@@ -521,7 +522,7 @@ def test_the_player_serving_column_set_is_derived_from_the_builder_not_a_constan
         "p1", _player_history_frame(), season=2024, week=5,
         window=player_usage.DEFAULT_ROLL_WINDOW).index)
 
-    assert set(emitted) == set(player_usage.PLAYER_FEATURE_COLUMNS) | {
+    assert set(emitted) == set(player_usage.ALL_PLAYER_FEATURE_COLUMNS) | {
         player_usage.PASSING_TDS_ROLL_COLUMN
     }
     assert list(manifest._player_serving_columns()) == emitted
@@ -529,7 +530,7 @@ def test_the_player_serving_column_set_is_derived_from_the_builder_not_a_constan
     # The declared constant and the builder currently agree, so this passes --
     # but the load-time audit must not be reading it. Point the constant somewhere
     # wrong and confirm the audit's answer does not move.
-    lying = [*player_usage.PLAYER_FEATURE_COLUMNS, "a_column_the_builder_never_emits"]
+    lying = [*player_usage.ALL_PLAYER_FEATURE_COLUMNS, "a_column_the_builder_never_emits"]
     monkeypatch.setattr(player_usage, "SERVING_FEATURE_COLUMNS", lying)
     assert list(manifest._player_serving_columns()) == emitted
 

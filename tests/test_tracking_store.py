@@ -562,11 +562,11 @@ def test_the_grader_and_the_training_frame_agree_on_the_definition():
         {"player_id": "a", "player_name": "A", "position": "QB", "recent_team": "BAL",
          "season": 2025, "week": 1, "passing_yards": 300, "passing_tds": 4,
          "rushing_yards": 0, "rushing_tds": 0, "receiving_yards": 0, "receiving_tds": 0,
-         "receptions": 0, "targets": 0, "carries": 0},
+         "receptions": 0, "targets": 0, "carries": 0, "attempts": 40, "completions": 28},
         {"player_id": "b", "player_name": "B", "position": "WR", "recent_team": "BAL",
          "season": 2025, "week": 1, "passing_yards": 0, "passing_tds": 0,
          "rushing_yards": 0, "rushing_tds": 0, "receiving_yards": 70, "receiving_tds": 1,
-         "receptions": 5, "targets": 8, "carries": 0},
+         "receptions": 5, "targets": 8, "carries": 0, "attempts": 0, "completions": 0},
     ])
     labelled, _ = player_usage.build_player_training_frame(frame)
     assert labelled["anytime_td"].tolist() == [

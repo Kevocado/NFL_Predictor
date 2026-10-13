@@ -103,7 +103,9 @@ def test_predict_props_gracefully_skips_a_market_not_yet_in_models():
 
 
 def test_position_markets_covers_expected_markets_per_position_including_no_cfb_targets():
-    assert player_props.POSITION_MARKETS["QB"] == ["passing_yards"]
+    # QB rushing is its own market (not pooled with RB rushing); receptions (WR/TE) is a ZINB count market and RB
+    # receptions are deliberately unpriced (they failed the calibration gate).
+    assert player_props.POSITION_MARKETS["QB"] == ["passing_yards", "qb_rushing_yards"]
     assert player_props.POSITION_MARKETS["RB"] == ["rushing_yards", "carries"]
     assert player_props.POSITION_MARKETS["WR"] == ["receiving_yards", "receptions"]
     assert player_props.POSITION_MARKETS["TE"] == ["receiving_yards", "receptions"]

@@ -267,6 +267,17 @@ def history_row_for(feature_frame, player_id: str, season: int, week: int,
             # mean(raw .. week-1) -- one game stale on the one feature that
             # detects a QB change. `_opp_share_for` closes that skew.
             result[column] = _opp_share_for(prior, season, week)
+        elif column == "wind_pass_interaction":
+            # Mixed discipline, like `opp_share` above: the wind half is the
+            # TARGET game's own flag (from context -- training builds it from
+            # the week's own forecast via `add_matchup_features`), the
+            # pass-share half is lagged history. Copying the prior row's
+            # product would price this game on last week's weather.
+            wind = context.get("high_wind_flag")
+            wind = 0 if wind is None or pd.isna(wind) else int(wind)
+            share = row.get("pass_share_roll")
+            share = 0.0 if share is None or pd.isna(share) else float(share)
+            result[column] = wind * share
         elif column in prior.columns:
             result[column] = row[column]
     return result

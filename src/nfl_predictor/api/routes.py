@@ -985,6 +985,15 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
                 )
             results = kept
 
+        # Raw quantile dicts are an internal handoff, not an API field: strip
+        # them before the rows leave. (The directionality patch consumes
+        # `{market}_quantiles` to compute `{market}_p_over` + line and strips
+        # them itself; it runs before this point, so this is a no-op safety
+        # net once it lands.)
+        for row in results:
+            for key in [k for k in row if k.endswith("_quantiles")]:
+                del row[key]
+
         return results
     except PlayerPropsUnavailable:
         # Already carries the reason. Logging it again as a traceback here would

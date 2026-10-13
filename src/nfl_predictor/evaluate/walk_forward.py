@@ -112,18 +112,28 @@ import pandas as pd
 
 from ..models.player_props import QUANTILES, fit_yardage_quantile_models
 from ..models.prop_probability import p_over_from_quantiles
-from ..models.training import MARKET_POSITIONS
+from ..models.training import COUNT_MARKETS, MARKET_LABEL_COLUMN, MARKET_POSITIONS
 
 #: Markets the quantile models cover, and the positions that actually get a line
 #: for them. A WR has no rushing-yards prop, so training one would be fitting a
 #: market that cannot be bet.
 #:
-#: **Imported from `models.training`, not restated.** These were two independent
+#: **Derived from `models.training`, not restated.** These were two independent
 #: declarations of one mapping, which is precisely how the offline gate came to
 #: validate a different feature set from the one the artifacts were fitted on
 #: with nothing comparing them. The trainer is the authority: a market it fits is
 #: a market the gate scores.
-QUANTILE_MARKETS: dict[str, tuple[str, ...]] = MARKET_POSITIONS
+#:
+#: Count markets (`COUNT_MARKETS`, currently just `receptions`) are EXCLUDED:
+#: they are fitted by the ZINB in `models/receptions_zinb.py` and gated by
+#: their own walk-forward, because the quantile regressor cannot calibrate a
+#: discrete count (worst gap 0.138, see b3331be). Scoring them here would
+#: re-poison the aggregate gate the 2026-10-12 exclusion was made to protect.
+QUANTILE_MARKETS: dict[str, tuple[str, ...]] = {
+    market: positions
+    for market, positions in MARKET_POSITIONS.items()
+    if market not in COUNT_MARKETS
+}
 
 #: Proxy lines are not real book lines -- no free historical props exist. Each
 #: row is scored against an exogenous line, which tests calibration without
@@ -195,17 +205,21 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
         if market not in QUANTILE_MARKETS:
             raise ValueError(f"unknown market: {market!r}")
 
+        # The label column is not always the market name: `qb_rushing_yards`
+        # models the `rushing_yards` column on QB rows (see
+        # training.MARKET_LABEL_COLUMN).
+        label_col = MARKET_LABEL_COLUMN[market]
         sub = feature_df[feature_df["position"].isin(QUANTILE_MARKETS[market])
-                         & feature_df[market].notna()]
+                         & feature_df[label_col].notna()]
         if sub.empty:
             continue
         sub = sub.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
         by_player = sub["player_id"]
-        own_median = proxy_line(sub[market], by_player)
+        own_median = proxy_line(sub[label_col], by_player)
         sub = sub.assign(
             proxy_line=exogenous_line(own_median, [sub["season"], sub["week"]]),
             own_median_line=own_median,
-            naive_pred=naive_prediction(sub[market], by_player, window),
+            naive_pred=naive_prediction(sub[label_col], by_player, window),
         )
 
         for val_season in seasons:
@@ -214,7 +228,7 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
             if train.empty or val.empty:
                 continue
 
-            models = fit_yardage_quantile_models(train[feature_cols], train[market], quantiles)
+            models = fit_yardage_quantile_models(train[feature_cols], train[label_col], quantiles)
             predicted = {q: models[q].predict(val[feature_cols].fillna(0)) for q in quantiles}
 
             for i, (_, record) in enumerate(val.iterrows()):
@@ -225,7 +239,7 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
                     "week": int(record["week"]),
                     "player_id": record["player_id"],
                     "position": record["position"],
-                    "actual": float(record[market]),
+                    "actual": float(record[label_col]),
                     "q10": quantiles_at_row.get(0.1, np.nan),
                     "q50": quantiles_at_row.get(0.5, np.nan),
                     "q90": quantiles_at_row.get(0.9, np.nan),
@@ -241,7 +255,7 @@ def walk_forward_quantile(feature_df: pd.DataFrame, markets: list[str],
                     row[f"p_over_{label}"] = (
                         p_over_from_quantiles(quantiles_at_row, float(line)) if scoreable else np.nan)
                     row[f"covered_{label}"] = (
-                        int(record[market] > line) if scoreable else np.nan)
+                        int(record[label_col] > line) if scoreable else np.nan)
                 rows.append(row)
 
     return pd.DataFrame(rows)

@@ -21,7 +21,7 @@ import pytest
 
 from nfl_predictor.models.player_props import QUANTILES, fit_yardage_quantile_models
 from nfl_predictor.models.training import (
-    FORWARD_FEATURE_COLUMNS, train_all,
+    COUNT_MARKETS, FORWARD_FEATURE_COLUMNS, MARKET_LABEL_COLUMN, train_all,
 )
 from nfl_predictor.models.training import MARKETS as training_markets
 from nfl_predictor.models.quantile_registry import (
@@ -32,7 +32,10 @@ from nfl_predictor.models.quantile_registry import (
 #: declared its own copy, so adding a market to the trainer failed two tests
 #: here for a reason that had nothing to do with the registry -- the exact
 #: duplication that let the gate and the trainer drift apart in production.
-MARKETS = list(training_markets)
+ALL_MARKETS = list(training_markets)
+#: The markets the QUANTILE registry stores. Count markets (receptions) are fitted by the ZINB and written as their
+#: own standalone artifact, so the registry tests below must not expect a quantile pickle for them.
+MARKETS = [m for m in training_markets if m not in COUNT_MARKETS]
 
 
 def _fitted(n=200):
@@ -66,11 +69,14 @@ def _manifest():
 
 
 def _passing_verdict():
-    """What Task 14 hands over on a PASS: a calibration table with no failing bucket."""
+    """What Task 14 hands over on a PASS: a calibration table with no failing bucket.
+
+    `receptions_calibration` is the ZINB count model's own gate verdict; `train_all` refuses to write the receptions
+    artifact without a passing one (see test_a_failing_receptions_gate_refuses_to_write)."""
+    bucket = {"predicted": 0.55, "empirical": 0.56, "n": 900, "gap": 0.01, "within_tolerance": True}
     return {"walkforward_mae": 20.0,
-            "walkforward_calibration": {"0.5-0.6": {"predicted": 0.55, "empirical": 0.56,
-                                                     "n": 900, "gap": 0.01,
-                                                     "within_tolerance": True}}}
+            "walkforward_calibration": {"0.5-0.6": dict(bucket)},
+            "receptions_calibration": {"0.5-0.6": dict(bucket)}}
 
 
 def test_save_writes_one_pickle_per_market(tmp_path, fitted):
@@ -198,7 +204,7 @@ def test_train_all_writes_one_pickle_per_market(tmp_path, monkeypatch):
                         manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
                         **_passing_verdict())
 
-    assert set(written) == set(MARKETS)
+    assert set(written) == set(ALL_MARKETS)
     for market in MARKETS:
         assert (tmp_path / f"{market}_quantile_2025.pkl").exists()
 
@@ -277,8 +283,11 @@ def test_train_all_does_not_write_a_production_pickle(tmp_path):
               manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
               **_passing_verdict())
 
+    from nfl_predictor.models.receptions_zinb import RECEPTIONS_ZINB_FILENAME
+
     on_disk = {p.name for p in tmp_path.glob("*.pkl")}
-    assert on_disk == {f"{m}_quantile_2025.pkl" for m in MARKETS}, (
+    expected = {f"{m}_quantile_2025.pkl" for m in MARKETS} | {RECEPTIONS_ZINB_FILENAME}
+    assert on_disk == expected, (
         "the live site's pickles must never be a write target")
 
 
@@ -306,6 +315,24 @@ def _training_frame(with_features: bool = True):
                     "f1": float(rng.normal()), "f2": float(rng.normal()),
                 }
                 row[market] = float(40 + 5 * player + rng.normal(scale=10))
+                if position == "QB":
+                    # QB rushing is its own market (label column `rushing_yards`, QB rows only): a QB's
+                    # rushing is small and sometimes <= 0, unlike the RB column the same name feeds.
+                    row["rushing_yards"] = float(6 + rng.normal(scale=12))
+                else:
+                    # Receptions (WR/TE/RB) is a count fitted by the ZINB. Rolls and label are drawn so the
+                    # fit is stable: receptions track targets, with the zero-heavy tail real data has. The roll
+                    # columns are part of the declared feature set, so the bare frame (with_features=False)
+                    # must not carry them or it would still produce a receptions artifact.
+                    targets_roll = float(rng.uniform(2.0, 9.0))
+                    if with_features:
+                        row["targets_roll"] = targets_roll
+                        row["receptions_roll"] = 0.65 * targets_roll
+                        row["receiving_yards_roll"] = 9.0 * row["receptions_roll"]
+                        row["carries_roll"] = float(rng.uniform(0.0, 6.0))
+                        row["rushing_yards_roll"] = 4.0 * row["carries_roll"]
+                        row["yards_per_target_roll"] = float(rng.uniform(5.0, 9.0))
+                    row["receptions"] = float(rng.poisson(0.65 * targets_roll) * (rng.random() > 0.15))
                 rows.append(row)
     frame = pd.DataFrame(rows)
     if with_features:
@@ -391,7 +418,17 @@ def test_feature_columns_are_a_subset_of_the_declared_list(tmp_path):
                           manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
                           **_passing_verdict())
 
+    from nfl_predictor.models.receptions_zinb import RECEPTIONS_FEATURE_COLUMNS, _BASE_ROLL_COLUMNS
+
     for market, payload in artifacts.items():
+        if market in COUNT_MARKETS:
+            # The ZINB derives three features in-module (catch_rate, is_WR, is_TE); every OTHER column it reads
+            # must still come from the declared list, and the derived set must be exactly those three.
+            cols = set(payload["feature_cols"])
+            assert cols == set(RECEPTIONS_FEATURE_COLUMNS)
+            assert set(_BASE_ROLL_COLUMNS) <= set(FORWARD_FEATURE_COLUMNS), "ZINB reads an undeclared roll column"
+            assert cols - set(_BASE_ROLL_COLUMNS) == {"catch_rate", "is_WR", "is_TE"}
+            continue
         assert set(payload["feature_cols"]) <= set(FORWARD_FEATURE_COLUMNS), (
             f"{market} fitted on columns outside the declared, gate-validated set")
 
@@ -409,14 +446,19 @@ def test_rolling_features_are_used_when_present(tmp_path):
 
 def test_a_frame_without_the_declared_features_writes_nothing(tmp_path):
     """The leakage filter can starve a model, and that must show up as no
-    artifact rather than as one fitted on whatever numeric columns remain."""
-    artifacts = train_all(frame=_training_frame(with_features=False),
-                          trained_seasons=[2017], out_dir=tmp_path,
-                          manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
-                          **_passing_verdict())
+    artifact rather than as one fitted on whatever numeric columns remain.
 
-    assert artifacts == {}
+    The quantile markets skip with a warning. The receptions ZINB is STRICTER: it refuses to fill a missing roll
+    column with zeros (scoring on a constant-zero feature is the defect `_derive_features` exists to prevent), so it
+    raises. Either way, nothing may be written."""
+    with pytest.raises(KeyError, match="receptions ZINB"):
+        train_all(frame=_training_frame(with_features=False),
+                  trained_seasons=[2017], out_dir=tmp_path,
+                  manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
+                  **_passing_verdict())
+
     assert list(tmp_path.glob("*.pkl")) == []
+    assert not (tmp_path / "manifest.json").exists(), "a refused fit must not leave a manifest behind"
 
 
 
@@ -479,3 +521,43 @@ def test_train_all_refuses_on_an_empty_calibration_report(tmp_path):
         train_all(frame=_training_frame(), trained_seasons=[2017], out_dir=tmp_path,
                   manifest=_manifest(), manifest_path=tmp_path / "manifest.json",
                   walkforward_mae=20.0, walkforward_calibration={})
+
+
+# --- the receptions gate is a hard requirement (do not lower it) ------------
+
+@pytest.mark.parametrize("verdict", [
+    None,   # no report: no bucket met the n>=100 floor -> "not enough data to judge" is a stop, not a pass
+    {},
+    {"0.5-0.6": {"predicted": 0.55, "empirical": 0.40, "n": 900, "gap": 0.15, "within_tolerance": False}},
+])
+def test_a_failing_receptions_gate_refuses_to_write(tmp_path, verdict):
+    base = _passing_verdict()
+    base["receptions_calibration"] = verdict
+    with pytest.raises(ValueError, match="refusing to write receptions artifact"):
+        train_all(frame=_training_frame(), trained_seasons=[2017], out_dir=tmp_path,
+                  manifest=_manifest(), manifest_path=tmp_path / "manifest.json", **base)
+    assert list(tmp_path.glob("*.pkl")) == [], "a refused gate must write nothing, not even the quantile pickles"
+
+
+def test_the_receptions_artifact_is_the_zinb_with_a_manifest_entry(tmp_path):
+    manifest = _manifest()
+    artifacts = train_all(frame=_training_frame(), trained_seasons=[2017], out_dir=tmp_path,
+                          manifest=manifest, manifest_path=tmp_path / "manifest.json", **_passing_verdict())
+
+    assert artifacts["receptions"]["distribution"] == "zero_inflated_negative_binomial"
+    written = json.loads((tmp_path / "manifest.json").read_text())
+    assert written["receptions"]["distribution"] == "zero_inflated_negative_binomial"
+    assert written["receptions"]["path"] == "receptions_zinb_model.pkl"
+    assert written["receptions"]["trained_seasons"] == [2017]
+    assert "receptions" not in written[ARTIFACT_KEY]["markets"], "a count model is not a quantile artifact"
+
+
+def test_qb_rushing_is_fitted_on_qb_rows_and_the_rushing_column(tmp_path):
+    artifacts = train_all(frame=_training_frame(), trained_seasons=[2017], out_dir=tmp_path,
+                          manifest=_manifest(), manifest_path=tmp_path / "manifest.json", **_passing_verdict())
+
+    assert MARKET_LABEL_COLUMN["qb_rushing_yards"] == "rushing_yards"
+    payload = artifacts["qb_rushing_yards"]
+    assert "rushing_yards" not in payload["feature_cols"], "a model cannot be fitted on its answer"
+    assert "rushing_yards_roll" in payload["feature_cols"]
+    assert (tmp_path / "qb_rushing_yards_quantile_2025.pkl").exists()

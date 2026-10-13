@@ -14,13 +14,14 @@ from ..data import player_stats, schedules
 from ..evaluate import walk_forward
 from ..features import build as feature_build
 from ..features import player_usage
-from . import game_outcome, player_props, qb_passing_td
+from . import game_outcome, player_props, qb_passing_td, receptions_zinb
 
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
 GAME_MODEL_FILENAME = "game_outcome_model.pkl"
 TOTAL_MODEL_FILENAME = "total_points_model.pkl"
 ANYTIME_TD_MODEL_FILENAME = "anytime_td_model.pkl"
 PASSING_TD_MODEL_FILENAME = "qb_passing_td_model.pkl"
+RECEPTIONS_ZINB_FILENAME = receptions_zinb.RECEPTIONS_ZINB_FILENAME
 
 DEFAULT_TRAIN_SEASONS = 8
 
@@ -163,6 +164,12 @@ def train_all(seasons: list[int] | None = None, blocks: tuple[str, ...] = (), au
 
     yardage_metrics = {}
     for market, target_col in player_props.YARDAGE_TARGETS.items():
+        # Quantile-only markets (QUANTILE_ONLY_MARKETS) get no legacy
+        # point-regressor pickle: they are fitted and served from the quantile
+        # artifact, with q50 as the point prediction. A pooled point fit for
+        # `qb_rushing_yards` would serve RB-scale rushing numbers to QBs.
+        if market in player_props.QUANTILE_ONLY_MARKETS:
+            continue
         path = _yardage_model_path(market)
         subset = player_train_df[player_train_df[target_col] > 0]
         if subset.empty:
@@ -340,7 +347,7 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
             "(`python -m nfl_predictor.models.manifest`) to write one."
         )
 
-    # The code's own fingerprint: `PLAYER_FEATURE_COLUMNS` and
+    # The code's own fingerprint: `ALL_PLAYER_FEATURE_COLUMNS` and
     # `feature_build.FEATURE_COLUMNS` from the source, and the label version from
     # the source. Nothing here is read out of the manifest, because a check whose
     # expectation comes from the artefact it is checking cannot detect the
@@ -353,7 +360,7 @@ def _verify_artifact_fingerprint(manifest: dict) -> None:
         raise ValueError(
             f"{MANIFEST_PATH} records models fitted on {fitted_features} but the "
             f"code's player features are now {expected_features} "
-            f"({player_usage.__name__}.PLAYER_FEATURE_COLUMNS). The committed "
+            f"({player_usage.__name__}.ALL_PLAYER_FEATURE_COLUMNS). The committed "
             "pickles were fitted on a different feature set, so every prediction "
             "would come from a stale model. Re-run training "
             "(`python -m nfl_predictor.models.manifest`)."
@@ -911,6 +918,36 @@ def _load_passing_td_model(manifest: dict, player_serving: list[str]) -> dict | 
     return fitted
 
 
+def _load_receptions_zinb_model(manifest: dict) -> dict | None:
+    """Load the fitted receptions ZINB, or None when the manifest lacks it.
+
+    Gated on the manifest, not on the file being present -- the same rule as
+    `_load_passing_td_model`: a manifest that records a fitted model and a
+    directory without the file is a corrupt deployment, and serving a payload
+    with the market silently missing reads as "no reception picks" rather
+    than as the outage it is.
+
+    The standard `_assert_artefact_columns_are_served` check does NOT apply
+    here: the ZINB's fitted columns (`catch_rate`, `is_WR`, `is_TE`) are
+    derived in-module from served roll columns by
+    `receptions_zinb._derive_features`, not emitted by
+    `build_features_for_player` directly. The module raises `KeyError` on a
+    missing base column at predict time instead -- the per-row backstop.
+    """
+    declared = manifest.get(receptions_zinb.RECEPTIONS_MARKET)
+    if declared is None:
+        return None
+    path = _artifact_path(RECEPTIONS_ZINB_FILENAME)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{MANIFEST_PATH} records a fitted {receptions_zinb.RECEPTIONS_MARKET} model "
+            f"(distribution={declared.get('distribution')!r}, n_train={declared.get('n_train')!r}) "
+            f"but {path} is missing. Re-run training to restore the artifact; serving without "
+            "it would silently drop the market from every WR/TE prop row."
+        )
+    return _load_pickle(path)
+
+
 def load_models() -> dict:
     """Load all saved artifacts and their feature metadata.
 
@@ -981,11 +1018,51 @@ def load_models() -> dict:
             expected_cols=expected_player)
         player_models[market] = model
 
+    # Quantile models for P(over) directionality. Optional: an artifact
+    # directory trained before the quantile retrain has no quantile pickles,
+    # and the rows simply carry no quantile predictions.
+    #
+    # Markets come from the quantile registry's own manifest section
+    # (`quantile_yardage_v1.markets`), unioned with the legacy
+    # `yardage_metrics` keys so manifests written before the registry
+    # existed still resolve. `qb_rushing_yards` only exists in the former:
+    # it has no legacy point-regressor pickle (see QUANTILE_ONLY_MARKETS).
+    #
+    # No column assertion here: the quantile models are fitted on
+    # FORWARD_FEATURE_COLUMNS (see training.py), a different list from the
+    # point regressors' ALL_PLAYER_FEATURE_COLUMNS. Their own recorded
+    # `feature_cols` travel in the artifact payload and `predict_props`
+    # reindexes by those, so a mismatch surfaces as a per-player skip, not a
+    # boot-time refusal to serve.
+    quantile_section = manifest.get("quantile_yardage_v1") or {}
+    quantile_markets = set(quantile_section.get("markets") or {})
+    quantile_markets |= set(manifest.get("yardage_metrics") or {})
+    for market in sorted(quantile_markets):
+        qpath = _artifact_path(f"{market}_quantile_2025.pkl")
+        if not qpath.exists():
+            continue
+        try:
+            payload = _load_pickle(qpath)
+        except Exception:
+            # Unreadable quantile artifact: skip its predictions rather than
+            # refusing to serve the point predictions.
+            continue
+        if payload.get("quantile_models") and payload.get("feature_cols"):
+            player_models[f"{market}_quantiles"] = payload["quantile_models"]
+            player_models[f"{market}_quantile_cols"] = list(payload["feature_cols"])
+
     # Optional exactly as the comment below the model says: absent from the
     # manifest means not served, present in the manifest means required.
     passing_td = _load_passing_td_model(manifest, player_serving)
     if passing_td is not None:
         player_models[qb_passing_td.PASSING_TD_MARKET] = passing_td
+
+    # The receptions ZINB, same optional/required contract. Stored under
+    # `"receptions"`; `predict_props` attaches the over/under call for
+    # WR/TE rows when it is present.
+    receptions = _load_receptions_zinb_model(manifest)
+    if receptions is not None:
+        player_models[receptions_zinb.RECEPTIONS_MARKET] = receptions
 
     # The game half. `routes._predict_game_from_models` reindexes the live row by
     # `manifest["feature_cols"]` and `fillna(0)`s, so a removed game feature is

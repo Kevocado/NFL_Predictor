@@ -11,6 +11,7 @@ def _raw_weekly_frame():
                 "recent_team": "KC", "season": 2025, "week": 1,
                 "passing_yards": 291, "passing_tds": 2, "rushing_yards": 12, "rushing_tds": 0,
                 "receiving_yards": 0, "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 3,
+                "attempts": 38, "completions": 26,
             }
         ]
     )

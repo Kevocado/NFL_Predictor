@@ -9,7 +9,7 @@ from __future__ import annotations
 import pandas as pd
 from xgboost import XGBClassifier, XGBRegressor
 
-from . import qb_passing_td
+from . import qb_passing_td, receptions_zinb
 
 YARDAGE_TARGETS = {
     "passing_yards": "passing_yards",
@@ -17,14 +17,31 @@ YARDAGE_TARGETS = {
     "receiving_yards": "receiving_yards",
     "carries": "carries",
     "receptions": "receptions",
+    # Market -> label column for the QB rushing market. The legacy
+    # point-regressor training loop in manifest.py skips this market (see
+    # QUANTILE_ONLY_MARKETS): it is fitted and served from the quantile
+    # artifact, with q50 as the point prediction.
+    "qb_rushing_yards": "rushing_yards",
 }
 
-# Which markets apply to which position — a QB doesn't have a meaningful
-# rushing-yards prop line in practice, a WR/TE doesn't have a passing one,
-# etc. Each position can now have multiple markets (e.g. RB gets both
-# rushing_yards and carries).
+#: Markets with no legacy point-regressor pickle: fitted and served from the
+#: quantile artifact only. A pooled point fit for `qb_rushing_yards` would
+#: serve RB-scale rushing predictions to QBs (RB median 26 yds vs QB median
+#: 7); the serving path uses the quantile q50 as the point prediction instead
+#: (see `predict_props`).
+QUANTILE_ONLY_MARKETS = frozenset({"qb_rushing_yards"})
+
+# Which markets apply to which position — a WR/TE doesn't have a passing
+# market, etc. Each position can now have multiple markets (e.g. RB gets both
+# rushing_yards and carries). QB rushing is its own market, not pooled with
+# RBs: 29% of QB games are <= 0 rushing yards (kneel-downs and sacks count as
+# rushes) vs 11% for RBs, so one model miscalibrates the QB shape
+# (see training.MARKET_LABEL_COLUMN).
 POSITION_MARKETS: dict[str, list[str]] = {
-    "QB": ["passing_yards"],
+    "QB": ["passing_yards", "qb_rushing_yards"],
+    # `receptions` (WR/TE) is a ZINB count-model market (see `receptions_zinb`), not a point regressor: the loop
+    # below skips it and the dedicated block attaches the over/under call. RB is deliberately absent: RB
+    # receptions failed the calibration gate and are not priced.
     "RB": ["rushing_yards", "carries"],
     "WR": ["receiving_yards", "receptions"],
     "TE": ["receiving_yards", "receptions"],
@@ -97,8 +114,39 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
     result = {"anytime_td_prob": float(models["anytime_td"].predict_proba(X)[0, 1])}
 
     for market in POSITION_MARKETS.get(position, []):
+        # `receptions` is a ZINB count model, not an XGB regressor: it has no
+        # `.predict` and is handled by the dedicated block below.
+        if market == receptions_zinb.RECEPTIONS_MARKET:
+            continue
         if market in models:
             result[market] = float(models[market].predict(X)[0])
+
+    # Quantile predictions for P(over) directionality. The full 19-quantile
+    # dict is carried on the row so the API layer can compute a line and
+    # P(over) against it; the raw dicts are stripped before the rows leave
+    # `_get_player_props_live` (they are an internal handoff, not an API
+    # field). Omitted entirely when the quantile artifacts are absent (an
+    # artifact directory trained before the quantile retrain).
+    #
+    # Markets with no point-regressor pickle (QUANTILE_ONLY_MARKETS) take
+    # their point prediction from the q50 median: the median IS the point
+    # forecast, and a pooled point model would serve the wrong distribution.
+    for market in POSITION_MARKETS.get(position, []):
+        qkey = f"{market}_quantiles"
+        qcolkey = f"{market}_quantile_cols"
+        if qkey not in models:
+            continue
+        try:
+            qcols = models[qcolkey]
+            Xq = feature_row.reindex(qcols).fillna(0).to_numpy().reshape(1, -1)
+            qdict = {q: float(m.predict(Xq)[0]) for q, m in models[qkey].items()}
+            result[qkey] = qdict
+            if market not in result and 0.5 in qdict:
+                result[market] = qdict[0.5]
+        except Exception:
+            # A corrupt or mismatched quantile artifact must not break the
+            # point prediction that the row already carries.
+            continue
 
     # QB passing TDs: a count, so an over/under call rather than a yardage point
     # estimate, and QB-only. Every field is flattened onto the same props row the
@@ -120,6 +168,32 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
                 "passing_td_under_prob": call["under_prob"],
                 "passing_td_prob": call["call_prob"],
                 "passing_td_distribution": call["distribution"],
+            })
+
+    # Receptions: a discrete count, so a ZINB over/under call rather than a
+    # yardage point estimate, for WR/TE. Every field is flattened onto the
+    # same props row the other markets use. Field naming follows the Phase 1
+    # `{market}_p_over` / `{market}_line` API contract.
+    #
+    # Omitted entirely when the model is absent (an artifact directory trained
+    # before this existed), exactly as a yardage market with no model is.
+    if (position in receptions_zinb.RECEPTIONS_POSITIONS
+            and receptions_zinb.RECEPTIONS_MARKET in models):
+        call = receptions_zinb.receptions_call(
+            models[receptions_zinb.RECEPTIONS_MARKET], feature_row, position)
+        if call is not None:
+            result.update({
+                "receptions_line": call["line"],
+                "receptions_line_source": call["line_source"],
+                "receptions_side": call["side"],
+                "receptions_mu": call["mu"],
+                "receptions_p_over": call["over_prob"],
+                "receptions_p_under": call["under_prob"],
+                "receptions_prob": call["call_prob"],
+                "receptions_distribution": call["distribution"],
+                # Serving guardrail: "high_mu" means do not auto-price lines
+                # above 7.5 on this row (see receptions_zinb module docstring).
+                "receptions_mu_flag": call["mu_flag"],
             })
 
     return result

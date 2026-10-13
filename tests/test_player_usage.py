@@ -14,6 +14,7 @@ def _player_stats():
                 "season": 2025, "week": week,
                 "passing_yards": 0, "passing_tds": 0, "rushing_yards": 80 + week, "rushing_tds": 1,
                 "receiving_yards": 10, "receiving_tds": 0, "receptions": 2, "targets": 3, "carries": 18,
+                "attempts": 0, "completions": 0,
             }
         )
     return pd.DataFrame(rows)
@@ -120,6 +121,8 @@ def _labels_for(rows: list[dict]) -> list[int]:
                 "receptions": r.get("receptions", 0),
                 "targets": r.get("targets", 0),
                 "carries": r.get("carries", 0),
+                "attempts": r.get("attempts", 0),
+                "completions": r.get("completions", 0),
             }
             for i, r in enumerate(rows)
         ]
@@ -186,7 +189,7 @@ def test_the_label_treats_a_missing_td_column_as_zero():
             "season": 2025, "week": 1,
             "passing_yards": 0, "passing_tds": None, "rushing_yards": 90, "rushing_tds": 1,
             "receiving_yards": None, "receiving_tds": None, "receptions": None,
-            "targets": None, "carries": 14,
+            "targets": None, "carries": 14, "attempts": None, "completions": None,
         }]
     )
     df, _ = player_usage.build_player_training_frame(frame)
@@ -200,10 +203,16 @@ def test_the_label_change_does_not_move_the_feature_columns():
     `predict_props`' reindex is keyed on. If this test fails the definition change
     has leaked into the feature set, and every committed artefact is wrong in shape
     rather than only in target.
+
+    (2026-10-12) The derived-features branch deliberately widened the base
+    rolling stats with `attempts`/`completions`, so the pinned list below grew
+    from 6 to 8. `ALL_PLAYER_FEATURE_COLUMNS` is now the full served set; this
+    test pins the base list it extends.
     """
     assert player_usage.PLAYER_FEATURE_COLUMNS == [
         "passing_yards_roll", "rushing_yards_roll", "receiving_yards_roll",
         "targets_roll", "carries_roll", "receptions_roll",
+        "attempts_roll", "completions_roll",
     ]
     assert "anytime_td" not in player_usage.PLAYER_FEATURE_COLUMNS
 

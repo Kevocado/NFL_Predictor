@@ -93,22 +93,35 @@ _FLAG_SOURCES = {
     "carries": "rush_attempt",
     "receptions": "complete_pass",
     "targets": "pass_attempt",
+    # Passing volume for the passer. `pass_attempt` is shared with `targets`,
+    # but role ownership keeps them apart: a pass attempt is a target for the
+    # receiver and an attempt for the passer, never both for one player.
+    "attempts": "pass_attempt",
+    "completions": "complete_pass",
+    # Touchdowns by role. `pass_touchdown` credits both the passer and the
+    # receiver on a passing TD (role ownership keeps them apart, same as
+    # attempts/targets above); `rush_touchdown` credits the rusher.
+    "passing_tds": "pass_touchdown",
+    "rushing_tds": "rush_touchdown",
+    "receiving_tds": "pass_touchdown",
 }
 
 #: Which stats each role owns. A completed pass is one row for the passer *and*
 #: one for the receiver, so without this a QB would be credited with his
 #: receiver's yardage and a WR with his quarterback's attempts.
 _ROLE_STATS = {
-    "passer_player_id": ("passing_yards",),
-    "rusher_player_id": ("rushing_yards", "carries"),
-    "receiver_player_id": ("receiving_yards", "receptions", "targets"),
+    "passer_player_id": ("passing_yards", "attempts", "completions", "passing_tds"),
+    "rusher_player_id": ("rushing_yards", "carries", "rushing_tds"),
+    "receiver_player_id": ("receiving_yards", "receptions", "targets", "receiving_tds"),
 }
 
 _ALL_STATS = tuple(_YARDAGE_SOURCES) + tuple(_FLAG_SOURCES)
 
 WEEKLY_COLUMNS = ["player_id", "player_name", "position", "season", "week",
                   "recent_team", "opponent_team", "passing_yards", "rushing_yards",
-                  "receiving_yards", "targets", "carries", "receptions"]
+                  "receiving_yards", "targets", "carries", "receptions",
+                  "attempts", "completions",
+                  "passing_tds", "rushing_tds", "receiving_tds"]
 
 
 def _role_frame(games: pd.DataFrame, id_column: str, name_column: str) -> pd.DataFrame:
@@ -127,7 +140,13 @@ def _role_frame(games: pd.DataFrame, id_column: str, name_column: str) -> pd.Dat
     for stat, source in _YARDAGE_SOURCES.items():
         frame[stat] = sub[source].fillna(0) if stat in owned else 0
     for stat, source in _FLAG_SOURCES.items():
-        frame[stat] = sub[source].fillna(False).astype(bool).astype(int) if stat in owned else 0
+        # A season missing the source column (or a synthetic test frame) reads
+        # the stat as 0 rather than raising -- same discipline as the
+        # absent-column handling in the quantile script's build_feature_frame.
+        if stat in owned and source in sub.columns:
+            frame[stat] = sub[source].fillna(False).astype(bool).astype(int)
+        else:
+            frame[stat] = 0
     return frame
 
 
@@ -139,6 +158,8 @@ def weekly_from_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
     weekly stats: passing yards and receptions match exactly, rushing and
     receiving yards agree on >=99.6% of player-weeks with correlation >0.999
     (the residual is laterals, which nflverse folds into the official totals).
+    Touchdowns (passing/rushing/receiving, from `pass_touchdown`/`rush_touchdown`)
+    match the official series on 100%/100%/99.9% of player-weeks.
 
     `position` is left as NA: pbp carries no roster, and the training script
     fills it from the depth-chart cache.

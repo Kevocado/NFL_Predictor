@@ -95,11 +95,18 @@ def _add_rolling(df: pd.DataFrame, window: int = DEFAULT_ROLL_WINDOW) -> pd.Data
     grouped = df.groupby("player_id")
     for stat in ROLL_STATS:
         df[f"{stat}_roll"] = grouped[stat].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean())
-    # QB-specific rolling: rushing yards and TDs for QBs
-    if "position" in df.columns:
-        qb_mask = df["position"] == "QB"
-        for stat in QB_ROLL_STATS:
-            df.loc[qb_mask, f"qb_{stat}_roll"] = grouped[stat].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean()).where(qb_mask)
+    # QB-specific rolling: rushing yards and TDs for QBs. The columns are
+    # created unconditionally -- `build_player_training_frame` promises
+    # `ALL_PLAYER_FEATURE_COLUMNS` and `build_features_for_player` always
+    # emits them (NaN for non-QBs), so a frame without a `position` column
+    # must still carry them rather than KeyError downstream. Non-QB rows
+    # (and frames with no position at all) get NaN, matching serving.
+    for stat in QB_ROLL_STATS:
+        rolled = grouped[stat].transform(lambda s: s.shift(1).rolling(window, min_periods=1).mean())
+        if "position" in df.columns:
+            df[f"qb_{stat}_roll"] = rolled.where(df["position"] == "QB")
+        else:
+            df[f"qb_{stat}_roll"] = np.nan
     return df
 
 
