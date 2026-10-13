@@ -308,3 +308,37 @@ def test_the_train_script_defaults_to_the_documented_folds_and_never_lowers_the_
     assert "receptions_calibration=receptions_calibration" in source, "train_all must receive the receptions verdict"
     assert "tolerance" not in source.replace("Tolerances are NOT lowered", ""), \
         "main() must not pass a tolerance override to the gate"
+
+
+# ------------------------------------------------- the served projection (box score "Rec" column)
+
+def _props_models(fitted, frame):
+    from nfl_predictor.models import player_props
+
+    cols = ["targets_roll", "receptions_roll"]
+    td = player_props.fit_anytime_td_classifier(frame[cols], (frame["receptions"] > 3).astype(int))
+    return {"anytime_td": td, "feature_cols": cols, rz.RECEPTIONS_MARKET: fitted}
+
+
+def test_predict_props_serves_the_zinb_mean_as_the_receptions_projection(fitted, frame):
+    """The WR/TE box score's "Rec" column reads `receptions`. The point regressor used to fill it; the ZINB path skips
+    that regressor, which left `receptions` None for EVERY WR/TE on the live site (found by the post-deploy check).
+    The count model's mean is the projection, served under the same name."""
+    from nfl_predictor.models import player_props
+
+    models = _props_models(fitted, frame)
+    for position in ("WR", "TE"):
+        row = frame[frame["position"] == position].iloc[0]
+        result = player_props.predict_props(models, row, position=position)
+        assert isinstance(result["receptions"], float) and result["receptions"] > 0
+        assert result["receptions"] == pytest.approx(result["receptions_mu"])
+        assert "receptions_p_over" in result and "receptions_line" in result
+
+
+def test_running_backs_get_no_receptions_projection_at_all(fitted, frame):
+    """RB receptions failed the gate and stay unpriced: no projection, no call, no flag."""
+    from nfl_predictor.models import player_props
+
+    row = frame[frame["position"] == "RB"].iloc[0]
+    result = player_props.predict_props(_props_models(fitted, frame), row, position="RB")
+    assert not [k for k in result if k.startswith("receptions")]
