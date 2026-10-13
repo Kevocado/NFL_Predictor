@@ -182,6 +182,11 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
         call = receptions_zinb.receptions_call(
             models[receptions_zinb.RECEPTIONS_MARKET], feature_row, position)
         if call is not None:
+            # The projection itself, under the name the box score's "Rec" column reads. The point regressor that
+            # used to fill `receptions` is skipped for this market (it is a count model now), so without this every
+            # WR/TE row had `receptions: None` after the ZINB shipped. The ZINB's mean is the projection, the same
+            # way a quantile-only market takes its point value from q50.
+            result["receptions"] = float(call["mu"])
             result.update({
                 "receptions_line": call["line"],
                 "receptions_line_source": call["line_source"],
