@@ -190,9 +190,20 @@ def _fetch_season(season: int) -> "tuple[pd.DataFrame, str]":
 def fetch_weekly_player_stats(seasons: list[int], force_refresh: bool = False) -> pd.DataFrame:
     frames = []
     missing = []
+    # Seasons whose cache predates a column in KEEP_COLUMNS (e.g. `attempts`/`completions`). They are re-fetched below;
+    # if that fails the stale rows are kept (new columns NaN) rather than dropped or served with a column missing,
+    # which would raise KeyError in `player_usage._add_rolling` for every prop.
+    stale: dict[int, pd.DataFrame] = {}
     for season in seasons:
         path = _season_cache_path(season)
         if not force_refresh and path.exists():
+            cached = pd.read_parquet(path)
+            absent = [c for c in KEEP_COLUMNS if c not in cached.columns]
+            if absent:
+                logger.info("cached player stats for season=%s predate columns %s; refreshing", season, absent)
+                stale[season] = cached.assign(**{c: float("nan") for c in absent})
+                missing.append(season)
+                continue
             if _read_source_marker(season) is None:
                 # A cache from before the marker existed, so it predates the
                 # fallback: every one of this repo's seven was written by
@@ -200,7 +211,7 @@ def fetch_weekly_player_stats(seasons: list[int], force_refresh: bool = False) -
                 # of those seasons. Claim it rather than re-downloading 26
                 # seasons to establish what the sidecar would have said.
                 _write_source_marker(season, "player_stats")
-            frames.append(pd.read_parquet(path))
+            frames.append(cached)
         else:
             missing.append(season)
 
@@ -214,7 +225,12 @@ def fetch_weekly_player_stats(seasons: list[int], force_refresh: bool = False) -
             try:
                 fetched, source_id = _fetch_season(season)
             except Exception:
-                logger.info("No weekly player stats available yet for season=%s", season)
+                if season in stale:
+                    logger.warning("could not refresh player stats for season=%s; serving the stale cache "
+                                   "with the new columns unknown (NaN)", season)
+                    frames.append(stale[season])
+                else:
+                    logger.info("No weekly player stats available yet for season=%s", season)
                 continue
             season_df = fetched[fetched["season"] == season].reset_index(drop=True)
             PLAYER_STATS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
