@@ -57,6 +57,8 @@ def _history(seasons_weeks: list[tuple[int, int, float]], player_id: str = "p1")
                 "targets": 0.0,
                 "carries": 0.0,
                 "receptions": 0.0,
+                "attempts": 0.0,
+                "completions": 0.0,
                 "passing_tds": 0,
                 "rushing_tds": 0,
                 "receiving_tds": 0,
@@ -87,7 +89,11 @@ def test_serving_matches_the_training_row_for_the_same_week():
         assert served is not None
         row = training[training["week"] == target_week].iloc[0]
         for column in feature_cols:
-            assert served[column] == pytest.approx(row[column]), (
+            # nan_ok: the derived ratios are NaN on both sides when the
+            # denominator's rolling mean is 0 (this fixture zeroes targets,
+            # carries, attempts and completions) -- NaN == NaN is the correct
+            # agreement there, and approx would otherwise fail the comparison.
+            assert served[column] == pytest.approx(row[column], nan_ok=True), (
                 f"week {target_week}, {column}: served {served[column]} vs training {row[column]}")
 
 
@@ -169,9 +175,12 @@ def test_serving_without_a_season_filter_keeps_the_old_behaviour():
     served = build_features_for_player("p1", history)
     assert served is not None
     # Superset, not equality: the builder also emits `passing_tds_roll`, which the
-    # QB passing-TD model is fitted on. `PLAYER_FEATURE_COLUMNS` itself is
-    # unchanged -- it is what the anytime-TD classifier and the yardage
-    # regressors are fitted on, so widening it would change their feature count.
+    # QB passing-TD model is fitted on. `PLAYER_FEATURE_COLUMNS` is the base
+    # rolling list (widened 2026-10-12 with `attempts`/`completions`); the full
+    # served set is `ALL_PLAYER_FEATURE_COLUMNS`, which the anytime-TD
+    # classifier and the yardage regressors are fitted on, so widening it
+    # changes their feature count -- which is why the committed artefacts had
+    # to be refitted (see the manifest fingerprint).
     assert set(served.index) == set(SERVING_FEATURE_COLUMNS)
     assert set(PLAYER_FEATURE_COLUMNS) < set(served.index)
     assert "passing_tds_roll" not in PLAYER_FEATURE_COLUMNS

@@ -99,6 +99,7 @@ def _stat_rows(season: int, week: int, team: str = "KC", player_id: str = "00-00
         "recent_team": team, "season": season, "week": week,
         "passing_yards": 275.0, "passing_tds": 2, "rushing_yards": 0.0, "rushing_tds": 0,
         "receiving_yards": 0.0, "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0,
+        "attempts": 35, "completions": 24,
     }])
 
 

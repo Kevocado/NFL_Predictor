@@ -24,7 +24,8 @@ REC = "00-0000003"
 
 def _play(week, passer=None, rusher=None, receiver=None, posteam="A", defteam="ZZ",
           passing_yards=None, rushing_yards=None, receiving_yards=None,
-          complete_pass=False, rush_attempt=False, pass_attempt=False, season=2025):
+          complete_pass=False, rush_attempt=False, pass_attempt=False,
+          pass_touchdown=False, rush_touchdown=False, season=2025):
     return {
         "season": season, "week": week, "season_type": "REG",
         "posteam": posteam, "defteam": defteam,
@@ -36,6 +37,7 @@ def _play(week, passer=None, rusher=None, receiver=None, posteam="A", defteam="Z
         "receiving_yards": receiving_yards or 0.0,
         "complete_pass": complete_pass, "rush_attempt": rush_attempt,
         "pass_attempt": pass_attempt,
+        "pass_touchdown": pass_touchdown, "rush_touchdown": rush_touchdown,
     }
 
 
@@ -68,6 +70,69 @@ def test_weekly_from_pbp_aggregates_each_role(pbp):
     total_rush = weekly[weekly.player_id == RUS]["rushing_yards"].sum()
     assert total_rush == 27
     assert weekly[weekly.player_id == RUS]["carries"].sum() == 2
+
+
+def test_passer_gets_attempts_and_completions_not_targets(pbp):
+    """`attempts`/`completions` are derived for the passer role from pbp.
+
+    The same `pass_attempt` flag feeds both `targets` (receiver) and
+    `attempts` (passer); role ownership keeps them apart, so the QB is not
+    credited with targets and the WR is not credited with attempts.
+    """
+    weekly = weekly_from_pbp(pbp)
+    pas = weekly[weekly.player_id == PAS]
+    rec = weekly[weekly.player_id == REC]
+    # PAS: 3 attempts week 1 (two solo, one completion to REC) + 2 week 2
+    assert pas["attempts"].sum() == 5
+    assert pas["completions"].sum() == 2
+    assert rec["attempts"].sum() == 0
+    assert rec["completions"].sum() == 0
+    assert pas["targets"].sum() == 0
+
+
+def test_touchdowns_credited_by_role():
+    """TDs come from pbp: pass_touchdown credits passer AND receiver,
+    rush_touchdown credits the rusher. Role ownership keeps them apart."""
+    pbp = pd.DataFrame([
+        # Passing TD: PAS throws, REC catches
+        _play(1, passer=PAS, receiver=REC, receiving_yards=25, complete_pass=True,
+              pass_attempt=True, pass_touchdown=True),
+        # Rushing TD: RUS scores on the ground
+        _play(1, rusher=RUS, rushing_yards=3, rush_attempt=True, rush_touchdown=True),
+        # Non-TD plays
+        _play(1, passer=PAS, passing_yards=10, pass_attempt=True),
+        _play(1, rusher=RUS, rushing_yards=5, rush_attempt=True),
+    ])
+    weekly = weekly_from_pbp(pbp)
+    pas = weekly[weekly.player_id == PAS].iloc[0]
+    rus = weekly[weekly.player_id == RUS].iloc[0]
+    rec = weekly[weekly.player_id == REC].iloc[0]
+    assert pas["passing_tds"] == 1
+    assert pas["rushing_tds"] == 0
+    assert pas["receiving_tds"] == 0
+    assert rus["rushing_tds"] == 1
+    assert rus["passing_tds"] == 0
+    assert rec["receiving_tds"] == 1
+    assert rec["rushing_tds"] == 0
+
+
+def test_missing_td_columns_read_as_zero():
+    """Synthetic pbp without pass_touchdown/rush_touchdown (e.g. old tests)
+    yields 0 TDs rather than raising -- same absent-column discipline as the
+    quantile script."""
+    rows = [
+        {"season": 2025, "week": 1, "season_type": "REG",
+         "posteam": "A", "defteam": "ZZ",
+         "passer_player_id": PAS, "passer_player_name": PAS,
+         "rusher_player_id": None, "rusher_player_name": None,
+         "receiver_player_id": None, "receiver_player_name": None,
+         "passing_yards": 100.0, "rushing_yards": 0.0, "receiving_yards": 0.0,
+         "complete_pass": False, "rush_attempt": False, "pass_attempt": True},
+    ]
+    weekly = weekly_from_pbp(pd.DataFrame(rows))
+    assert weekly["passing_tds"].iloc[0] == 0
+    assert weekly["rushing_tds"].iloc[0] == 0
+    assert weekly["receiving_tds"].iloc[0] == 0
 
 
 def test_one_row_per_player_per_week(pbp):

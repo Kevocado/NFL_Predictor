@@ -29,12 +29,17 @@ from nfl_predictor.evaluate.walk_forward import (  # noqa: E402
 #: curve is reported beside it as the tail-watch diagnostic (amended 2026-10-04).
 BINDING_COLUMNS = ("p_over_exogenous", "covered_exogenous")
 DIAGNOSTIC_COLUMNS = ("p_over_own_median", "covered_own_median")
+from nfl_predictor.models import receptions_zinb  # noqa: E402
 from nfl_predictor.models.training import (  # noqa: E402
-    FORWARD_FEATURE_COLUMNS, train_all,
+    COUNT_MARKETS, FORWARD_FEATURE_COLUMNS, train_all,
 )
 from nfl_predictor.features.availability import add_availability_features  # noqa: E402
+from nfl_predictor.features.interactions import (  # noqa: E402
+    add_interaction_features, add_ngs_features, add_pbp_features,
+    split_ngs_by_stat_type,
+)
 from nfl_predictor.features.matchup import add_matchup_features  # noqa: E402
-from nfl_predictor.features.player_usage import _add_rolling  # noqa: E402
+from nfl_predictor.features.player_usage import _add_rolling, _compute_derived_features  # noqa: E402
 
 #: The gate's features come from the SAME constant the artifacts are fitted on.
 #: Re-declaring the list here is what let the gate validate 28 features while the
@@ -74,8 +79,14 @@ def load_weekly(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
 
 #: Play-by-play is ~450k rows x 398 columns; the availability features read
 #: seven of them. Loading the whole frame to build a snap share is how a
-#: walk-forward turns into an out-of-memory kill.
-PBP_COLUMNS = ["season", "week", "posteam", "receiver_player_id",
+#: walk-forward turns into an out-of-memory kill. The interaction features
+#: (`features/interactions.py`) need the tempo/pressure/target columns below;
+#: a season missing one reads it as NaN (same discipline as the absent-column
+#: handling in `build_feature_frame`).
+PBP_COLUMNS = ["season", "week", "game_id", "posteam", "defteam",
+               "home_team", "away_team", "play_id", "pass_attempt",
+               "rush_attempt", "down", "goal_to_go", "qb_scramble",
+               "air_yards", "sack", "qb_hit", "receiver_player_id",
                "rusher_player_id", "passer_player_id", "route"]
 
 
@@ -106,6 +117,24 @@ def build_weather(schedules: pd.DataFrame, cache_dir: Path, fetch_weather: bool 
     return combined
 
 
+def _games_map_from_schedules(schedules: pd.DataFrame) -> pd.DataFrame:
+    """(season, week, team) -> opponent, from the schedules pull.
+
+    Both sides are pre-kickoff knowable: the interaction features use the
+    week-W opponent to fetch the opponent's lagged tempo/pressure, never the
+    game's own outcome.
+    """
+    needed = {"season", "week", "home_team", "away_team"}
+    if not needed.issubset(schedules.columns):
+        return pd.DataFrame(columns=["season", "week", "team", "opponent"])
+    home = schedules.rename(columns={"home_team": "team", "away_team": "opponent"})
+    away = schedules.rename(columns={"away_team": "team", "home_team": "opponent"})
+    return (pd.concat([home[["season", "week", "team", "opponent"]],
+                       away[["season", "week", "team", "opponent"]]],
+                      ignore_index=True)
+            .drop_duplicates())
+
+
 def build_feature_frame(seasons: list[int], cache_dir: Path,
                         fetch_weather: bool = False) -> pd.DataFrame:
     """Assemble the model frame: weekly labels + usage rolls + matchup + availability."""
@@ -122,6 +151,12 @@ def build_feature_frame(seasons: list[int], cache_dir: Path,
 
     print("building rolling usage features...")
     frame = _add_rolling(weekly)
+    # The derived efficiency ratios are part of FORWARD_FEATURE_COLUMNS (the
+    # list this script scores and fits against), so they must be computed here
+    # too -- `_add_rolling` only produces the base rolling means. Without this
+    # call the frame lacks the four ratio columns and `walk_forward_quantile`
+    # raises KeyError when it selects `feature_cols`.
+    frame = _compute_derived_features(frame)
 
     print("building matchup + game-context features...")
     weather = build_weather(schedules, cache_dir, fetch_weather=fetch_weather)
@@ -154,6 +189,14 @@ def build_feature_frame(seasons: list[int], cache_dir: Path,
             **{c: float("nan") for c in absent}))
     pbp = pd.concat(frames, ignore_index=True)
     frame = add_availability_features(frame, injuries, rosters, ngs_df=ngs, pbp_df=pbp)
+
+    print("building interaction features (products of independent signals)...")
+    # Order matters: add_interaction_features reads `high_wind_flag` (from
+    # add_matchup_features' Open-Meteo forecast path) and `ol_injuries_out`
+    # (from add_availability_features) off the frame, so this runs last.
+    frame = add_ngs_features(frame, split_ngs_by_stat_type(ngs))
+    frame = add_pbp_features(frame, pbp, _games_map_from_schedules(schedules))
+    frame = add_interaction_features(frame, injuries)
 
     return frame.sort_values(["player_id", "season", "week"]).reset_index(drop=True)
 
@@ -205,6 +248,24 @@ def tail_watch(scored: pd.DataFrame, columns=BINDING_COLUMNS) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+#: The receptions ZINB's walk-forward folds, as in the Phase 4 experiment (train 2017-2021 -> score 2022, ...). The
+#: model needs >= `min_train_seasons` (5) prior seasons, so 2022 is the first scoreable fold of a 2017+ frame.
+DEFAULT_RECEPTIONS_VALIDATE = "2022-2024"
+
+
+def receptions_gate(frame: pd.DataFrame, validation_seasons: list[int]) -> tuple[dict, pd.DataFrame]:
+    """The ZINB count model's own walk-forward gate (step 2 of docs/PHASE4: run BEFORE --write-artifacts).
+
+    Scored at the model's own line (P(over) at `model_line(mu)`), binned with the repo's `calibration_report`
+    arithmetic: 10 bins, tol 0.05, n >= 100. Returns (gate_dict, scored). An empty gate dict means no bucket met the
+    n >= 100 floor, which `train_all` treats as a FAIL, not a pass.
+    """
+    scored = receptions_zinb.walk_forward_receptions(frame, validation_seasons=validation_seasons)
+    if scored.empty:
+        return {}, scored
+    return receptions_zinb.receptions_calibration_gate(scored), scored
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seasons", default="2017-2026")
@@ -219,6 +280,8 @@ def main() -> int:
     parser.add_argument("--dump-feature-frame", default=None,
                         help="write the assembled feature frame here; "
                              "scripts/forward_tick.py --feature-frame consumes it")
+    parser.add_argument("--receptions-validate", default=DEFAULT_RECEPTIONS_VALIDATE,
+                        help="validation seasons for the receptions ZINB gate (needs >= 5 prior seasons each)")
     parser.add_argument("--write-artifacts", action="store_true",
                         help="fit on --train-seasons and write the versioned artifacts; "
                              "requires the walk-forward gate to PASS")
@@ -248,15 +311,34 @@ def main() -> int:
         print("\n=== tail watch: calibration by |line - q50| ===")
         print(tail.to_string(index=False))
 
-    passed = calibration_passes(binding)
-    print(f"\ncalibration gate (exogenous line): {'PASS' if passed else 'FAIL'}")
+    quantile_passed = calibration_passes(binding)
+    print(f"\ncalibration gate (exogenous line): {'PASS' if quantile_passed else 'FAIL'}")
+
+    # Receptions is a COUNT market: the quantile gate above cannot score it (that is why QUANTILE_MARKETS excludes
+    # COUNT_MARKETS), so the ZINB is gated by its own walk-forward. Both gates must pass before anything is written.
+    receptions_seasons = parse_seasons(args.receptions_validate)
+    print(f"\nreceptions ZINB walk-forward on seasons {receptions_seasons}...")
+    receptions_calibration, receptions_scored = receptions_gate(frame, receptions_seasons)
+    print(f"scored {len(receptions_scored)} receptions rows")
+    if receptions_scored.empty:
+        print("no receptions rows scored (not enough prior seasons?)")
+    else:
+        show_curve("receptions ZINB (model line, BINDING)", receptions_scored, ("p_over", "covered"))
+    receptions_passed = calibration_passes(receptions_calibration)
+    print(f"\nreceptions ZINB gate: {'PASS' if receptions_passed else 'FAIL'}")
+
+    passed = quantile_passed and receptions_passed
+    print(f"\nBOTH GATES: {'PASS' if passed else 'FAIL'} "
+          f"(quantile={'PASS' if quantile_passed else 'FAIL'}, receptions={'PASS' if receptions_passed else 'FAIL'})")
 
     if not args.write_artifacts:
         print("\n(dry run: pass --write-artifacts to fit and write)")
         return 0 if passed else 1
 
     if not passed:
-        print("refusing to write artifacts: the calibration gate failed")
+        failed = [name for name, ok in (("quantile", quantile_passed), ("receptions", receptions_passed)) if not ok]
+        print(f"refusing to write artifacts: the {' and '.join(failed)} calibration gate failed. "
+              "Tolerances are NOT lowered to force a write; diagnose the failing buckets above.")
         return 1
 
     train_seasons = parse_seasons(args.train_seasons) if args.train_seasons else seasons
@@ -274,9 +356,15 @@ def main() -> int:
         manifest=manifest, manifest_path=manifest_path,
         walkforward_mae=per_market_mae,
         walkforward_calibration=binding,
+        receptions_calibration=receptions_calibration,
     )
     print(f"\nwrote {len(artifacts)} artifacts to {models_dir}/ and extended the manifest")
     for market in sorted(artifacts):
+        if market in COUNT_MARKETS:
+            fitted = artifacts[market]
+            print(f"  {receptions_zinb.RECEPTIONS_ZINB_FILENAME}  ZINB, {len(fitted['feature_cols'])} features, "
+                  f"n_train={fitted['n_train']}, alpha={fitted['alpha']:.2f}")
+            continue
         mae = per_market_mae.get(market)
         mae_text = "n/a" if mae is None else f"MAE {mae:.1f}"
         print(f"  {market}_quantile_2025.pkl  {len(artifacts[market]['feature_cols'])} "

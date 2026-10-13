@@ -140,7 +140,7 @@ def test_load_models_exposes_the_version(monkeypatch, tmp_path):
         "total_sigma": 10.0, "feature_cols": list(manifest.feature_build.FEATURE_COLUMNS),
         # The CODE's player features, not a placeholder and not an arbitrary one:
         # `load_models` refuses a payload whose artefact fingerprint disagrees
-        # with `player_usage.PLAYER_FEATURE_COLUMNS` (see
+        # with `player_usage.ALL_PLAYER_FEATURE_COLUMNS` (see
         # `manifest._verify_artifact_fingerprint`), so a hand-built manifest has
         # to carry the real list to get past that guard -- and with it,
         # `assert every fitted player column is one build_features_for_player
@@ -149,10 +149,10 @@ def test_load_models_exposes_the_version(monkeypatch, tmp_path):
         # Same story for the top-level `feature_cols` and the game-level half of
         # the fingerprint above it: both must be the CODE's
         # `features.build.FEATURE_COLUMNS`, for the same reason.
-        "player_feature_cols": list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
+        "player_feature_cols": list(manifest.player_usage.ALL_PLAYER_FEATURE_COLUMNS),
         "yardage_metrics": [],
         "artifact_fingerprint": manifest.artifact_fingerprint(
-            list(manifest.player_usage.PLAYER_FEATURE_COLUMNS),
+            list(manifest.player_usage.ALL_PLAYER_FEATURE_COLUMNS),
             list(manifest.feature_build.FEATURE_COLUMNS)),
     })
     # Real estimators carrying the feature lists the committed artefacts carry, not

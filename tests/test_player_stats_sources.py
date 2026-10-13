@@ -35,12 +35,14 @@ def _raw_player_stats_frame(season=2024):
                 "recent_team": "KC", "season": season, "week": 1,
                 "passing_yards": 291, "passing_tds": 2, "rushing_yards": 12, "rushing_tds": 0,
                 "receiving_yards": 0, "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 3,
+                "attempts": 38, "completions": 26,
             },
             {
                 "player_id": "00-0035211", "player_name": "I. Pacheco", "position": "RB",
                 "recent_team": "KC", "season": season, "week": 2,
                 "passing_yards": 0, "passing_tds": 0, "rushing_yards": 21, "rushing_tds": 1,
                 "receiving_yards": 34, "receiving_tds": 0, "receptions": 3, "targets": 4, "carries": 9,
+                "attempts": 0, "completions": 0,
             },
         ]
     )
@@ -55,6 +57,7 @@ def _raw_stats_player_frame(season):
                 "team": "PIT", "game_id": f"{season}_01_PIT_CIN", "season": season, "week": 1,
                 "passing_yards": 291, "passing_tds": 2, "rushing_yards": 12, "rushing_tds": 0,
                 "receiving_yards": 0, "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 3,
+                "attempts": 38, "completions": 26,
             },
             {
                 # A defender. `player_stats` would never publish this row;
@@ -65,6 +68,7 @@ def _raw_stats_player_frame(season):
                 "team": "BAL", "game_id": f"{season}_02_CIN_BAL", "season": season, "week": 2,
                 "passing_yards": 0, "passing_tds": 0, "rushing_yards": 0, "rushing_tds": 0,
                 "receiving_yards": 0, "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0,
+                "attempts": 0, "completions": 0,
             },
         ]
     )
@@ -209,11 +213,13 @@ def test_negative_yards_pass_through_unclamped(upstream, cache_dir, monkeypatch)
             {"player_id": "00-0022924", "player_name": "B. Roethlisberger", "position": "QB",
              "recent_team": "PIT", "season": 2024, "week": 4, "passing_yards": -6,
              "passing_tds": 0, "rushing_yards": -3, "rushing_tds": 0, "receiving_yards": -5,
-             "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0},
+             "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0,
+             "attempts": 5, "completions": 1},
             {"player_id": "00-0034857", "player_name": "M. Rapp", "position": "LB",
              "recent_team": "BAL", "season": 2024, "week": 2, "passing_yards": 0,
              "passing_tds": 0, "rushing_yards": -7, "rushing_tds": 0, "receiving_yards": -2,
-             "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0},
+             "receiving_tds": 0, "receptions": 0, "targets": 0, "carries": 0,
+             "attempts": 0, "completions": 0},
         ]
     )
     monkeypatch.setattr(player_stats, "_import_weekly_data", lambda years, columns=None: negatives)

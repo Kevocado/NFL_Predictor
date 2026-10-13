@@ -16,35 +16,48 @@ from __future__ import annotations
 import pytest
 
 from nfl_predictor.evaluate.walk_forward import QUANTILE_MARKETS
-from nfl_predictor.models.training import MARKET_POSITIONS, MARKETS
+from nfl_predictor.models.receptions_zinb import RECEPTIONS_POSITIONS
+from nfl_predictor.models.training import COUNT_MARKETS, MARKET_POSITIONS, MARKETS
+
+# NOTE (2026-10-13): this file was written when receptions was a QUANTILE market. The quantile regressor could not
+# calibrate a discrete count (worst gap 0.138, b3331be); receptions is now a COUNT market fitted by the ZINB
+# (models/receptions_zinb.py) with its own walk-forward gate. The tests below pin the same intent -- the market stays
+# reachable and covers the right positions -- plus the guard that matters most: it must NOT be scored by the quantile
+# gate again.
 
 
-def test_receptions_is_a_trainable_quantile_market():
+def test_receptions_is_a_trainable_count_market():
     assert "receptions" in MARKETS, (
         "player_receptions is quoted by the book and MARKET_MAP already points "
         "at a `receptions` model; with no artifact the tick silently skips "
         "every reception prop")
     assert "receptions" in MARKET_POSITIONS
-    assert "receptions" in QUANTILE_MARKETS, (
-        "the offline gate walks markets from this dict, so a market missing "
-        "here is a market that is never gated")
+    assert "receptions" in COUNT_MARKETS, "receptions is fitted by the ZINB, not the quantile regressor"
 
 
-def test_receptions_covers_the_positions_that_get_a_line():
-    """Reception lines are quoted for receivers AND backs -- a RB reception
-    total is one of the most heavily bet props in the league. Restricting this
-    to WR/TE would fit a model that cannot price half the market."""
-    positions = set(QUANTILE_MARKETS["receptions"])
-    assert {"WR", "TE"} <= positions
-    assert "RB" in positions
+def test_receptions_is_never_scored_by_the_quantile_gate():
+    """The regression this file exists to stop: scoring the count market in the quantile aggregate gate
+    re-poisons it (worst gap 0.138). `QUANTILE_MARKETS` must exclude every `COUNT_MARKETS` member."""
+    assert "receptions" not in QUANTILE_MARKETS
+    assert not (set(COUNT_MARKETS) & set(QUANTILE_MARKETS))
+    # and every non-count market the trainer fits IS gated
+    assert set(MARKETS) - set(COUNT_MARKETS) == set(QUANTILE_MARKETS)
+
+
+def test_receptions_is_priced_for_receivers_and_not_for_backs():
+    """WR and TE pass the ZINB walk-forward gate (worst gap 0.037). RB does NOT (rushing-first backs at model line 1.5:
+    P(over) 0.29 vs 0.18 actual, n=141, worsening 2022-2024), so RB receptions stay unpriced rather than served
+    uncalibrated. If someone widens this tuple, the gate must be re-run for backs first."""
+    positions = set(MARKET_POSITIONS["receptions"])
+    assert positions == {"WR", "TE"}
+    assert "RB" not in positions
 
 
 def test_the_gate_and_the_trainer_agree_on_receptions_positions():
-    """These are two hand-maintained dicts for one purpose, which is how the
-    gate came to validate one feature set while the artifacts carried another.
-    If they disagree, a market is either fitted on positions the gate never
+    """The ZINB's own walk-forward (RECEPTIONS_POSITIONS) and the trainer's market positions are two
+    hand-maintained tuples for one purpose. If they disagree, a market is either fitted on positions the gate never
     scored or gated on positions nobody fitted."""
-    assert QUANTILE_MARKETS["receptions"] == MARKET_POSITIONS["receptions"]
+    assert tuple(RECEPTIONS_POSITIONS) == tuple(MARKET_POSITIONS["receptions"])
 
 
 def test_receptions_is_not_the_label_column_of_its_own_features():
