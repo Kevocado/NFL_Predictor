@@ -922,7 +922,7 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
                     skipped.append(player.get("player_id"))
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
-                flag = chart_flags.get(player["player_name"])
+                flag = chart_flags.get(player["player_id"]) or chart_flags.get(player["player_name"])
                 results.append({
                     "player_id": player["player_id"],
                     "player_name": player["player_name"],
