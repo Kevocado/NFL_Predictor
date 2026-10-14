@@ -52,8 +52,45 @@ def pull_injuries(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
     return _cached_pull("injuries", seasons, Path(cache_dir), nfl.import_injuries)
 
 
+#: Slot labels in the 2025+ depth-chart schema (`pos_abb`) -> the roster
+#: `position` vocabulary of 2017-2024. Return roles carry no position.
+_SLOT_TO_POSITION = {
+    "LT": "T", "RT": "T", "LG": "G", "RG": "G",
+    "LDE": "DE", "RDE": "DE", "LDT": "DT", "RDT": "DT",
+    "LCB": "CB", "RCB": "CB", "NB": "CB",
+    "LILB": "LB", "RILB": "LB", "MLB": "LB", "SLB": "LB", "WLB": "LB",
+    "PK": "K", "KR": None, "PR": None,
+}
+
+
+def normalize_depth_chart(df: pd.DataFrame) -> pd.DataFrame:
+    """Give 2025+ depth charts the old schema's `position` and `season`.
+
+    nflverse replaced the depth-chart schema for 2025: no `position`/`season`/
+    `week`, instead `pos_abb` (slot) and `dt` (snapshot timestamp). Without this
+    every 2025/2026 row had a null position and was dropped by every
+    position-filtered model. `week`/`depth_position` stay NaN (not derivable).
+    """
+    if "pos_abb" not in df.columns:
+        return df
+    df = df.copy()
+    if "position" not in df.columns:
+        df["position"] = pd.NA
+    slot = df["pos_abb"].map(lambda a: _SLOT_TO_POSITION.get(a, a))
+    df["position"] = df["position"].where(df["position"].notna(), slot)
+    season = pd.to_numeric(df["season"], errors="coerce") if "season" in df.columns \
+        else pd.Series(float("nan"), index=df.index)
+    if "dt" in df.columns:
+        ts = pd.to_datetime(df["dt"], errors="coerce", utc=True)
+        # Aug-Mar snapshots belong to the season that began in August.
+        season = season.fillna(ts.dt.year - (ts.dt.month < 6))
+    df["season"] = season
+    return df
+
+
 def pull_rosters(seasons: list[int], cache_dir: Path) -> pd.DataFrame:
-    return _cached_pull("rosters", seasons, Path(cache_dir), nfl.import_depth_charts)
+    return normalize_depth_chart(
+        _cached_pull("rosters", seasons, Path(cache_dir), nfl.import_depth_charts))
 
 
 def pull_ngs(seasons: list[int], cache_dir: Path) -> pd.DataFrame:

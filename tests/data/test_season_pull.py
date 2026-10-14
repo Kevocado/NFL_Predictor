@@ -193,3 +193,40 @@ def test_fill_positions_leaves_unknown_players_empty():
 
     assert pd.isna(out.iloc[0]["position"])
     assert len(out) == 1
+
+# --- 2025+ depth-chart schema (pos_abb, no position/season) ------------------
+
+def _new_schema_depth_chart(tmp_path, season, dt):
+    pd.DataFrame([
+        {"dt": dt, "team": "A", "player_name": "W", "gsis_id": GSIS, "pos_abb": "WR", "pos_rank": 1},
+        {"dt": dt, "team": "A", "player_name": "W", "gsis_id": GSIS, "pos_abb": "KR", "pos_rank": 1},
+        {"dt": dt, "team": "A", "player_name": "T", "gsis_id": "00-2", "pos_abb": "LT", "pos_rank": 1},
+    ]).to_parquet(tmp_path / f"rosters_{season}.parquet", index=False)
+
+
+def test_pull_rosters_gives_new_schema_a_position_and_season(tmp_path):
+    from nfl_predictor.data.season_pull import fill_positions, pull_rosters
+
+    _new_schema_depth_chart(tmp_path, 2025, "2026-01-05T00:00:00Z")
+    rosters = pull_rosters([2025], tmp_path)
+
+    assert rosters["position"].notna().sum() == 2  # KR carries no position
+    assert set(rosters["season"]) == {2025}
+    weekly = pd.DataFrame([{"player_id": GSIS, "season": 2025, "week": 1, "position": pd.NA}])
+    assert fill_positions(weekly, rosters).iloc[0]["position"] == "WR"
+
+
+def test_cached_rosters_have_positions_for_every_season():
+    """Fails if any cached season would leave weekly rows with a null position."""
+    from pathlib import Path
+    from nfl_predictor.data.season_pull import pull_rosters
+
+    cache = Path(__file__).resolve().parents[2] / "data" / "cache" / "nflverse"
+    files = sorted(cache.glob("rosters_*.parquet"))
+    if not files:
+        pytest.skip("no local roster cache")
+    for f in files:
+        season = int(f.stem.split("_")[1])
+        rosters = pull_rosters([season], cache)
+        assert rosters["position"].notna().any(), f"{f.name}: no usable position"
+        assert rosters["position"].notna().mean() > 0.8, f"{f.name}: mostly null positions"
