@@ -8,6 +8,10 @@ data/tracking.db-shm
 data/tracking.db-wal
 models/*.json
 models/*.pkl
+# The quantile artifacts and the receptions ZINB ARE tracked: the manifest names them and the deploy/snapshot jobs only
+# see tracked files. Ignored, they never reached production (qb_rushing_yards could not be served).
+!models/*_quantile_2025.pkl
+!models/receptions_zinb_model.pkl
 .env
 frontend/node_modules/
 frontend/dist/
