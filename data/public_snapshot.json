@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T11:58:09.373850+00:00",
+  "generated_at": "2026-10-14T17:15:18.209260+00:00",
   "season": 2026,
   "current_week": 5,
   "weeks": {
@@ -27022,8 +27022,8 @@
           "conditions": {
             "kind": "clear",
             "temp_f": 45,
-            "wind_mph": 4,
-            "precip_pct": 31,
+            "wind_mph": 6,
+            "precip_pct": 0,
             "source": "open-meteo"
           }
         },
@@ -27043,7 +27043,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 42.5,
           "stadium": "Wembley Stadium"
         },
@@ -27063,8 +27063,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -3.0,
-          "total_line": 49.5,
+          "spread_line": -2.5,
+          "total_line": 50.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
             "kind": "dome",
@@ -27090,8 +27090,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -4.5,
-          "total_line": 41.5,
+          "spread_line": -5.5,
+          "total_line": 42.5,
           "stadium": "Huntington Bank Field"
         },
         {
@@ -27144,7 +27144,7 @@
             "kind": "partly",
             "temp_f": 57,
             "wind_mph": 10,
-            "precip_pct": 0,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -27184,7 +27184,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 1.5,
+          "spread_line": -1.5,
           "total_line": 40.5,
           "stadium": "Lincoln Financial Field"
         },
@@ -27285,7 +27285,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 1.5,
-          "total_line": 52.5,
+          "total_line": 53.5,
           "stadium": "Lambeau Field"
         },
         {
@@ -27326,8 +27326,8 @@
         "2026_06_HOU_JAX": {
           "home_win_prob": 0.6612476926635521,
           "away_win_prob": 0.3387523073364479,
-          "home_cover_prob": 0.5742838454197725,
-          "away_cover_prob": 0.4257161545802275,
+          "home_cover_prob": 0.5891611986400165,
+          "away_cover_prob": 0.4108388013599835,
           "over_prob": 0.6391602317191688,
           "under_prob": 0.3608397682808312,
           "predicted_margin": 5.4581105085565484,
@@ -27339,10 +27339,10 @@
         "2026_06_CHI_ATL": {
           "home_win_prob": 0.4761501432825139,
           "away_win_prob": 0.5238498567174861,
-          "home_cover_prob": 0.5670077259539306,
-          "away_cover_prob": 0.43299227404606944,
-          "over_prob": 0.4049162629286619,
-          "under_prob": 0.5950837370713381,
+          "home_cover_prob": 0.5519796534646302,
+          "away_cover_prob": 0.4480203465353698,
+          "over_prob": 0.37372150245303737,
+          "under_prob": 0.6262784975469626,
           "predicted_margin": -0.7850885447250526,
           "predicted_total": 46.54264450073242,
           "sigma": 13.12453702446608,
@@ -27352,10 +27352,10 @@
         "2026_06_BAL_CLE": {
           "home_win_prob": 0.34146574479495373,
           "away_win_prob": 0.6585342552050463,
-          "home_cover_prob": 0.4738493803632382,
-          "away_cover_prob": 0.5261506196367618,
-          "over_prob": 0.5921608473220339,
-          "under_prob": 0.4078391526779661,
+          "home_cover_prob": 0.5042272203055085,
+          "away_cover_prob": 0.4957727796944915,
+          "over_prob": 0.5603025441212734,
+          "under_prob": 0.43969745587872655,
           "predicted_margin": -5.360928885285897,
           "predicted_total": 44.36475372314453,
           "sigma": 13.12453702446608,
@@ -27404,8 +27404,8 @@
         "2026_06_CAR_PHI": {
           "home_win_prob": 0.5917368548207158,
           "away_win_prob": 0.4082631451792842,
-          "home_cover_prob": 0.5468573592578161,
-          "away_cover_prob": 0.4531426407421839,
+          "home_cover_prob": 0.6354431841031618,
+          "away_cover_prob": 0.3645568158968382,
           "over_prob": 0.5487887627236583,
           "under_prob": 0.4512112372763417,
           "predicted_margin": 3.045090691107882,
@@ -27471,8 +27471,8 @@
           "away_win_prob": 0.400140756545166,
           "home_cover_prob": 0.5551536421564041,
           "away_cover_prob": 0.44484635784359594,
-          "over_prob": 0.3394096797023759,
-          "under_prob": 0.6605903202976241,
+          "over_prob": 0.3101428569430281,
+          "under_prob": 0.6898571430569719,
           "predicted_margin": 3.320281980565886,
           "predicted_total": 47.4112548828125,
           "sigma": 13.12453702446608,
@@ -35949,7 +35949,14 @@
           "wind": null,
           "spread_line": 1.5,
           "total_line": 48.5,
-          "stadium": "Soldier Field"
+          "stadium": "Soldier Field",
+          "conditions": {
+            "kind": "cloudy",
+            "temp_f": 55,
+            "wind_mph": 16,
+            "precip_pct": 11,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_PIT_NO",
@@ -36021,7 +36028,7 @@
             "kind": "rain",
             "temp_f": 59,
             "wind_mph": 11,
-            "precip_pct": 15,
+            "precip_pct": 3,
             "source": "open-meteo"
           }
         },
@@ -36048,7 +36055,7 @@
             "kind": "clear",
             "temp_f": 81,
             "wind_mph": 12,
-            "precip_pct": 13,
+            "precip_pct": 6,
             "source": "open-meteo"
           }
         },
