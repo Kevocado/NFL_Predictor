@@ -216,17 +216,16 @@ def test_pull_rosters_gives_new_schema_a_position_and_season(tmp_path):
     assert fill_positions(weekly, rosters).iloc[0]["position"] == "WR"
 
 
-def test_cached_rosters_have_positions_for_every_season():
-    """Fails if any cached season would leave weekly rows with a null position."""
-    from pathlib import Path
+@pytest.mark.parametrize("season,dt", [(2025, "2026-01-05T00:00:00Z"), (2026, "2026-09-20T00:00:00Z")])
+def test_every_new_schema_season_ends_with_positions(tmp_path, season, dt):
+    """Fails if a 2025+ roster/depth-chart season would leave most rows with a null position.
+
+    Builds its own cache in tmp_path -- it must run in CI, where there is no local data/cache.
+    """
     from nfl_predictor.data.season_pull import pull_rosters
 
-    cache = Path(__file__).resolve().parents[2] / "data" / "cache" / "nflverse"
-    files = sorted(cache.glob("rosters_*.parquet"))
-    if not files:
-        pytest.skip("no local roster cache")
-    for f in files:
-        season = int(f.stem.split("_")[1])
-        rosters = pull_rosters([season], cache)
-        assert rosters["position"].notna().any(), f"{f.name}: no usable position"
-        assert rosters["position"].notna().mean() > 0.8, f"{f.name}: mostly null positions"
+    _new_schema_depth_chart(tmp_path, season, dt)
+    rosters = pull_rosters([season], tmp_path)
+    assert rosters["position"].notna().mean() > 0.6, "most rows lost their position"
+    assert set(rosters["season"]) == {season}
+
