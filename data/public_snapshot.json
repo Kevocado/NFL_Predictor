@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-14T00:32:27.449455+00:00",
+  "generated_at": "2026-10-14T05:05:17.812920+00:00",
   "season": 2026,
   "current_week": 5,
   "weeks": {
@@ -27020,10 +27020,10 @@
           "total_line": 40.5,
           "stadium": "Empower Field at Mile High",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 51,
-            "wind_mph": 12,
-            "precip_pct": 48,
+            "kind": "partly",
+            "temp_f": 49,
+            "wind_mph": 10,
+            "precip_pct": 39,
             "source": "open-meteo"
           }
         },
@@ -35954,7 +35954,7 @@
             "kind": "rain",
             "temp_f": 43,
             "wind_mph": 17,
-            "precip_pct": 13,
+            "precip_pct": 28,
             "source": "open-meteo"
           }
         },
@@ -36028,7 +36028,7 @@
             "kind": "clear",
             "temp_f": 62,
             "wind_mph": 14,
-            "precip_pct": 0,
+            "precip_pct": 4,
             "source": "open-meteo"
           }
         },
@@ -36055,7 +36055,7 @@
             "kind": "clear",
             "temp_f": 68,
             "wind_mph": 6,
-            "precip_pct": 12,
+            "precip_pct": 16,
             "source": "open-meteo"
           }
         },
