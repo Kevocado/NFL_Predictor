@@ -227,17 +227,17 @@ class TestAbsenceRemovesNobody:
         return [
             {
                 "player_id": MAHOMES, "player_name": "Patrick Mahomes", "recent_team": "KC",
-                "position": "QB", "is_starter": None, "depth_slot": None,
+                "position": "QB", "is_starter": None, "depth_slot": None, "recent_avg": {},
                 "anytime_td_prob": 0.61, "receiving_yards": 88.0,
             },
             {
                 "player_id": BURROW, "player_name": "Joe Burrow", "recent_team": "CIN",
-                "position": "QB", "is_starter": None, "depth_slot": None,
+                "position": "QB", "is_starter": None, "depth_slot": None, "recent_avg": {},
                 "anytime_td_prob": 0.61, "receiving_yards": 88.0,
             },
             {
                 "player_id": CHASE, "player_name": "Ja'Marr Chase", "recent_team": "CIN",
-                "position": "WR", "is_starter": None, "depth_slot": None,
+                "position": "WR", "is_starter": None, "depth_slot": None, "recent_avg": {},
                 "anytime_td_prob": 0.61, "receiving_yards": 88.0,
             },
         ]
