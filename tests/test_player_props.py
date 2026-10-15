@@ -194,3 +194,17 @@ def test_every_prop_row_carries_a_line_check_even_when_it_has_nothing_to_offer()
     assert len(qb["line_check"]["yardage"]["passing_yards"]) == len(player_props.QUANTILES)
     assert "passing_yards_quantiles" in qb          # the raw dict is still stripped later, by the route
     assert player_props.predict_props(models, row, position="K")["line_check"] == {}
+
+
+def test_quantile_models_use_only_features_the_props_route_serves():
+    """The 2026-10-15 defect: trained on 38 features, served 14 (24 zero-filled), so a star's median collapsed.
+    Neither the training list nor any COMMITTED quantile artifact may name a column the served row lacks."""
+    from nfl_predictor.features.player_usage import SERVING_FEATURE_COLUMNS
+    from nfl_predictor.models import manifest
+    from nfl_predictor.models.training import QUANTILE_FEATURE_COLUMNS
+
+    assert set(QUANTILE_FEATURE_COLUMNS) <= set(SERVING_FEATURE_COLUMNS)
+    models = manifest.load_models()["player_models"]
+    for key, cols in models.items():
+        if key.endswith("_quantile_cols"):
+            assert set(cols) <= set(SERVING_FEATURE_COLUMNS), (key, sorted(set(cols) - set(SERVING_FEATURE_COLUMNS)))

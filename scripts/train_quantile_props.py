@@ -31,7 +31,7 @@ BINDING_COLUMNS = ("p_over_exogenous", "covered_exogenous")
 DIAGNOSTIC_COLUMNS = ("p_over_own_median", "covered_own_median")
 from nfl_predictor.models import receptions_zinb  # noqa: E402
 from nfl_predictor.models.training import (  # noqa: E402
-    COUNT_MARKETS, FORWARD_FEATURE_COLUMNS, train_all,
+    COUNT_MARKETS, FORWARD_FEATURE_COLUMNS, QUANTILE_FEATURE_COLUMNS, train_all,
 )
 from nfl_predictor.features.availability import add_availability_features  # noqa: E402
 from nfl_predictor.features.interactions import (  # noqa: E402
@@ -44,7 +44,8 @@ from nfl_predictor.features.player_usage import _add_rolling, _compute_derived_f
 #: The gate's features come from the SAME constant the artifacts are fitted on.
 #: Re-declaring the list here is what let the gate validate 28 features while the
 #: artifacts carried 30, with nothing comparing the two.
-FEATURE_COLUMNS = list(FORWARD_FEATURE_COLUMNS)
+# Only what the props route serves (see training.QUANTILE_FEATURE_COLUMNS). The frame still BUILDS the full forward set.
+FEATURE_COLUMNS = list(QUANTILE_FEATURE_COLUMNS)
 
 
 def parse_seasons(text: str) -> list[int]:
