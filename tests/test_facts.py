@@ -1011,3 +1011,26 @@ def test_player_context_never_names_a_listed_out_player():
 def test_player_context_empty_when_props_unavailable_or_game_started(public, monkeypatch):
     _install_snapshot(monkeypatch, _snapshot(props=[]))
     assert "player_context" not in public.get(f"/facts/{GAME_ID}").json()["context"]
+
+
+def test_availability_names_the_starting_qb_and_the_official_out_list_per_team():
+    from nfl_predictor.api.facts import _availability
+    props = [
+        {"recent_team": "SEA", "position": "QB", "player_name": "S.Darnold", "is_starter": True},
+        {"recent_team": "SEA", "position": "QB", "player_name": "D.Lock", "is_starter": False},
+        {"recent_team": "DEN", "position": "QB", "player_name": "B.Nix", "is_starter": None},
+    ]
+    out = [
+        {"recent_team": "SEA", "player_name": "Zach Charbonnet", "position": "RB", "report_status": "Out"},
+        {"recent_team": "KC", "player_name": "Somebody", "report_status": "Out"},
+    ]
+    got = _availability(props, out, ["SEA", "DEN"])
+    assert got == [{"team": "SEA", "starting_qb": "S.Darnold",
+                    "out": [{"name": "Zach Charbonnet", "position": "RB", "status": "Out"}]}]
+    # DEN: the chart did not say (None) -> no guessed starter, and no out players -> no entry at all
+
+
+def test_availability_caps_the_out_list():
+    from nfl_predictor.api.facts import _availability, _MAX_OUT_PER_TEAM
+    out = [{"recent_team": "SEA", "player_name": f"P{i}", "report_status": "Out"} for i in range(20)]
+    assert len(_availability([], out, ["SEA"])[0]["out"]) == _MAX_OUT_PER_TEAM
