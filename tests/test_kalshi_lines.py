@@ -72,3 +72,54 @@ def test_write_snapshot_appends_one_gzip_file_per_utc_day(tmp_path):
     lines = gzip.open(p1, "rt").read().splitlines()
     assert len(lines) == 2 and json.loads(lines[0])["line"] == 324.5
     assert kl.write_snapshot([], tmp_path, now) is None
+
+
+def test_player_tokens_resolve_team_initial_and_last_name_even_with_glued_event_teams():
+    f = kl.parse_player_token
+    assert f("KXNFLPASSYDS-26OCT18CARPHI-PHIJHURTS1-325", "KXNFLPASSYDS-26OCT18CARPHI") == {"team": "PHI", "initial": "J", "last": "HURTS"}
+    assert f("KXNFLRSHYDS-26OCT18LACKC-LACKVIDAL28-60", "KXNFLRSHYDS-26OCT18LACKC") == {"team": "LAC", "initial": "K", "last": "VIDAL"}
+    assert f("KXNFLRECYDS-26OCT18LACKC-KCXWORTHY1-90", "KXNFLRECYDS-26OCT18LACKC") == {"team": "KC", "initial": "X", "last": "WORTHY"}
+    assert f("KXNFLREC-26OCT18HOUJAC-JACPWASHINGTON11-9", "KXNFLREC-26OCT18HOUJAC") == {"team": "JAX", "initial": "P", "last": "WASHINGTON"}   # JAC -> JAX
+    assert f("garbage", "garbage") is None
+
+
+def test_implied_probability_is_the_midpoint_else_last_trade_else_none():
+    assert kl.implied_probability({"yes_bid": 0.40, "yes_ask": 0.44, "last": 0.9}) == 0.42
+    assert kl.implied_probability({"yes_bid": None, "yes_ask": None, "last": 0.31}) == 0.31
+    assert kl.implied_probability({"yes_bid": None, "yes_ask": None, "last": 0.0}) is None
+
+
+def test_build_ladders_groups_open_rungs_by_player_and_stat_sorted_by_line_and_skips_unquoted():
+    def rung(n, bid, ask, status="active"):
+        return {**kl.normalize({**HURTS, "ticker": f"KXNFLPASSYDS-26OCT18CARPHI-PHIJHURTS1-{n}", "floor_strike": n - 0.5,
+                                "yes_bid_dollars": bid, "yes_ask_dollars": ask, "status": status}, "KXNFLPASSYDS", "t")}
+    rows = [rung(300, "0.20", "0.24"), rung(250, "0.60", "0.64"), rung(350, None, None), rung(275, "0.4", "0.44", status="settled")]
+    (ladder,) = kl.build_ladders(rows)
+    assert (ladder["team"], ladder["initial"], ladder["last"], ladder["stat"]) == ("PHI", "J", "HURTS", "passing_yards")
+    assert [r["line"] for r in ladder["rungs"]] == [249.5, 299.5] and ladder["rungs"][0]["p_over"] == 0.62
+
+
+def test_current_ladders_caches_and_fails_soft(monkeypatch):
+    calls = []
+
+    def boom(session, series, status, min_close_ts=None):
+        calls.append(series)
+        raise RuntimeError("kalshi down")
+
+    monkeypatch.setattr(kl, "fetch_series", boom)
+    monkeypatch.setattr(kl, "_ladder_cache", None)
+    assert kl.current_ladders(now=1000.0) == {"fetched_at": None, "lines": []}       # no cache + failure -> empty, no raise
+    good = {"fetched_at": "x", "lines": [{"team": "PHI"}]}
+    monkeypatch.setattr(kl, "_ladder_cache", (1000.0, good))
+    assert kl.current_ladders(now=1100.0) is good                                      # within TTL: served from cache
+    n = len(calls)
+    assert kl.current_ladders(now=1000.0 + kl.LADDER_TTL_SECONDS + 1) is good          # expired + failure -> last good value
+    assert len(calls) > n
+
+
+def test_market_lines_route_returns_the_cached_ladders(monkeypatch):
+    from nfl_predictor.api import routes
+
+    payload = {"fetched_at": "2026-10-15T00:00:00+00:00", "lines": [{"team": "PHI", "initial": "J", "last": "HURTS", "stat": "passing_yards", "rungs": []}]}
+    monkeypatch.setattr(kl, "current_ladders", lambda *a, **k: payload)
+    assert routes.get_market_lines(2026, 6) == payload

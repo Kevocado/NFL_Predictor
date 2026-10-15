@@ -130,3 +130,91 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Live ladders for the line checker: what Kalshi is pricing RIGHT NOW, matched to our players.
+# ---------------------------------------------------------------------------------------------------------------------
+import re
+import threading
+
+LADDER_TTL_SECONDS = 600
+#: Kalshi's team codes that differ from nflverse's (ours: JAX, LA, WAS).
+TEAM_ALIAS = {"JAC": "JAX", "LAR": "LA", "WSH": "WAS"}
+_TEAM_CODES = sorted(
+    ["ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN", "DET", "GB", "HOU", "IND", "JAC", "JAX", "KC",
+     "LAC", "LAR", "LA", "LV", "MIA", "MIN", "NE", "NO", "NYG", "NYJ", "PHI", "PIT", "SEA", "SF", "TB", "TEN", "WAS", "WSH"],
+    key=len, reverse=True)
+_ladder_lock = threading.Lock()
+_ladder_cache: tuple[float, dict] | None = None
+
+
+def parse_player_token(ticker: str, event_ticker: str) -> dict | None:
+    """('KXNFLPASSYDS-26OCT18CARPHI-PHIJHURTS1-325', 'KXNFLPASSYDS-26OCT18CARPHI') -> team PHI, initial J, last HURTS.
+
+    The player segment is TEAM + first initial + LASTNAME + jersey. The two teams in the event segment are glued together
+    ('CARPHI'), so the player's team is the longest known code that starts the token AND occurs in that glued string.
+    """
+    try:
+        parts = ticker.split("-")
+        player_segment = parts[2]
+        glued = event_ticker.split("-")[1][7:]          # '26OCT18' + teams
+    except IndexError:
+        return None
+    team = next((code for code in _TEAM_CODES if player_segment.startswith(code) and code in glued), None)
+    if team is None:
+        return None
+    m = re.match(r"([A-Z])([A-Z]+?)(\d+)$", player_segment[len(team):])
+    if not m:
+        return None
+    return {"team": TEAM_ALIAS.get(team, team), "initial": m.group(1), "last": m.group(2)}
+
+
+def implied_probability(row: dict) -> float | None:
+    """Kalshi's price for 'reaches N+' as a probability: the bid/ask midpoint, else the last trade. None = no quote."""
+    bid, ask = row.get("yes_bid"), row.get("yes_ask")
+    if bid is not None and ask is not None and ask > 0 and bid >= 0 and ask >= bid:
+        return round((bid + ask) / 2, 4)
+    last = row.get("last")
+    return last if last else None
+
+
+def build_ladders(rows: list[dict]) -> list[dict]:
+    """Group open rungs by (team, initial, last, stat). `line` is the real threshold (324.5 for '325+')."""
+    grouped: dict[tuple, dict] = {}
+    for r in rows:
+        if r.get("status") not in ("active", "open") or r.get("line") is None or r.get("stat") is None:
+            continue
+        who = parse_player_token(r.get("ticker") or "", r.get("event_ticker") or "")
+        p = implied_probability(r)
+        if who is None or p is None:
+            continue
+        key = (who["team"], who["initial"], who["last"], r["stat"])
+        entry = grouped.setdefault(key, {**who, "stat": r["stat"], "player": r.get("player"), "rungs": []})
+        entry["rungs"].append({"line": r["line"], "p_over": p, "volume": r.get("volume")})
+    out = list(grouped.values())
+    for e in out:
+        e["rungs"].sort(key=lambda x: x["line"])
+    return out
+
+
+def current_ladders(session=None, now: float | None = None) -> dict:
+    """Cached for LADDER_TTL_SECONDS so a busy page costs Kalshi one fetch per ten minutes. Any failure serves the last
+    good value (or an empty list): a missing market comparison must never break the line checker."""
+    import time as _time
+    global _ladder_cache
+    now = _time.time() if now is None else now
+    with _ladder_lock:
+        if _ladder_cache and now - _ladder_cache[0] < LADDER_TTL_SECONDS:
+            return _ladder_cache[1]
+        try:
+            session = session or requests.Session()
+            ts = datetime.fromtimestamp(now, timezone.utc).isoformat(timespec="seconds")
+            rows = []
+            for series in SERIES:
+                rows += [normalize(m, series, ts) for m in fetch_series(session, series, "open")]
+            data = {"fetched_at": ts, "lines": build_ladders(rows)}
+        except Exception:  # noqa: BLE001 - enhancement; stale or empty beats an error page
+            return _ladder_cache[1] if _ladder_cache else {"fetched_at": None, "lines": []}
+        _ladder_cache = (now, data)
+        return data

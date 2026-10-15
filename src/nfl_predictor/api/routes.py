@@ -738,6 +738,19 @@ def get_out_players(season: int, week: int):
     return _out_players_for(season, week)
 
 
+@router.get("/players/{season}/{week}/market-lines")
+def get_market_lines(season: int, week: int):
+    """What Kalshi is pricing for each player's yards / receptions ladder right now (free public API, cached 10 minutes).
+
+    `p_over` is the market's probability of clearing `line` (324.5 for a '325+' rung). Always 200: when Kalshi is
+    unreachable or has nothing listed the answer is an empty list, never an error, because it only decorates the line
+    checker. Players are matched by team + first initial + last name (see `kalshi_lines.parse_player_token`).
+    """
+    from ..data import kalshi_lines
+
+    return kalshi_lines.current_ladders()
+
+
 @router.get("/players/{season}/{week}/props")
 def get_player_props(season: int, week: int, response: Response = None):
     """The HTTP endpoint.
