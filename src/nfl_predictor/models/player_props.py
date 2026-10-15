@@ -201,4 +201,40 @@ def predict_props(models: dict, feature_row: pd.Series, position: str) -> dict:
                 "receptions_mu_flag": call["mu_flag"],
             })
 
+    # The line checker: everything a reader needs to type a sportsbook line and get OUR probability of the over,
+    # computed from the model's own distribution (not from a line we invented). Always present (an empty dict when a
+    # player has none) so every row has the same shape. `yardage` carries the quantile values in `QUANTILES` order;
+    # `counts` carries P(over) for half-point lines.
+    result["line_check"] = _line_check(result, models, feature_row, position)
+
     return result
+
+
+#: Half-point lines the receptions checker answers. A flagged (high_mu) row is not priced above the guardrail.
+RECEPTION_CHECK_LINES = [x + 0.5 for x in range(0, 12)]
+
+
+def _line_check(result: dict, models: dict, feature_row: pd.Series, position: str) -> dict:
+    from nfl_predictor.models.prop_probability import compact_quantiles
+
+    out: dict = {}
+    yardage = {
+        key[: -len("_quantiles")]: compact_quantiles(value)
+        for key, value in result.items()
+        if key.endswith("_quantiles") and isinstance(value, dict) and value
+    }
+    if yardage:
+        out["yardage"] = yardage
+    if (position in receptions_zinb.RECEPTIONS_POSITIONS and receptions_zinb.RECEPTIONS_MARKET in models
+            and result.get("receptions_p_over") is not None):
+        ceiling = 7.5 if result.get("receptions_mu_flag") == "high_mu" else RECEPTION_CHECK_LINES[-1]
+        table = {}
+        for line in RECEPTION_CHECK_LINES:
+            if line > ceiling:
+                break
+            call = receptions_zinb.receptions_call(models[receptions_zinb.RECEPTIONS_MARKET], feature_row, position, line=line)
+            if call is not None:
+                table[f"{line:g}"] = round(float(call["over_prob"]), 3)
+        if table:
+            out["counts"] = {"receptions": table}
+    return out
