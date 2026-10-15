@@ -229,3 +229,16 @@ def test_every_new_schema_season_ends_with_positions(tmp_path, season, dt):
     assert rosters["position"].notna().mean() > 0.6, "most rows lost their position"
     assert set(rosters["season"]) == {season}
 
+
+
+def test_new_schema_rows_survive_fill_positions_when_concatenated_with_an_older_season(tmp_path):
+    """Regression: the old-schema season has game_type, so fill_positions drops any row whose game_type is NaN."""
+    from nfl_predictor.data.season_pull import fill_positions, pull_rosters
+
+    pd.DataFrame([{"season": 2024, "week": 1.0, "game_type": "REG", "gsis_id": GSIS, "position": "WR",
+                   "depth_team": "1", "full_name": "W", "club_code": "A", "depth_position": "WR"}]) \
+        .to_parquet(tmp_path / "rosters_2024.parquet", index=False)
+    _new_schema_depth_chart(tmp_path, 2025, "2026-01-05T00:00:00Z")
+    rosters = pull_rosters([2024, 2025], tmp_path)
+    weekly = pd.DataFrame([{"player_id": GSIS, "season": 2025, "week": 1, "position": pd.NA}])
+    assert fill_positions(weekly, rosters).iloc[0]["position"] == "WR"
