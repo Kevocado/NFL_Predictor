@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15T02:03:37.560218+00:00",
+  "generated_at": "2026-10-15T04:47:44.958815+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -45779,8 +45779,8 @@
           "stadium": "Empower Field at Mile High",
           "conditions": {
             "kind": "clear",
-            "temp_f": 46,
-            "wind_mph": 3,
+            "temp_f": 48,
+            "wind_mph": 6,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -45822,7 +45822,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -1.5,
-          "total_line": 51.5,
+          "total_line": 50.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
             "kind": "dome",
@@ -45902,7 +45902,7 @@
             "kind": "clear",
             "temp_f": 56,
             "wind_mph": 10,
-            "precip_pct": 1,
+            "precip_pct": 0,
             "source": "open-meteo"
           }
         },
@@ -46099,8 +46099,8 @@
           "away_win_prob": 0.523849856717486,
           "home_cover_prob": 0.5217201891961045,
           "away_cover_prob": 0.4782798108038955,
-          "over_prob": 0.34333306481966963,
-          "under_prob": 0.6566669351803304,
+          "over_prob": 0.37372150245303737,
+          "under_prob": 0.6262784975469626,
           "predicted_margin": -0.7850885447250509,
           "predicted_total": 46.54264450073242,
           "sigma": 13.12453702446608,
@@ -58654,7 +58654,7 @@
             "kind": "clear",
             "temp_f": 69,
             "wind_mph": 7,
-            "precip_pct": 12,
+            "precip_pct": 20,
             "source": "open-meteo"
           }
         },
@@ -58728,7 +58728,7 @@
             "kind": "clear",
             "temp_f": 70,
             "wind_mph": 8,
-            "precip_pct": 8,
+            "precip_pct": 5,
             "source": "open-meteo"
           }
         },
@@ -58755,7 +58755,7 @@
             "kind": "cloudy",
             "temp_f": 64,
             "wind_mph": 6,
-            "precip_pct": 2,
+            "precip_pct": 6,
             "source": "open-meteo"
           }
         },
@@ -71359,14 +71359,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Lambeau Field",
-          "conditions": {
-            "kind": "clear",
-            "temp_f": 49,
-            "wind_mph": 13,
-            "precip_pct": 10,
-            "source": "open-meteo"
-          }
+          "stadium": "Lambeau Field"
         },
         {
           "game_id": "2026_08_BAL_BUF",
