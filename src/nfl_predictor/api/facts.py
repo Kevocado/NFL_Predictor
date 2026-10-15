@@ -163,6 +163,35 @@ def _player_context(props: list[dict], teams: list[str]) -> list[dict]:
     return out
 
 
+#: Most players listed out per team: enough to name who matters, short enough that the prompt stays about the matchup.
+_MAX_OUT_PER_TEAM = 6
+
+
+def _availability(props: list[dict], out_rows: list[dict], teams: list[str]) -> list[dict]:
+    """Who starts at quarterback and who is out, per team, for the explainer's context only.
+
+    The starting QB comes from the depth chart flag on the prop rows (`is_starter is True`); a team with no
+    known starter simply has no `starting_qb` rather than a guess. `out` is the official report's Out list
+    (`/players/{season}/{week}/out`), in the report's own words. Pure: no I/O.
+    """
+    result: list[dict] = []
+    for team in teams:
+        entry: dict[str, Any] = {"team": team}
+        qbs = [p for p in props if p.get("recent_team") == team and p.get("position") == "QB" and p.get("is_starter") is True]
+        if qbs:
+            entry["starting_qb"] = qbs[0].get("player_name")
+        out = [
+            {"name": o.get("player_name"), "position": o.get("position") or None, "status": o.get("report_status") or "Out"}
+            for o in out_rows
+            if o.get("recent_team") == team and o.get("player_name")
+        ][:_MAX_OUT_PER_TEAM]
+        if out:
+            entry["out"] = out
+        if len(entry) > 1:
+            result.append(entry)
+    return result
+
+
 def _record() -> dict | None:
     """Pre-kickoff-only accuracy, and the block is LABELLED that way, so it has to read the
     pre-kickoff figure.
@@ -413,7 +442,7 @@ def _drivers(game: dict, season: int, home_team: str, away_team: str, live_ok: b
 
 
 def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | None = None,
-             player_context: list[dict] | None = None) -> dict:
+             player_context: list[dict] | None = None, availability: list[dict] | None = None) -> dict:
     context: dict[str, Any] = {}
     temp = _num(game.get("temp"))
     wind = _num(game.get("wind"))
@@ -438,8 +467,10 @@ def _context(game: dict, home_rest: Any, away_rest: Any, matchups: list[dict] | 
         context["matchups"] = matchups
     if player_context:
         context["player_context"] = player_context
-    # Injuries deliberately absent: the cached nflverse report goes stale,
-    # and the explainer gets injuries from ESPN news instead.
+    if availability:
+        context["availability"] = availability
+    # `availability` carries the starting QB and the official Out list; ESPN headlines still reach the explainer
+    # separately, as news.
     return context
 
 
@@ -575,10 +606,15 @@ def get_facts(game_id: str) -> dict:
     # from different reads. `started` short-circuits: a started game quotes no
     # props at all, and "unavailable" would be a false claim about a thing the
     # bundle deliberately does not show.
+    out_rows: list[dict] = []
     if started:
         props_rows, players_unavailable = [], False
     else:
         props_rows, players_unavailable = _props(season, week)
+        try:
+            out_rows = routes.get_out_players(season, week) or []
+        except Exception:  # an enhancement: a failed out lookup is "unknown", never a failed bundle
+            logger.info("out players unavailable for season=%s week=%s", season, week)
 
     # Matchup duels, for an UPCOMING game in live (non-public) mode only:
     # ranking current-season efficiency is a live computation from play-by-play,
@@ -620,7 +656,8 @@ def get_facts(game_id: str) -> dict:
         # started game quotes neither; rest and divisional status are fixed.
         "drivers": _drivers(game, season, home_team, away_team, live_ok=not started),
         "context": _context(game, game.get("home_rest"), game.get("away_rest"), matchups=matchups_rows,
-                         player_context=_player_context(props_rows, [home_team, away_team])),
+                         player_context=_player_context(props_rows, [home_team, away_team]),
+                         availability=_availability(props_rows, out_rows, [home_team, away_team])),
         "players": [] if started else _players(props_rows, {home_team, away_team}),
         # True when props exist upstream but could not be produced, so a consumer
         # can say "unavailable" rather than rendering an empty list, which is
