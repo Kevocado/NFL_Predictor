@@ -183,8 +183,8 @@
     "markets": {
       "passing_yards": {
         "path": "passing_yards_quantile_2025.pkl",
-        "sha256": "faaec07029fd06bcaee24810c6b623ea3f699f2ed4aeb3b1f417ca95999909e2",
-        "walkforward_mae": 69.40323972835574,
+        "sha256": "7f528624aaee2202bed2dd7035dc766e366dd4879bd6d9706f076f1673079728",
+        "walkforward_mae": 69.29242882308554,
         "trained_seasons": [
           2017,
           2018,
@@ -202,8 +202,8 @@
       },
       "rushing_yards": {
         "path": "rushing_yards_quantile_2025.pkl",
-        "sha256": "b26724d2c131423ae2e01bda885123f4db78f82c7302c1d6b1b747ad466c6b13",
-        "walkforward_mae": 21.246400539831374,
+        "sha256": "cd8a0a6af0b425586827deb41da2b910ebfa922dd75e611c4d5559f6cdddfaee",
+        "walkforward_mae": 21.20141557195733,
         "trained_seasons": [
           2017,
           2018,
@@ -221,8 +221,8 @@
       },
       "receiving_yards": {
         "path": "receiving_yards_quantile_2025.pkl",
-        "sha256": "f994e06295a3bc09265d3bbaf5a28d04ee845983950cca20aeaea755b75eac47",
-        "walkforward_mae": 20.971798569727984,
+        "sha256": "bb03acb8fcb3e4a4fa12e76c2e78b4e3c13ab55a075b1f0285b01739d670f0a8",
+        "walkforward_mae": 20.778608592567707,
         "trained_seasons": [
           2017,
           2018,
@@ -240,8 +240,8 @@
       },
       "qb_rushing_yards": {
         "path": "qb_rushing_yards_quantile_2025.pkl",
-        "sha256": "35894aaecca35a6449575c9851b8a00bd299e5ed4b9e4c4d86bdcbf7fa8666c9",
-        "walkforward_mae": 11.297705134566769,
+        "sha256": "030b71342f12fe7ad58c0e15f0d911c32e02c704c1fa1ea8f0959fd743fdd567",
+        "walkforward_mae": 11.24079806532812,
         "trained_seasons": [
           2017,
           2018,
@@ -258,18 +258,18 @@
         "n_quantiles": 19
       }
     },
-    "created_at": "2026-10-13T19:22:49.881141+00:00"
+    "created_at": "2026-10-15T14:07:24.557139+00:00"
   },
   "receptions": {
     "distribution": "zero_inflated_negative_binomial",
     "log_loss": {
-      "poisson": 1.9639525269637212,
-      "negative_binomial": 1.9390675429751907,
-      "zero_inflated_negative_binomial": 1.9381510709870124
+      "poisson": 1.9577924872039039,
+      "negative_binomial": 1.9336166041294476,
+      "zero_inflated_negative_binomial": 1.9327086626467596
     },
-    "alpha": 8.843923749886102,
-    "n_train": 26273,
-    "variance_ratio": 2.0197998380254454,
+    "alpha": 8.952815213404719,
+    "n_train": 30473,
+    "variance_ratio": 2.0084101392645093,
     "feature_cols": [
       "receptions_roll",
       "targets_roll",
