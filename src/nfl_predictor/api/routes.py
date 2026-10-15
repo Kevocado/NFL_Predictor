@@ -932,6 +932,9 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
                     # "unknown", not "not a starter".
                     "is_starter": flag["is_starter"] if flag else None,
                     "depth_slot": flag["depth_slot"] if flag else None,
+                    # His own plain last-5-games mean per stat (empty if none). Position-invariant key on
+                    # purpose: public_snapshot rebuilds reused weeks whose rows lack it.
+                    "recent_avg": player_usage.recent_averages(player["player_id"], player_history, season, week),
                     **props,
                 })
             except Exception as player_err:

@@ -338,3 +338,40 @@ def build_features_for_player(
 # `SERVING_FEATURE_COLUMNS` constant above, and comparing that to
 # `PLAYER_FEATURE_COLUMNS` -- its own first element -- is what made the old guard
 # vacuous.
+
+
+#: The stats a reader compares a projection against. `qb_rushing_yards` is a QB's rushing_yards.
+RECENT_AVG_STATS = ("passing_yards", "rushing_yards", "receiving_yards", "carries", "receptions")
+
+
+def recent_averages(
+    player_id: str,
+    player_stats_df: pd.DataFrame,
+    season: int,
+    week: int,
+    window: int = DEFAULT_ROLL_WINDOW,
+) -> dict:
+    """What a reader means by "his recent average": the plain mean of his last `window` games this season
+    before `week`, INCLUDING the most recent one.
+
+    Deliberately NOT `*_roll`: that feature excludes the latest game (training discipline, see
+    `build_features_for_player`), so showing it as "last 5 games" would silently be games n-6..n-2.
+    `games` is how many games the mean actually covers (fewer than `window` early in a season), so the
+    UI can say "3-game avg" instead of pretending. Empty dict when he has no game in scope.
+    """
+    h = player_stats_df
+    if not {"player_id", "season", "week"}.issubset(h.columns):
+        return {}  # an enhancement: a frame without the keys has no recent form to show, and must not fail the props
+    h = h[(h["player_id"] == player_id) & (h["season"] == season) & (h["week"] < week)]
+    h = h.sort_values("week").tail(window)
+    if h.empty:
+        return {}
+    out: dict = {"games": int(len(h))}
+    for stat in RECENT_AVG_STATS:
+        if stat in h.columns:
+            v = pd.to_numeric(h[stat], errors="coerce").mean()
+            if pd.notna(v):
+                out[stat] = round(float(v), 1)
+    if "rushing_yards" in out:
+        out["qb_rushing_yards"] = out["rushing_yards"]
+    return out
