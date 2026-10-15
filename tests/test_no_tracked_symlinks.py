@@ -7,17 +7,18 @@ def test_no_tracked_symlink_leaves_the_repository():
     A tracked symlink must be relative and stay inside the repo."""
     root = Path(__file__).resolve().parents[1]
     out = subprocess.run(["git", "ls-files", "-s"], cwd=root, capture_output=True, text=True, check=True).stdout
-    # The mutation harness runs this suite in a scratch git repo where the venv and node_modules are symlinked in; those are
-    # environment plumbing and never part of a commit. Everything else must stay inside the repo.
-    allowed = {".venv", "frontend/node_modules"}
+    # The mutation harness (tests/mutation_check.py build_tree) runs a subset of this suite inside a throwaway git repo it
+    # builds under a `props-mutation-` temp dir, with .venv and frontend/node_modules symlinked in from outside. That copy is
+    # never committed or pushed, and the real checkout (the `pytest` CI job) is checked strictly on EVERY path - there is no
+    # name allowlist here that a committed symlink could hide behind.
+    if root.name.startswith("props-mutation-"):
+        return
     bad = []
     for line in out.splitlines():
         mode, _, rest = line.partition(" ")
         if mode != "120000":
             continue
         path = rest.split("\t", 1)[1]
-        if path in allowed:
-            continue
         target = (root / path).readlink() if (root / path).is_symlink() else None
         if target is None or target.is_absolute() or not (root / path).parent.joinpath(target).resolve().is_relative_to(root.resolve()):
             bad.append(path)
