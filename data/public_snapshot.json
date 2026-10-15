@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-15T18:11:48.610853+00:00",
+  "generated_at": "2026-10-15T21:30:26.482958+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -105468,8 +105468,8 @@
           "stadium": "Empower Field at Mile High",
           "conditions": {
             "kind": "clear",
-            "temp_f": 49,
-            "wind_mph": 4,
+            "temp_f": 51,
+            "wind_mph": 6,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -105537,8 +105537,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -4.5,
-          "total_line": 41.5,
+          "spread_line": -3.5,
+          "total_line": 40.5,
           "stadium": "Huntington Bank Field"
         },
         {
@@ -105589,8 +105589,8 @@
           "stadium": "Gillette Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 56,
-            "wind_mph": 8,
+            "temp_f": 54,
+            "wind_mph": 4,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -105692,7 +105692,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 8.5,
-          "total_line": 42.5,
+          "total_line": 41.5,
           "stadium": "GEHA Field at Arrowhead Stadium"
         },
         {
@@ -105711,7 +105711,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -5.5,
+          "spread_line": -4.5,
           "total_line": 53.5,
           "stadium": "Allegiant Stadium"
         },
@@ -105799,10 +105799,10 @@
         "2026_06_BAL_CLE": {
           "home_win_prob": 0.34146574479495373,
           "away_win_prob": 0.6585342552050463,
-          "home_cover_prob": 0.4738493803632382,
-          "away_cover_prob": 0.5261506196367618,
-          "over_prob": 0.5921608473220339,
-          "under_prob": 0.4078391526779661,
+          "home_cover_prob": 0.4436229180631951,
+          "away_cover_prob": 0.5563770819368049,
+          "over_prob": 0.6234208817777691,
+          "under_prob": 0.3765791182222309,
           "predicted_margin": -5.360928885285897,
           "predicted_total": 44.36475372314453,
           "sigma": 13.12453702446608,
@@ -105892,8 +105892,8 @@
           "away_win_prob": 0.24121913850514365,
           "home_cover_prob": 0.5218289609446839,
           "away_cover_prob": 0.4781710390553161,
-          "over_prob": 0.7246221274117389,
-          "under_prob": 0.2753778725882611,
+          "over_prob": 0.7511137546445161,
+          "under_prob": 0.24888624535548387,
           "predicted_margin": 9.218495204201975,
           "predicted_total": 49.83222198486328,
           "sigma": 13.12453702446608,
@@ -105903,8 +105903,8 @@
         "2026_06_BUF_LV": {
           "home_win_prob": 0.28962105895351686,
           "away_win_prob": 0.7103789410464831,
-          "home_cover_prob": 0.4461360762291581,
-          "away_cover_prob": 0.5538639237708419,
+          "home_cover_prob": 0.41620063981221334,
+          "away_cover_prob": 0.5837993601877867,
           "over_prob": 0.6209759142193186,
           "under_prob": 0.37902408578068136,
           "predicted_margin": -7.27745195879675,
@@ -134780,10 +134780,10 @@
           "total_line": 48.5,
           "stadium": "Soldier Field",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 67,
+            "kind": "clear",
+            "temp_f": 66,
             "wind_mph": 4,
-            "precip_pct": 5,
+            "precip_pct": 3,
             "source": "open-meteo"
           }
         },
@@ -134854,9 +134854,9 @@
           "total_line": 50.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 54,
-            "wind_mph": 8,
+            "kind": "clear",
+            "temp_f": 61,
+            "wind_mph": 5,
             "precip_pct": 5,
             "source": "open-meteo"
           }
@@ -134882,8 +134882,8 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 62,
-            "wind_mph": 7,
+            "temp_f": 67,
+            "wind_mph": 10,
             "precip_pct": 3,
             "source": "open-meteo"
           }
@@ -163684,10 +163684,10 @@
           "total_line": null,
           "stadium": "Lambeau Field",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 57,
-            "wind_mph": 9,
-            "precip_pct": 13,
+            "kind": "rain",
+            "temp_f": 60,
+            "wind_mph": 16,
+            "precip_pct": 19,
             "source": "open-meteo"
           }
         },
