@@ -154,37 +154,13 @@
       "yards_per_target_roll",
       "yards_per_carry_roll",
       "qb_rushing_yards_roll",
-      "qb_rushing_tds_roll",
-      "opp_pass_yds_allowed_roll",
-      "opp_rush_yds_allowed_roll",
-      "opp_rec_yds_allowed_roll",
-      "is_home",
-      "rest_days",
-      "is_outdoor",
-      "temp_c",
-      "wind_kph",
-      "precip_mm",
-      "high_wind_flag",
-      "inj_Q",
-      "inj_D",
-      "inj_O",
-      "ol_injuries_out",
-      "depth_rank_change",
-      "snap_share",
-      "snap_share_trend",
-      "opp_share",
-      "form_deviation",
-      "separation_avg",
-      "expected_air_yards",
-      "target_concentration",
-      "wind_pass_interaction",
-      "expected_plays"
+      "qb_rushing_tds_roll"
     ],
     "markets": {
       "passing_yards": {
         "path": "passing_yards_quantile_2025.pkl",
-        "sha256": "7f528624aaee2202bed2dd7035dc766e366dd4879bd6d9706f076f1673079728",
-        "walkforward_mae": 69.29242882308554,
+        "sha256": "dff1466aac828a3722d91ae0083253224fa86f66924b0bd33602e320d4e817e1",
+        "walkforward_mae": 70.48594413270123,
         "trained_seasons": [
           2017,
           2018,
@@ -197,13 +173,13 @@
           2025,
           2026
         ],
-        "n_features": 38,
+        "n_features": 14,
         "n_quantiles": 19
       },
       "rushing_yards": {
         "path": "rushing_yards_quantile_2025.pkl",
-        "sha256": "cd8a0a6af0b425586827deb41da2b910ebfa922dd75e611c4d5559f6cdddfaee",
-        "walkforward_mae": 21.20141557195733,
+        "sha256": "2335dc01c8c454e3cf191f849b87a9235d45590c101107d39925095818e66035",
+        "walkforward_mae": 21.45282501368364,
         "trained_seasons": [
           2017,
           2018,
@@ -216,13 +192,13 @@
           2025,
           2026
         ],
-        "n_features": 38,
+        "n_features": 14,
         "n_quantiles": 19
       },
       "receiving_yards": {
         "path": "receiving_yards_quantile_2025.pkl",
-        "sha256": "bb03acb8fcb3e4a4fa12e76c2e78b4e3c13ab55a075b1f0285b01739d670f0a8",
-        "walkforward_mae": 20.778608592567707,
+        "sha256": "925bd3c1d9ad8ad851b3630b32bc67be736389b6fc43cae7406ece9d3d69ff12",
+        "walkforward_mae": 20.91091853704126,
         "trained_seasons": [
           2017,
           2018,
@@ -235,13 +211,13 @@
           2025,
           2026
         ],
-        "n_features": 38,
+        "n_features": 14,
         "n_quantiles": 19
       },
       "qb_rushing_yards": {
         "path": "qb_rushing_yards_quantile_2025.pkl",
-        "sha256": "030b71342f12fe7ad58c0e15f0d911c32e02c704c1fa1ea8f0959fd743fdd567",
-        "walkforward_mae": 11.24079806532812,
+        "sha256": "5f6d74a153754fd7190e70aa78189e1554f1f67e7ee8dd2e42b9a34c88696ded",
+        "walkforward_mae": 11.23577318435083,
         "trained_seasons": [
           2017,
           2018,
@@ -254,11 +230,11 @@
           2025,
           2026
         ],
-        "n_features": 38,
+        "n_features": 14,
         "n_quantiles": 19
       }
     },
-    "created_at": "2026-10-15T14:07:24.557139+00:00"
+    "created_at": "2026-10-15T21:07:39.088703+00:00"
   },
   "receptions": {
     "distribution": "zero_inflated_negative_binomial",

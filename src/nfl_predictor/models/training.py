@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from ..features.player_usage import SERVING_FEATURE_COLUMNS
 from .player_props import fit_yardage_quantile_models
 from .quantile_registry import save_quantile_artifacts, verify_quantile_artifacts
 from .receptions_zinb import (
@@ -163,9 +164,18 @@ FORWARD_FEATURE_COLUMNS: tuple[str, ...] = (
 
 
 
+#: What the props route actually puts in a served feature row (`player_usage.build_features_for_player`): the 14 rolling
+#: columns. The quantile models are trained on THIS subset of FORWARD_FEATURE_COLUMNS and nothing else. They used to be
+#: trained on all 38; the other 24 (snap_share, expected_plays, is_home, rest_days, opp-allowed rolls, weather, ...) are
+#: not produced at serve time, so `predict_props` zero-filled them and a star receiver's median collapsed to 26 yards
+#: against a point projection of 87 (2026-10-15). The forward tick (`tracking/forward_tick.py`) builds the full row for
+#: its own purposes; the props route does not, so the props models must not depend on it.
+QUANTILE_FEATURE_COLUMNS: tuple[str, ...] = tuple(c for c in FORWARD_FEATURE_COLUMNS if c in SERVING_FEATURE_COLUMNS)
+
+
 def _feature_columns(frame: pd.DataFrame, market: str) -> list[str]:
-    """`FORWARD_FEATURE_COLUMNS` minus the market's label column, restricted
-    to what the frame has.
+    """`QUANTILE_FEATURE_COLUMNS` (the subset of `FORWARD_FEATURE_COLUMNS` the props route serves) minus the market's
+    label column, restricted to what the frame has.
 
     Missing columns are tolerated (a caller may not have weather, say) rather
     than raising, because the serving path must be able to run with what it has.
@@ -173,7 +183,7 @@ def _feature_columns(frame: pd.DataFrame, market: str) -> list[str]:
     the leak this function exists to prevent.
     """
     label = MARKET_LABEL_COLUMN[market]
-    return [c for c in FORWARD_FEATURE_COLUMNS
+    return [c for c in QUANTILE_FEATURE_COLUMNS
             if c != label and c in frame.columns
             and pd.api.types.is_numeric_dtype(frame[c])]
 
