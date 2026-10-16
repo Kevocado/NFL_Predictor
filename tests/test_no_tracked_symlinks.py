@@ -11,10 +11,9 @@ def test_no_tracked_symlink_leaves_the_repository():
     # builds under a `props-mutation-` temp dir, with .venv and frontend/node_modules symlinked in from outside. That copy is
     # never committed or pushed, and the real checkout (the `pytest` CI job) is checked strictly on EVERY path - there is no
     # name allowlist here that a committed symlink could hide behind.
-    if root.name.startswith("props-mutation-"):
-        return
+    scratch_copy = root.name.startswith("props-mutation-")
     bad = []
-    for line in out.splitlines():
+    for line in ([] if scratch_copy else out.splitlines()):
         mode, _, rest = line.partition(" ")
         if mode != "120000":
             continue
