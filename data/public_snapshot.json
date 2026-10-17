@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17T10:56:12.588939+00:00",
+  "generated_at": "2026-10-17T15:45:00.116473+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -105582,8 +105582,8 @@
           "stadium": "Gillette Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 51,
-            "wind_mph": 3,
+            "temp_f": 50,
+            "wind_mph": 1,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -105711,7 +105711,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -4.5,
+          "spread_line": -5.5,
           "total_line": 53.5,
           "stadium": "Allegiant Stadium"
         },
@@ -105903,8 +105903,8 @@
         "2026_06_BUF_LV": {
           "home_win_prob": 0.28962105895351686,
           "away_win_prob": 0.7103789410464831,
-          "home_cover_prob": 0.41620063981221334,
-          "away_cover_prob": 0.5837993601877867,
+          "home_cover_prob": 0.4461360762291581,
+          "away_cover_prob": 0.5538639237708419,
           "over_prob": 0.6209759142193186,
           "under_prob": 0.37902408578068136,
           "predicted_margin": -7.27745195879675,
@@ -131816,10 +131816,10 @@
           "total_line": 48.5,
           "stadium": "Soldier Field",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 63,
-            "wind_mph": 4,
-            "precip_pct": 0,
+            "kind": "clear",
+            "temp_f": 62,
+            "wind_mph": 2,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -131888,7 +131888,14 @@
           "wind": null,
           "spread_line": 3.5,
           "total_line": 50.5,
-          "stadium": "M&T Bank Stadium"
+          "stadium": "M&T Bank Stadium",
+          "conditions": {
+            "kind": "cloudy",
+            "temp_f": 62,
+            "wind_mph": 4,
+            "precip_pct": 12,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_TB_CAR",
@@ -131911,9 +131918,9 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 65,
-            "wind_mph": 4,
-            "precip_pct": 2,
+            "temp_f": 66,
+            "wind_mph": 8,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -160781,7 +160788,14 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Lambeau Field"
+          "stadium": "Lambeau Field",
+          "conditions": {
+            "kind": "cloudy",
+            "temp_f": 51,
+            "wind_mph": 8,
+            "precip_pct": 26,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_08_BAL_BUF",
@@ -160803,10 +160817,10 @@
           "total_line": null,
           "stadium": "Highmark Stadium",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 65,
-            "wind_mph": 15,
-            "precip_pct": 23,
+            "kind": "clear",
+            "temp_f": 57,
+            "wind_mph": 17,
+            "precip_pct": 26,
             "source": "open-meteo"
           }
         },
@@ -160828,14 +160842,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Paycor Stadium",
-          "conditions": {
-            "kind": "cloudy",
-            "temp_f": 72,
-            "wind_mph": 11,
-            "precip_pct": 26,
-            "source": "open-meteo"
-          }
+          "stadium": "Paycor Stadium"
         },
         {
           "game_id": "2026_08_ARI_DAL",
