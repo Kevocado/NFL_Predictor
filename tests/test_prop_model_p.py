@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import pytest
 
+from unittest import mock
+
 
 def _one_ladder(ticker, stat, team="KC", initial="P", last="MAHOMES"):
     """One Kalshi ladder with rungs for `stat`, matching current_ladders shape."""
@@ -29,6 +31,7 @@ def _one_ladder(ticker, stat, team="KC", initial="P", last="MAHOMES"):
     }
 
 
+@pytest.mark.unit
 def test_receptions_rungs_gain_model_p_and_generated_at(monkeypatch):
     data = {"lines": [_one_ladder("t1", "receptions"), _one_ladder("t2", "passing_tds", team="KC", initial="J", last="BURROW")]}
     props = {
@@ -66,6 +69,7 @@ def test_receptions_rungs_gain_model_p_and_generated_at(monkeypatch):
     assert all(r["generated_at"] == "2026-10-18T05:00:00+00:00" for r in td_rungs)
 
 
+@pytest.mark.unit
 def test_yardage_rungs_byte_identical_no_model_p(monkeypatch):
     data = {
         "lines": [
@@ -95,6 +99,7 @@ def test_yardage_rungs_byte_identical_no_model_p(monkeypatch):
         assert set(by_stat[stat]) == {"team", "initial", "last", "stat", "rungs"}
 
 
+@pytest.mark.unit
 def test_fail_soft_leaves_rungs_untouched(monkeypatch):
     data = {"lines": [_one_ladder("t1", "receptions")]}
     props = {}
@@ -111,6 +116,7 @@ def test_fail_soft_leaves_rungs_untouched(monkeypatch):
     assert set(by_stat["receptions"]) == {"team", "initial", "last", "stat", "rungs"}
 
 
+@pytest.mark.unit
 def test_selected_player_only_receives_model_p(monkeypatch):
     """One QB with receptions_p_over, another QB without — only the first rung
     carries model_p; the second stays byte-identical."""

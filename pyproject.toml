@@ -45,6 +45,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 markers = [
   "network: hits a live upstream API; deselect with '-m \"not network\"'",
+  "unit: unit-test-level suite (offline, no nfl_data_py)",
 ]
 
 [tool.ruff]
