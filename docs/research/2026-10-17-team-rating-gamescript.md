@@ -38,7 +38,7 @@ Effect in yards: 1 SD better opponent pass defence = **0.04 yards fewer QB pass 
 - **B.1:** spread + total alone explain most of the variance in team pass-attempt share and points; adding the ratings lifts pass-attempt share R² from 0.019 to 0.065 and rush-attempt R² from 0.023 to 0.062. Plays are unpredictable (R² ≈ −0.005, worse than the mean). The ratings do help the team-level script layer, but only modestly.
 - **B.2:** script-implied volume (projected team attempts × lagged player share) changes MAE by at most −0.05 yards versus the player's own lagged usage. **Raw recent usage is not beaten by the script** on this data. Verdict per position: NOTHING.
 - **B.3 (spillover, pre-game projected RB1 carries only):** holding projected team pass attempts fixed, projected RB1 carries have no significant effect on WR1/WR2/WR3 targets (−0.11 to +0.11 per 10 carries, all CIs include 0). WR1 receiving yards rise with projected RB volume (+0.71 per 10 carries, CI [−0.00, +0.17], borderline). QB projected pass attempts → WR2 targets is +0.033 per attempt, CI crosses 0. The interaction of projected RB carries × opponent pass-defence rating is zero on both RB yards and WR yards. Verdict: NOTHING measurable.
-- **B.4 (calibration):** see above — global tail underconfidence, no script-specific edge.
+- **B.4 (calibration):** see above — the model is uniformly overconfident on overs (predicted P(over) ≈ 0.49, empirical ≈ 0.39–0.43) in every script bucket. This is a global calibration correction, not a script-conditioned one; no script bucket is uniquely off, so conditioning the quantile band on script state does not buy a betting edge on this data.
 
 ## Refused / not computable
 
