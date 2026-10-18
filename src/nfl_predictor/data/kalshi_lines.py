@@ -21,6 +21,8 @@ import requests
 BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
 #: Kalshi series ticker -> the stat it prices.
 SERIES = {
+    "KXNFLGAME": "moneyline",
+    "KXNFLTOTAL": "total",
     "KXNFLPASSYDS": "passing_yards",
     "KXNFLRSHYDS": "rushing_yards",
     "KXNFLRECYDS": "receiving_yards",
@@ -42,7 +44,13 @@ def _dollars(value) -> float | None:
 def normalize(market: dict, series: str, snapshot_ts: str) -> dict:
     """One flat row per market rung. Pure; the unit of everything downstream."""
     title = market.get("title") or ""
+    # Moneyline rungs are "Philadelphia wins" / "Dallas wins"; totals are
+    # "Full Game: over 69.5 points scored?". Neither has a player, so player
+    # stays None for both. The title is kept on the row so the hub can tell
+    # which outcome a moneyline rung prices.
     player = title.split(":", 1)[0].strip() if ":" in title else None
+    if SERIES.get(series) in ("moneyline", "total"):
+        player = None
     return {
         "snapshot_ts": snapshot_ts,
         "series": series,
@@ -50,6 +58,7 @@ def normalize(market: dict, series: str, snapshot_ts: str) -> dict:
         "ticker": market.get("ticker"),
         "event_ticker": market.get("event_ticker"),
         "player": player,
+        "title": title,
         "line": _dollars(market.get("floor_strike")),
         "yes_bid": _dollars(market.get("yes_bid_dollars")),
         "yes_ask": _dollars(market.get("yes_ask_dollars")),
@@ -113,7 +122,7 @@ def write_snapshot(rows: list[dict], out_dir: Path = LINES_DIR, now: datetime | 
         return None
     now = now or datetime.now(timezone.utc)
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"kalshi_nfl_props_{now:%Y-%m-%d}.jsonl.gz"
+    path = out_dir / f"kalshi_nfl_lines_{now:%Y-%m-%d}.jsonl.gz"
     with gzip.open(path, "at", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, sort_keys=True) + "\n")

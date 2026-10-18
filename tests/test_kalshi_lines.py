@@ -59,7 +59,7 @@ def test_collect_pages_through_cursors_and_asks_for_open_and_recently_settled():
     statuses = {(c["series_ticker"], c["status"]) for c in s.calls}
     assert ("KXNFLPASSYDS", "open") in statuses and ("KXNFLREC", "settled") in statuses
     assert any(c.get("cursor") == "p2" for c in s.calls)
-    assert len(rows) == 4 * 2 + 1                       # 4 series x (open, settled) + the extra page
+    assert len(rows) == 6 * 2 + 1                       # 6 series x (open, settled) + the extra page
     assert all(r["snapshot_ts"].startswith("2026-10-15") for r in rows)
 
 
@@ -68,7 +68,7 @@ def test_write_snapshot_appends_one_gzip_file_per_utc_day(tmp_path):
     now = datetime(2026, 10, 15, 12, tzinfo=timezone.utc)
     p1 = kl.write_snapshot(rows, tmp_path, now)
     p2 = kl.write_snapshot(rows, tmp_path, now)
-    assert p1 == p2 and p1.name == "kalshi_nfl_props_2026-10-15.jsonl.gz"
+    assert p1 == p2 and p1.name == "kalshi_nfl_lines_2026-10-15.jsonl.gz"
     lines = gzip.open(p1, "rt").read().splitlines()
     assert len(lines) == 2 and json.loads(lines[0])["line"] == 324.5
     assert kl.write_snapshot([], tmp_path, now) is None
