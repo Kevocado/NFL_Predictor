@@ -12,8 +12,6 @@ inputs so no network / nfl_data_py is required:
 """
 from __future__ import annotations
 
-from unittest import mock
-
 import pytest
 
 
@@ -31,7 +29,7 @@ def _one_ladder(ticker, stat, team="KC", initial="P", last="MAHOMES"):
     }
 
 
-def test_receptions_rungs_gain_model_p_and_generated_at():
+def test_receptions_rungs_gain_model_p_and_generated_at(monkeypatch):
     data = {"lines": [_one_ladder("t1", "receptions"), _one_ladder("t2", "passing_tds", team="KC", initial="J", last="BURROW")]}
     props = {
         ("KC", "P", "MAHOMES"): {
@@ -42,7 +40,9 @@ def test_receptions_rungs_gain_model_p_and_generated_at():
     }
     from nfl_predictor.api.routes import _attach_prop_model_p
 
-    with mock.patch("nfl_predictor.api.routes._get_player_props_live", return_value=[
+    monkeypatch.setattr(
+        "nfl_predictor.api.routes._get_player_props_live",
+        lambda *a, **k: [
         {
             "player_name": "Patrick Mahomes", "recent_team": "KC",
             "receptions_p_over": 0.42, "passing_td_over_prob": 0.61,
@@ -53,8 +53,9 @@ def test_receptions_rungs_gain_model_p_and_generated_at():
             "passing_td_over_prob": 0.39,
             "generated_at": "2026-10-18T05:00:00+00:00",
         },
-    ]):
-        _attach_prop_model_p(data, 2026, 3)
+    ],
+    )
+    _attach_prop_model_p(data, 2026, 3)
 
     by_ticker = {l["stat"]: l for l in data["lines"]}
     rec_rungs = by_ticker["receptions"]["rungs"]
@@ -65,7 +66,7 @@ def test_receptions_rungs_gain_model_p_and_generated_at():
     assert all(r["generated_at"] == "2026-10-18T05:00:00+00:00" for r in td_rungs)
 
 
-def test_yardage_rungs_byte_identical_no_model_p():
+def test_yardage_rungs_byte_identical_no_model_p(monkeypatch):
     data = {
         "lines": [
             _one_ladder("t1", "passing_yards"),
@@ -75,6 +76,15 @@ def test_yardage_rungs_byte_identical_no_model_p():
     }
     from nfl_predictor.api.routes import _attach_prop_model_p
 
+    # Props exist for the player, but yardage markets must still not gain model_p.
+    monkeypatch.setattr(
+        "nfl_predictor.api.routes._get_player_props_live",
+        lambda *a, **k: [{
+            "player_name": "Patrick Mahomes", "recent_team": "KC",
+            "receptions_p_over": 0.42, "passing_td_over_prob": 0.61,
+            "generated_at": "2026-10-18T05:00:00+00:00",
+        }],
+    )
     _attach_prop_model_p(data, 2026, 3)
 
     by_stat = {l["stat"]: l for l in data["lines"]}
@@ -85,22 +95,23 @@ def test_yardage_rungs_byte_identical_no_model_p():
         assert set(by_stat[stat]) == {"team", "initial", "last", "stat", "rungs"}
 
 
-def test_fail_soft_leaves_rungs_untouched():
+def test_fail_soft_leaves_rungs_untouched(monkeypatch):
     data = {"lines": [_one_ladder("t1", "receptions")]}
     props = {}
     from nfl_predictor.api.routes import _attach_prop_model_p
-    from unittest import mock
-
     # Simulate a broken props pipeline that returns an unusable row set.
-    with mock.patch("nfl_predictor.api.routes._get_player_props_live", side_effect=RuntimeError("boom")):
-        _attach_prop_model_p(data, 2026, 3)  # does not raise
+    def boom(*a, **k):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr("nfl_predictor.api.routes._get_player_props_live", boom)
+    _attach_prop_model_p(data, 2026, 3)  # does not raise
     by_stat = {l["stat"]: l for l in data["lines"]}
     assert "model_p" not in by_stat["receptions"]
     assert "generated_at" not in by_stat["receptions"]
     assert set(by_stat["receptions"]) == {"team", "initial", "last", "stat", "rungs"}
 
 
-def test_selected_player_only_receives_model_p():
+def test_selected_player_only_receives_model_p(monkeypatch):
     """One QB with receptions_p_over, another QB without — only the first rung
     carries model_p; the second stays byte-identical."""
     data = {
@@ -111,13 +122,16 @@ def test_selected_player_only_receives_model_p():
     }
     from nfl_predictor.api.routes import _attach_prop_model_p
 
-    with mock.patch("nfl_predictor.api.routes._get_player_props_live", return_value=[
+    monkeypatch.setattr(
+        "nfl_predictor.api.routes._get_player_props_live",
+        lambda *a, **k: [
         {
             "player_name": "Patrick Mahomes", "recent_team": "KC",
             "receptions_p_over": 0.55, "generated_at": "2026-10-18T05:00:00+00:00",
         },
-    ]):
-        _attach_prop_model_p(data, 2026, 3)
+    ],
+    )
+    _attach_prop_model_p(data, 2026, 3)
 
     lines = data["lines"]
     mahomes = next(l for l in lines if l["last"] == "MAHOMES")
