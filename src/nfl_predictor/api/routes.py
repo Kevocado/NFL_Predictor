@@ -780,7 +780,7 @@ def _attach_prop_model_p(data: dict, season: int, week: int) -> None:
         return
     # Build a lookup from (team, initial, last) -> (receptions_p_over | passing_td_over_prob, generated_at).
     lookup: dict[tuple, tuple[float, str]] = {}
-    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    generated_at = None
     for p in props:
         name = p.get("player_name") or ""
         team = p.get("recent_team")
@@ -793,10 +793,15 @@ def _attach_prop_model_p(data: dict, season: int, week: int) -> None:
         last = parts[-1].upper() if len(parts) > 1 else ""
         key = (team, initial, last)
         # receptions: receptions_p_over; passing TDs: passing_td_over_prob
+        # generated_at comes from the props row (when the pipeline computed it);
+        # fall back to now so a stamped-in-time snapshot still lands.
+        gen = p.get("generated_at")
+        if gen is None:
+            gen = datetime.now(timezone.utc).isoformat()
         if p.get("receptions_p_over") is not None:
-            lookup.setdefault(key, {})["receptions"] = (float(p["receptions_p_over"]), generated_at)
+            lookup.setdefault(key, {})["receptions"] = (float(p["receptions_p_over"]), gen)
         if p.get("passing_td_over_prob") is not None:
-            lookup.setdefault(key, {})["passing_tds"] = (float(p["passing_td_over_prob"]), generated_at)
+            lookup.setdefault(key, {})["passing_tds"] = (float(p["passing_td_over_prob"]), gen)
 
     for ladder in (data.get("lines") or []):
         who = ladder  # already has team/initial/last from parse_player_token
@@ -1000,10 +1005,6 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
                     skipped.append(player.get("player_id"))
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
-                # PR 1b: attach p_over directionally for WR/TE receptions and QB pass TDs.
-                # The quantile dict is stripped before the response (see below); only the
-                # directionality number at the served line leaves, with the timestamp.
-                props["generated_at"] = datetime.now(timezone.utc).isoformat()
                 flag = chart_flags.get(player["player_id"]) or chart_flags.get(player["player_name"])
                 results.append({
                     "player_id": player["player_id"],
