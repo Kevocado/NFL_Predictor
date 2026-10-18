@@ -745,10 +745,75 @@ def get_market_lines(season: int, week: int):
     `p_over` is the market's probability of clearing `line` (324.5 for a '325+' rung). Always 200: when Kalshi is
     unreachable or has nothing listed the answer is an empty list, never an error, because it only decorates the line
     checker. Players are matched by team + first initial + last name (see `kalshi_lines.parse_player_token`).
+
+    For WR/TE receptions and QB passing TDs only, the ladder also carries
+    `model_p` (the model's P(over) at that rung's line) and `generated_at`
+    (when the probability was computed). These are the two fields the paper
+    ledger needs to log a prop candidate without importing models. Yards markets
+    do NOT carry `model_p`: their probability is a quantile interpolation that
+    the paper ledger does not yet consume (PR 1b scope). Fail-soft: if the prop
+    pipeline is unavailable, the rungs simply omit both fields.
     """
     from ..data import kalshi_lines
 
-    return kalshi_lines.current_ladders()
+    data = kalshi_lines.current_ladders()
+    try:
+        _attach_prop_model_p(data, season, week)
+    except Exception as exc:  # noqa: BLE001 - enhancement; never break the line checker
+        logger.warning("market-lines model_p attach failed for %s wk%s: %s", season, week, exc)
+    return data
+
+
+def _attach_prop_model_p(data: dict, season: int, week: int) -> None:
+    """Attach `model_p` and `generated_at` to receptions/passing_tds rungs only.
+
+    Fail-soft: any failure leaves the rungs as they were. No raw quantiles are
+    ever exposed.
+    """
+    from datetime import datetime, timezone
+
+    try:
+        props = _get_player_props_live(season, week)
+    except Exception:
+        return
+    if not props:
+        return
+    # Build a lookup from (team, initial, last) -> (receptions_p_over | passing_td_over_prob, generated_at).
+    lookup: dict[tuple, tuple[float, str]] = {}
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for p in props:
+        name = p.get("player_name") or ""
+        team = p.get("recent_team")
+        if not team or not name:
+            continue
+        parts = name.split()
+        if not parts:
+            continue
+        initial = parts[0][0].upper() if parts[0] else ""
+        last = parts[-1].upper() if len(parts) > 1 else ""
+        key = (team, initial, last)
+        # receptions: receptions_p_over; passing TDs: passing_td_over_prob
+        if p.get("receptions_p_over") is not None:
+            lookup.setdefault(key, {})["receptions"] = (float(p["receptions_p_over"]), generated_at)
+        if p.get("passing_td_over_prob") is not None:
+            lookup.setdefault(key, {})["passing_tds"] = (float(p["passing_td_over_prob"]), generated_at)
+
+    for ladder in (data.get("lines") or []):
+        who = ladder  # already has team/initial/last from parse_player_token
+        team = ladder.get("team")
+        initial = ladder.get("initial")
+        last = ladder.get("last")
+        stat = ladder.get("stat")
+        if stat not in ("receptions", "passing_tds"):
+            continue
+        key = (team, initial, last)
+        info = (lookup.get(key) or {}).get(stat)
+        if info is None:
+            continue
+        model_p, gen = info
+        for rung in (ladder.get("rungs") or []):
+            rung["model_p"] = model_p
+            rung["generated_at"] = gen
 
 
 @router.get("/players/{season}/{week}/props")
@@ -935,6 +1000,10 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
                     skipped.append(player.get("player_id"))
                     continue
                 props = player_props.predict_props(models["player_models"], feature_row, position=player["position"])
+                # PR 1b: attach p_over directionally for WR/TE receptions and QB pass TDs.
+                # The quantile dict is stripped before the response (see below); only the
+                # directionality number at the served line leaves, with the timestamp.
+                props["generated_at"] = datetime.now(timezone.utc).isoformat()
                 flag = chart_flags.get(player["player_id"]) or chart_flags.get(player["player_name"])
                 results.append({
                     "player_id": player["player_id"],
