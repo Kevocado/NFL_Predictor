@@ -40,7 +40,176 @@ DEFAULT_ROLL_WINDOW = 5
 #: :func:`with_passing_tds_roll` rather than rolling it a second time by hand.
 PASSING_TDS_ROLL_COLUMN = "passing_tds_roll"
 
-#: A DECLARATION of every column `build_features_for_player` emits -- the fitted
+#: Forward-set team features that are NOT part of the 14-column served rolling
+#: set but that the repo already computes in `features/build.py` (the forward
+#: set). Serving them required loading play-by-play + schedules, which the props
+#: route did not do, so they were zero-filled and dropped from the served set on
+#: 2026-10-15. They are genuinely computable pre-game (lagged aggregates of
+# # strictly earlier games), so they can be served without zero-filling.
+FORWARD_SET_COLUMNS: tuple[str, ...] = (
+    "opp_pass_yds_allowed_roll", "plays_roll", "pass_share_roll",
+    "opp_plays_allowed_roll", "expected_plays",
+)
+
+
+def _past_rolling_mean(s: pd.Series, window: int = DEFAULT_ROLL_WINDOW) -> pd.Series:
+    """shift(1)-then-rolling mean over strictly earlier games."""
+    return s.shift(1).rolling(window, min_periods=1).mean()
+
+
+def _games_map_from_schedules(schedules: pd.DataFrame) -> pd.DataFrame:
+    """(season, week, team) -> opponent, from the schedules pull (home + away sides)."""
+    needed = {"season", "week", "home_team", "away_team"}
+    if not needed.issubset(schedules.columns):
+        return pd.DataFrame(columns=["season", "week", "team", "opponent"])
+    home = schedules.rename(columns={"home_team": "team", "away_team": "opponent"})[
+        ["season", "week", "team", "opponent"]
+    ]
+    away = schedules.rename(columns={"away_team": "team", "home_team": "opponent"})[
+        ["season", "week", "team", "opponent"]
+    ]
+    return pd.concat([home, away], ignore_index=True).drop_duplicates()
+
+
+def build_forward_tables(
+    pbp: pd.DataFrame,
+    schedules: pd.DataFrame,
+    position_by_player: dict[str, str] | None = None,
+    window: int = DEFAULT_ROLL_WINDOW,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Forward-set team features, lagged (strictly earlier games), for serving.
+
+    Mirrors `features/interactions.py` (`add_pbp_features`) and
+    `features/matchup.py` (`_opponent_allowed`) so training and serving compute
+    identical values. Every value is computed from games strictly before the
+    row's week, so all five features are pre-game knowable.
+
+    Returns `(own_forward, opp_forward)`:
+
+    * `own_forward`: index `(season, week, team)` -> `plays_roll`,
+      `pass_share_roll` (the player's own team).
+    * `opp_forward`: index `(season, week, defteam, position)` ->
+      `opp_plays_allowed_roll` (team-level) and `opp_pass_yds_allowed_roll`
+      (position-specific: passing yards the defence allowed to that position).
+
+    `expected_plays` is derived at lookup time as
+    `own_team.plays_roll * opponent.opp_plays_allowed_roll / 100`, mirroring
+    `features/interactions.py`.
+    """
+    plays = pbp[
+        (pbp["pass_attempt"].fillna(0).astype(bool))
+        | (pbp["rush_attempt"].fillna(0).astype(bool))
+    ].copy()
+
+    empty_own = pd.DataFrame(
+        columns=["season", "week", "team", "plays_roll", "pass_share_roll"]
+    )
+    empty_opp = pd.DataFrame(
+        columns=[
+            "season", "week", "defteam", "position",
+            "opp_plays_allowed_roll", "opp_pass_yds_allowed_roll",
+        ]
+    )
+    if plays.empty:
+        return empty_own.set_index(["season", "week", "team"]), empty_opp.set_index(
+            ["season", "week", "defteam", "position"]
+        )
+
+    # ---- own-team offense (team level) -------------------------------------
+    own = (
+        plays.groupby(["season", "week", "posteam"], as_index=False)
+        .agg(plays=("play_id", "size"), pass_attempts=("pass_attempt", "sum"))
+        .rename(columns={"posteam": "team"})
+    )
+    allowed = (
+        plays.groupby(["season", "week", "defteam"], as_index=False)
+        .agg(plays_allowed=("play_id", "size"))
+        .rename(columns={"defteam": "team"})
+    )
+    team = own.merge(allowed, on=["season", "week", "team"], how="outer")
+    team = team.sort_values(["team", "season", "week"]).reset_index(drop=True)
+    team["plays_roll"] = team.groupby("team")["plays"].transform(_past_rolling_mean)
+    team["pass_attempts_roll"] = team.groupby("team")["pass_attempts"].transform(
+        _past_rolling_mean
+    )
+    team["plays_allowed_roll"] = team.groupby("team")["plays_allowed"].transform(
+        _past_rolling_mean
+    )
+    team["pass_share_roll"] = team["pass_attempts_roll"] / team["plays_roll"].replace(
+        0, np.nan
+    )
+
+    # opponent mapping via the schedules (team T's week-W opponent).
+    gm = _games_map_from_schedules(schedules)
+    if not gm.empty:
+        team = team.merge(gm, on=["season", "week", "team"], how="left")
+        team = team.merge(
+            team[["season", "week", "team", "plays_allowed_roll"]].rename(
+                columns={
+                    "team": "opponent",
+                    "plays_allowed_roll": "opp_plays_allowed_roll",
+                }
+            ),
+            on=["season", "week", "opponent"],
+            how="left",
+        )
+    team["expected_plays"] = (
+        team["plays_roll"] * team["opp_plays_allowed_roll"] / 100.0
+    )
+
+    own_forward = team[["season", "week", "team", "plays_roll", "pass_share_roll"]]
+
+    # ---- defence yards allowed to a position group (position-specific) -------
+    # Mirrors matchup._opponent_allowed: group the player-level weekly frame by
+    # (defteam, position) and sum the relevant yardage, then roll per (defteam,
+    # position). `position_by_player` maps pbp role ids to positions; without it
+    # we fall back to the passer/rusher role implied by the yardage column.
+    if position_by_player is None:
+        position_by_player = {}
+
+    def _pos(pid, fallback: str) -> str:
+        return position_by_player.get(pid, fallback)
+
+    pass_plays = plays[plays["pass_attempt"].fillna(0).astype(bool)].copy()
+    if not pass_plays.empty and "passing_yards" in pass_plays.columns:
+        pass_plays = pass_plays.copy()
+        pass_plays["position"] = [
+            _pos(p, "QB") for p in pass_plays["passer_player_id"]
+        ]
+        pass_allowed = (
+            pass_plays.groupby(["season", "week", "defteam", "position"], as_index=False)
+            .agg(allowed_pass_yards=("passing_yards", "sum"))
+            .rename(columns={"defteam": "defteam"})
+        )
+        pass_allowed = pass_allowed.sort_values(
+            ["defteam", "position", "season", "week"]
+        ).reset_index(drop=True)
+        pass_allowed["opp_pass_yds_allowed_roll"] = pass_allowed.groupby(
+            ["defteam", "position"]
+        )["allowed_pass_yards"].transform(_past_rolling_mean)
+    else:
+        pass_allowed = pd.DataFrame(
+            columns=["season", "week", "defteam", "position", "opp_pass_yds_allowed_roll"]
+        )
+
+    opp_forward = pass_allowed.merge(
+        team[["season", "week", "team", "plays_allowed_roll"]].rename(
+            columns={"team": "defteam", "plays_allowed_roll": "opp_plays_allowed_roll"}
+        ),
+        on=["season", "week", "defteam"],
+        how="left",
+    )
+    opp_forward = opp_forward[
+        [
+            "season", "week", "defteam", "position",
+            "opp_plays_allowed_roll", "opp_pass_yds_allowed_roll",
+        ]
+    ]
+
+    return (
+        own_forward.set_index(["season", "week", "team"]),
+        opp_forward.set_index(["season", "week", "defteam", "position"]),
+    )
 #: player features plus `passing_tds_roll`.
 #:
 #: **This constant is no longer what the load-time audit compares against**, and
@@ -201,6 +370,7 @@ def build_features_for_player(
     season: int | None = None,
     week: int | None = None,
     window: int = DEFAULT_ROLL_WINDOW,
+    forward_tables: tuple[pd.DataFrame, pd.DataFrame] | None = None,
 ) -> pd.Series | None:
     """Pregame rolling features for one player, matching the training discipline.
 
@@ -228,6 +398,15 @@ def build_features_for_player(
     scoring it returns the origin intercept (passing_yards 62.592, anytime_td_prob
     0.111846), which is how 430 of 880 live rows -- 48.9% -- came back bit-identical
     before this was fixed.
+
+    `forward_tables` is the optional precomputed output of
+    `build_forward_tables(pbp, schedules)` -- `(own_forward, opp_forward)` -- used
+    to serve the forward-set team features (`plays_roll`, `pass_share_roll`,
+    `opp_plays_allowed_roll`, `opp_pass_yds_allowed_roll`, `expected_plays`). They
+    are read off the player's latest pregame game, so they carry no lookahead. When
+    omitted (or a lookup is unavailable) the forward features are NaN: callers must
+    not fabricate a zero for them, since retraining on the served set keeps
+    training/serve parity.
     """
     history = player_stats_df[player_stats_df["player_id"] == player_id]
     if season is not None:
@@ -305,10 +484,47 @@ def build_features_for_player(
     else:
         qb_features = {"qb_rushing_yards_roll": float("nan"), "qb_rushing_tds_roll": float("nan")}
 
+    # Forward-set team features (genuinely computed, never zero-filled). They are
+    # read off the player's latest pregame game (`prior.iloc[-1]`) via the
+    # precomputed `forward_tables`, so they describe strictly earlier games and
+    # carry no lookahead. If a lookup is unavailable the feature is NaN -- the
+    # caller (props route) must not fabricate a zero for it; retraining on the
+    # same served set keeps training/serve parity.
+    forward_features = {f: float("nan") for f in FORWARD_SET_COLUMNS}
+    if forward_tables is not None and not prior.empty:
+        own_forward, opp_forward = forward_tables
+        latest = prior.iloc[-1]
+        s = int(latest["season"])
+        w = int(latest["week"])
+        team = latest["recent_team"]
+        opponent = latest["opponent_team"]
+        position = latest["position"]
+        try:
+            orow = own_forward.loc[(s, w, team)]
+            forward_features["plays_roll"] = float(orow["plays_roll"])
+            forward_features["pass_share_roll"] = float(orow["pass_share_roll"])
+        except (KeyError, TypeError):
+            pass
+        try:
+            orow = opp_forward.loc[(s, w, opponent, position)]
+            forward_features["opp_plays_allowed_roll"] = float(orow["opp_plays_allowed_roll"])
+            forward_features["opp_pass_yds_allowed_roll"] = float(orow["opp_pass_yds_allowed_roll"])
+        except (KeyError, TypeError):
+            pass
+        if pd.notna(forward_features["plays_roll"]) and pd.notna(
+            forward_features["opp_plays_allowed_roll"]
+        ):
+            forward_features["expected_plays"] = (
+                forward_features["plays_roll"]
+                * forward_features["opp_plays_allowed_roll"]
+                / 100.0
+            )
+
     return pd.Series(
         base_features
         | derived_features
         | qb_features
+        | forward_features
         | {
             PASSING_TDS_ROLL_COLUMN: float(prior["passing_tds"].mean())
             if not prior.empty else float("nan")

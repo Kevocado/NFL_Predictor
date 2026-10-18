@@ -16,6 +16,7 @@ import requests
 from fastapi import APIRouter, HTTPException, Response
 
 from ..config import (
+    CACHE_DIR,
     CURRENT_SEASON,
     DEPTH_CHARTS_CACHE_DIR,
     PUBLIC_MODE,
@@ -797,6 +798,41 @@ def get_player_props(season: int, week: int, response: Response = None):
         raise HTTPException(status_code=503, detail=PROPS_UNAVAILABLE_DETAIL) from exc
 
 
+_FORWARD_TABLES_CACHE: dict[int, tuple[pd.DataFrame, pd.DataFrame] | None] = {}
+
+
+def _forward_tables_for_season(season: int):
+    """Build the forward-set team features for a season, cached per process.
+
+    Reads the cached play-by-play and schedules, builds the lagged forward-set
+    features via `player_usage.build_forward_tables`, and caches them so the
+    props route does not reload play-by-play for every player. Returns None when
+    the season's play-by-play is not cached (then the forward features are NaN
+    and the caller must not zero-fill them).
+    """
+    if season in _FORWARD_TABLES_CACHE:
+        return _FORWARD_TABLES_CACHE[season]
+    pbp_path = CACHE_DIR / "nflverse" / f"pbp_{season}.parquet"
+    tables: tuple[pd.DataFrame, pd.DataFrame] | None = None
+    if pbp_path.exists():
+        pbp = pd.read_parquet(
+            pbp_path,
+            columns=[
+                "season", "week", "game_id", "posteam", "defteam", "pass_attempt",
+                "rush_attempt", "passing_yards", "passer_player_id", "play_id",
+            ],
+        )
+        try:
+            schedules_df = schedules.fetch_schedules([season])
+        except Exception:
+            schedules_df = pd.DataFrame(
+                columns=["season", "week", "home_team", "away_team"]
+            )
+        tables = player_usage.build_forward_tables(pbp, schedules_df)
+    _FORWARD_TABLES_CACHE[season] = tables
+    return tables
+
+
 def _get_player_props_live(season: int, week: int, out_players: list | None = None):
     """The live prop rows for this week, with listed-out players removed.
 
@@ -817,6 +853,11 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
     try:
         models = _load_models_cached()
         player_history = _load_player_history(season)
+
+        # Forward-set team features, computed genuinely (lagged aggregates of
+        # strictly earlier games) and served without zero-filling. Built once per
+        # request so every player row uses the same tables.
+        forward_tables = _forward_tables_for_season(season)
 
         # 1. Fetch upcoming games for this specific week to find active teams
         upcoming_games = schedules.fetch_upcoming_games(season, week)
@@ -921,7 +962,8 @@ def _get_player_props_live(season: int, week: int, out_players: list | None = No
         for _, player in latest_players.iterrows():
             try:
                 feature_row = player_usage.build_features_for_player(
-                    player["player_id"], player_history, season=season, week=week
+                    player["player_id"], player_history, season=season, week=week,
+                    forward_tables=forward_tables,
                 )
                 if feature_row is None:
                     # No usage history in the season being predicted — a true rookie,
