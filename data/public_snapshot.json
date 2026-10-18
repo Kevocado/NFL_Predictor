@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-17T23:14:40.749862+00:00",
+  "generated_at": "2026-10-18T04:43:47.074716+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -105484,7 +105484,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 42.5,
+          "total_line": 41.5,
           "stadium": "Wembley Stadium"
         },
         {
@@ -105550,7 +105550,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 7.0,
+          "spread_line": 6.5,
           "total_line": 44.5,
           "stadium": "Lucas Oil Stadium",
           "conditions": {
@@ -105583,7 +105583,7 @@
           "conditions": {
             "kind": "clear",
             "temp_f": 51,
-            "wind_mph": 2,
+            "wind_mph": 3,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -105604,7 +105604,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": 1.5,
           "total_line": 46.5,
           "stadium": "MetLife Stadium",
           "conditions": {
@@ -105692,7 +105692,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 7.5,
-          "total_line": 40.5,
+          "total_line": 41.5,
           "stadium": "GEHA Field at Arrowhead Stadium"
         },
         {
@@ -105775,8 +105775,8 @@
           "away_win_prob": 0.3387523073364479,
           "home_cover_prob": 0.5891611986400165,
           "away_cover_prob": 0.4108388013599835,
-          "over_prob": 0.6391602317191688,
-          "under_prob": 0.3608397682808312,
+          "over_prob": 0.6691566917362297,
+          "under_prob": 0.3308433082637703,
           "predicted_margin": 5.4581105085565484,
           "predicted_total": 46.877681732177734,
           "sigma": 13.12453702446608,
@@ -105812,8 +105812,8 @@
         "2026_06_TEN_IND": {
           "home_win_prob": 0.7716727718042191,
           "away_win_prob": 0.22832722819578088,
-          "home_cover_prob": 0.5835621730759207,
-          "away_cover_prob": 0.41643782692407927,
+          "home_cover_prob": 0.5983627213802686,
+          "away_cover_prob": 0.4016372786197314,
           "over_prob": 0.489479705005471,
           "under_prob": 0.510520294994529,
           "predicted_margin": 9.769472712435164,
@@ -105838,8 +105838,8 @@
         "2026_06_NO_NYG": {
           "home_win_prob": 0.6371867744061356,
           "away_win_prob": 0.3628132255938644,
-          "home_cover_prob": 0.6791198282981259,
-          "away_cover_prob": 0.3208801717018741,
+          "home_cover_prob": 0.59353950831183,
+          "away_cover_prob": 0.40646049168817,
           "over_prob": 0.4377952010926828,
           "under_prob": 0.5622047989073172,
           "predicted_margin": 4.6060459197263075,
@@ -105892,8 +105892,8 @@
           "away_win_prob": 0.24121913850514365,
           "home_cover_prob": 0.5520876596167541,
           "away_cover_prob": 0.4479123403832459,
-          "over_prob": 0.7761842063310462,
-          "under_prob": 0.22381579366895377,
+          "over_prob": 0.7511137546445161,
+          "under_prob": 0.24888624535548387,
           "predicted_margin": 9.218495204201975,
           "predicted_total": 49.83222198486328,
           "sigma": 13.12453702446608,
@@ -131814,7 +131814,14 @@
           "wind": null,
           "spread_line": 1.5,
           "total_line": 48.5,
-          "stadium": "Soldier Field"
+          "stadium": "Soldier Field",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 63,
+            "wind_mph": 4,
+            "precip_pct": 0,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_PIT_NO",
@@ -131881,7 +131888,14 @@
           "wind": null,
           "spread_line": 3.5,
           "total_line": 50.5,
-          "stadium": "M&T Bank Stadium"
+          "stadium": "M&T Bank Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 62,
+            "wind_mph": 4,
+            "precip_pct": 6,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_TB_CAR",
@@ -131901,7 +131915,14 @@
           "wind": null,
           "spread_line": 3.0,
           "total_line": 44.5,
-          "stadium": "Bank of America Stadium"
+          "stadium": "Bank of America Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 64,
+            "wind_mph": 7,
+            "precip_pct": 2,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_NYG_HOU",
@@ -160770,9 +160791,9 @@
           "stadium": "Lambeau Field",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 54,
-            "wind_mph": 12,
-            "precip_pct": 26,
+            "temp_f": 61,
+            "wind_mph": 23,
+            "precip_pct": 16,
             "source": "open-meteo"
           }
         },
@@ -160796,10 +160817,10 @@
           "total_line": null,
           "stadium": "Highmark Stadium",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 61,
-            "wind_mph": 7,
-            "precip_pct": 16,
+            "kind": "rain",
+            "temp_f": 59,
+            "wind_mph": 17,
+            "precip_pct": 23,
             "source": "open-meteo"
           }
         },
@@ -160823,10 +160844,10 @@
           "total_line": null,
           "stadium": "Paycor Stadium",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 72,
-            "wind_mph": 6,
-            "precip_pct": 32,
+            "kind": "rain",
+            "temp_f": 67,
+            "wind_mph": 5,
+            "precip_pct": 16,
             "source": "open-meteo"
           }
         },
@@ -502643,7 +502664,7 @@
       "point_diff": 23.0,
       "projected_wins": 12.2,
       "projected_losses": 4.8,
-      "projected_point_diff": 100.9,
+      "projected_point_diff": 101.0,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -502899,7 +502920,7 @@
       "point_diff": -20.0,
       "projected_wins": 8.4,
       "projected_losses": 8.6,
-      "projected_point_diff": -8.3,
+      "projected_point_diff": -8.4,
       "current_division_rank": 3,
       "projected_division_rank": 1,
       "division_rank_delta": 2
