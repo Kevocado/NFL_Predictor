@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-18T11:17:24.201627+00:00",
+  "generated_at": "2026-10-18T15:59:15.614389+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -105504,7 +105504,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -1.5,
-          "total_line": 52.5,
+          "total_line": 51.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
             "kind": "dome",
@@ -105551,7 +105551,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 6.5,
-          "total_line": 44.5,
+          "total_line": 43.5,
           "stadium": "Lucas Oil Stadium",
           "conditions": {
             "kind": "dome",
@@ -105604,7 +105604,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": 1.5,
+          "spread_line": -1.5,
           "total_line": 46.5,
           "stadium": "MetLife Stadium",
           "conditions": {
@@ -105651,7 +105651,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -2.5,
+          "spread_line": -1.5,
           "total_line": 38.5,
           "stadium": "Raymond James Stadium"
         },
@@ -105691,7 +105691,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 7.5,
+          "spread_line": 7.0,
           "total_line": 41.5,
           "stadium": "GEHA Field at Arrowhead Stadium"
         },
@@ -105788,8 +105788,8 @@
           "away_win_prob": 0.5238498567174861,
           "home_cover_prob": 0.5217201891961045,
           "away_cover_prob": 0.4782798108038955,
-          "over_prob": 0.31392536012947325,
-          "under_prob": 0.6860746398705267,
+          "over_prob": 0.34333306481966963,
+          "under_prob": 0.6566669351803304,
           "predicted_margin": -0.7850885447250526,
           "predicted_total": 46.54264450073242,
           "sigma": 13.12453702446608,
@@ -105814,8 +105814,8 @@
           "away_win_prob": 0.22832722819578088,
           "home_cover_prob": 0.5983627213802686,
           "away_cover_prob": 0.4016372786197314,
-          "over_prob": 0.489479705005471,
-          "under_prob": 0.510520294994529,
+          "over_prob": 0.5219296427267037,
+          "under_prob": 0.4780703572732963,
           "predicted_margin": 9.769472712435164,
           "predicted_total": 44.17588424682617,
           "sigma": 13.12453702446608,
@@ -105838,8 +105838,8 @@
         "2026_06_NO_NYG": {
           "home_win_prob": 0.6371867744061356,
           "away_win_prob": 0.3628132255938644,
-          "home_cover_prob": 0.59353950831183,
-          "away_cover_prob": 0.40646049168817,
+          "home_cover_prob": 0.6791198282981259,
+          "away_cover_prob": 0.3208801717018741,
           "over_prob": 0.4377952010926828,
           "under_prob": 0.5622047989073172,
           "predicted_margin": 4.6060459197263075,
@@ -105864,8 +105864,8 @@
         "2026_06_PIT_TB": {
           "home_win_prob": 0.47404951972764886,
           "away_win_prob": 0.5259504802723511,
-          "home_cover_prob": 0.5498921074351757,
-          "away_cover_prob": 0.4501078925648243,
+          "home_cover_prob": 0.5196182900996686,
+          "away_cover_prob": 0.48038170990033136,
           "over_prob": 0.675863217455615,
           "under_prob": 0.32413678254438505,
           "predicted_margin": -0.8543305607223708,
@@ -105890,8 +105890,8 @@
         "2026_06_LAC_KC": {
           "home_win_prob": 0.7587808614948564,
           "away_win_prob": 0.24121913850514365,
-          "home_cover_prob": 0.5520876596167541,
-          "away_cover_prob": 0.4479123403832459,
+          "home_cover_prob": 0.5671151172827584,
+          "away_cover_prob": 0.43288488271724157,
           "over_prob": 0.7511137546445161,
           "under_prob": 0.24888624535548387,
           "predicted_margin": 9.218495204201975,
@@ -131654,10 +131654,10 @@
           "total_line": 48.5,
           "stadium": "Soldier Field",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 65,
-            "wind_mph": 3,
-            "precip_pct": 0,
+            "kind": "cloudy",
+            "temp_f": 63,
+            "wind_mph": 6,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -131728,10 +131728,10 @@
           "total_line": 50.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 63,
-            "wind_mph": 7,
-            "precip_pct": 5,
+            "kind": "clear",
+            "temp_f": 62,
+            "wind_mph": 6,
+            "precip_pct": 2,
             "source": "open-meteo"
           }
         },
@@ -131756,9 +131756,9 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 65,
-            "wind_mph": 5,
-            "precip_pct": 2,
+            "temp_f": 64,
+            "wind_mph": 6,
+            "precip_pct": 0,
             "source": "open-meteo"
           }
         },
@@ -131778,7 +131778,7 @@
           "surface": "astroturf",
           "temp": null,
           "wind": null,
-          "spread_line": 7.0,
+          "spread_line": 7.5,
           "total_line": 41.5,
           "stadium": "Reliant Stadium"
         },
@@ -132012,8 +132012,8 @@
         "2026_07_NYG_HOU": {
           "home_win_prob": 0.6543080620010107,
           "away_win_prob": 0.34569193799898934,
-          "home_cover_prob": 0.44576265228760104,
-          "away_cover_prob": 0.554237347712399,
+          "home_cover_prob": 0.4307476641200315,
+          "away_cover_prob": 0.5692523358799685,
           "over_prob": 0.5408608441808844,
           "under_prob": 0.4591391558191156,
           "predicted_margin": 5.2101490408296005,
@@ -160629,9 +160629,9 @@
           "stadium": "Lambeau Field",
           "conditions": {
             "kind": "clear",
-            "temp_f": 50,
+            "temp_f": 52,
             "wind_mph": 8,
-            "precip_pct": 13,
+            "precip_pct": 3,
             "source": "open-meteo"
           }
         },
@@ -160655,10 +160655,10 @@
           "total_line": null,
           "stadium": "Highmark Stadium",
           "conditions": {
-            "kind": "cloudy",
-            "temp_f": 69,
+            "kind": "partly",
+            "temp_f": 52,
             "wind_mph": 23,
-            "precip_pct": 26,
+            "precip_pct": 23,
             "source": "open-meteo"
           }
         },
@@ -160680,7 +160680,14 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Paycor Stadium"
+          "stadium": "Paycor Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 58,
+            "wind_mph": 9,
+            "precip_pct": 26,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_08_ARI_DAL",
