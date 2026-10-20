@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-19T20:43:29.823120+00:00",
+  "generated_at": "2026-10-20T00:26:18.054345+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -105728,8 +105728,8 @@
           "stadium": "Levi's Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 61,
-            "wind_mph": 12,
+            "temp_f": 62,
+            "wind_mph": 13,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -108038,8 +108038,8 @@
           "stadium": "Soldier Field",
           "conditions": {
             "kind": "clear",
-            "temp_f": 64,
-            "wind_mph": 4,
+            "temp_f": 63,
+            "wind_mph": 5,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -108107,9 +108107,16 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 51.5,
-          "stadium": "M&T Bank Stadium"
+          "stadium": "M&T Bank Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 63,
+            "wind_mph": 5,
+            "precip_pct": 0,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_07_TB_CAR",
@@ -108127,7 +108134,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 3.5,
           "total_line": 44.5,
           "stadium": "Bank of America Stadium",
           "conditions": {
@@ -108154,7 +108161,7 @@
           "surface": "astroturf",
           "temp": null,
           "wind": null,
-          "spread_line": 10.0,
+          "spread_line": 9.5,
           "total_line": 42.5,
           "stadium": "Reliant Stadium"
         },
@@ -108174,7 +108181,7 @@
           "surface": "sportturf",
           "temp": null,
           "wind": null,
-          "spread_line": 5.5,
+          "spread_line": 6.0,
           "total_line": 41.5,
           "stadium": "U.S. Bank Stadium"
         },
@@ -108274,7 +108281,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -5.5,
+          "spread_line": -4.5,
           "total_line": 47.5,
           "stadium": "Allegiant Stadium"
         },
@@ -108362,8 +108369,8 @@
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.5620048988085699,
           "away_win_prob": 0.43799510119143015,
-          "home_cover_prob": 0.4710919881670447,
-          "away_cover_prob": 0.5289080118329553,
+          "home_cover_prob": 0.4862676939423879,
+          "away_cover_prob": 0.5137323060576121,
           "over_prob": 0.3521494180620117,
           "under_prob": 0.6478505819379883,
           "predicted_margin": 2.0481407357895502,
@@ -108375,8 +108382,8 @@
         "2026_07_TB_CAR": {
           "home_win_prob": 0.6531262582919622,
           "away_win_prob": 0.34687374170803775,
-          "home_cover_prob": 0.5656047792042427,
-          "away_cover_prob": 0.4343952207957573,
+          "home_cover_prob": 0.5505687779279909,
+          "away_cover_prob": 0.44943122207200914,
           "over_prob": 0.6916964050060331,
           "under_prob": 0.30830359499396687,
           "predicted_margin": 5.16810887809194,
@@ -108388,8 +108395,8 @@
         "2026_07_NYG_HOU": {
           "home_win_prob": 0.7040718911078603,
           "away_win_prob": 0.2959281088921397,
-          "home_cover_prob": 0.41068488007398085,
-          "away_cover_prob": 0.5893151199260191,
+          "home_cover_prob": 0.42556101740757246,
+          "away_cover_prob": 0.5744389825924275,
           "over_prob": 0.61417587880416,
           "under_prob": 0.38582412119584,
           "predicted_margin": 7.036695239670994,
@@ -108401,8 +108408,8 @@
         "2026_07_IND_MIN": {
           "home_win_prob": 0.7653343287610368,
           "away_win_prob": 0.2346656712389632,
-          "home_cover_prob": 0.6196284192873642,
-          "away_cover_prob": 0.38037158071263577,
+          "home_cover_prob": 0.605037670067313,
+          "away_cover_prob": 0.394962329932687,
           "over_prob": 0.5872774593027044,
           "under_prob": 0.41272254069729564,
           "predicted_margin": 9.496487536506962,
@@ -108466,8 +108473,8 @@
         "2026_07_LA_LV": {
           "home_win_prob": 0.3671580565205551,
           "away_win_prob": 0.6328419434794449,
-          "home_cover_prob": 0.5317511804591946,
-          "away_cover_prob": 0.46824881954080544,
+          "home_cover_prob": 0.501388097965706,
+          "away_cover_prob": 0.49861190203429395,
           "over_prob": 0.7048429556006205,
           "under_prob": 0.2951570443993795,
           "predicted_margin": -4.4543337951392274,
@@ -137822,14 +137829,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Lambeau Field",
-          "conditions": {
-            "kind": "clear",
-            "temp_f": 38,
-            "wind_mph": 8,
-            "precip_pct": 20,
-            "source": "open-meteo"
-          }
+          "stadium": "Lambeau Field"
         },
         {
           "game_id": "2026_08_BAL_BUF",
@@ -137849,14 +137849,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Highmark Stadium",
-          "conditions": {
-            "kind": "cloudy",
-            "temp_f": 61,
-            "wind_mph": 17,
-            "precip_pct": 19,
-            "source": "open-meteo"
-          }
+          "stadium": "Highmark Stadium"
         },
         {
           "game_id": "2026_08_TEN_CIN",
@@ -137879,8 +137872,8 @@
           "stadium": "Paycor Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 63,
-            "wind_mph": 5,
+            "temp_f": 66,
+            "wind_mph": 7,
             "precip_pct": 19,
             "source": "open-meteo"
           }
@@ -481982,9 +481975,9 @@
       "losses": 1,
       "ties": 0,
       "point_diff": 26.0,
-      "projected_wins": 12.5,
-      "projected_losses": 4.5,
-      "projected_point_diff": 97.7,
+      "projected_wins": 12.4,
+      "projected_losses": 4.6,
+      "projected_point_diff": 96.4,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -482000,7 +481993,7 @@
       "point_diff": 23.0,
       "projected_wins": 10.5,
       "projected_losses": 6.5,
-      "projected_point_diff": 58.2,
+      "projected_point_diff": 57.7,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -482032,7 +482025,7 @@
       "point_diff": -62.0,
       "projected_wins": 3.7,
       "projected_losses": 13.3,
-      "projected_point_diff": -144.4,
+      "projected_point_diff": -145.7,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -482110,9 +482103,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 50.0,
-      "projected_wins": 10.9,
-      "projected_losses": 6.1,
-      "projected_point_diff": 101.2,
+      "projected_wins": 11.0,
+      "projected_losses": 6.0,
+      "projected_point_diff": 102.0,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -482128,7 +482121,7 @@
       "point_diff": 1.0,
       "projected_wins": 8.6,
       "projected_losses": 8.4,
-      "projected_point_diff": 39.3,
+      "projected_point_diff": 38.1,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -482144,7 +482137,7 @@
       "point_diff": -20.0,
       "projected_wins": 6.9,
       "projected_losses": 10.1,
-      "projected_point_diff": -40.4,
+      "projected_point_diff": -39.6,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -482160,7 +482153,7 @@
       "point_diff": -45.0,
       "projected_wins": 4.0,
       "projected_losses": 13.0,
-      "projected_point_diff": -135.8,
+      "projected_point_diff": -135.0,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -482230,22 +482223,6 @@
       "division_rank_delta": 0
     },
     {
-      "team": "DAL",
-      "conference": "NFC",
-      "division": "NFC East",
-      "played": 6,
-      "wins": 2,
-      "losses": 4,
-      "ties": 0,
-      "point_diff": -8.0,
-      "projected_wins": 7.4,
-      "projected_losses": 9.6,
-      "projected_point_diff": -9.7,
-      "current_division_rank": 2,
-      "projected_division_rank": 1,
-      "division_rank_delta": 1
-    },
-    {
       "team": "PHI",
       "conference": "NFC",
       "division": "NFC East",
@@ -482256,10 +482233,26 @@
       "point_diff": -31.0,
       "projected_wins": 7.3,
       "projected_losses": 9.7,
-      "projected_point_diff": -38.5,
+      "projected_point_diff": -36.9,
       "current_division_rank": 3,
+      "projected_division_rank": 1,
+      "division_rank_delta": 2
+    },
+    {
+      "team": "DAL",
+      "conference": "NFC",
+      "division": "NFC East",
+      "played": 6,
+      "wins": 2,
+      "losses": 4,
+      "ties": 0,
+      "point_diff": -8.0,
+      "projected_wins": 7.2,
+      "projected_losses": 9.8,
+      "projected_point_diff": -18.7,
+      "current_division_rank": 2,
       "projected_division_rank": 2,
-      "division_rank_delta": 1
+      "division_rank_delta": 0
     },
     {
       "team": "NYG",
@@ -482272,7 +482265,7 @@
       "point_diff": -4.0,
       "projected_wins": 7.1,
       "projected_losses": 9.9,
-      "projected_point_diff": -52.9,
+      "projected_point_diff": -52.1,
       "current_division_rank": 1,
       "projected_division_rank": 3,
       "division_rank_delta": -2
@@ -482288,7 +482281,7 @@
       "point_diff": -34.0,
       "projected_wins": 5.9,
       "projected_losses": 11.1,
-      "projected_point_diff": -72.4,
+      "projected_point_diff": -71.5,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -482304,7 +482297,7 @@
       "point_diff": 45.0,
       "projected_wins": 12.4,
       "projected_losses": 4.6,
-      "projected_point_diff": 95.6,
+      "projected_point_diff": 94.3,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -482318,12 +482311,28 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 16.0,
-      "projected_wins": 10.5,
-      "projected_losses": 6.5,
-      "projected_point_diff": 68.9,
+      "projected_wins": 10.4,
+      "projected_losses": 6.6,
+      "projected_point_diff": 67.1,
       "current_division_rank": 4,
       "projected_division_rank": 2,
       "division_rank_delta": 2
+    },
+    {
+      "team": "GB",
+      "conference": "NFC",
+      "division": "NFC North",
+      "played": 6,
+      "wins": 4,
+      "losses": 2,
+      "ties": 0,
+      "point_diff": 2.0,
+      "projected_wins": 9.5,
+      "projected_losses": 7.5,
+      "projected_point_diff": 1.0,
+      "current_division_rank": 3,
+      "projected_division_rank": 3,
+      "division_rank_delta": 0
     },
     {
       "team": "CHI",
@@ -482336,26 +482345,10 @@
       "point_diff": 31.0,
       "projected_wins": 9.3,
       "projected_losses": 7.7,
-      "projected_point_diff": 24.8,
+      "projected_point_diff": 24.3,
       "current_division_rank": 2,
-      "projected_division_rank": 3,
-      "division_rank_delta": -1
-    },
-    {
-      "team": "GB",
-      "conference": "NFC",
-      "division": "NFC North",
-      "played": 6,
-      "wins": 4,
-      "losses": 2,
-      "ties": 0,
-      "point_diff": 2.0,
-      "projected_wins": 9.2,
-      "projected_losses": 7.8,
-      "projected_point_diff": -8.9,
-      "current_division_rank": 3,
       "projected_division_rank": 4,
-      "division_rank_delta": -1
+      "division_rank_delta": -2
     },
     {
       "team": "CAR",
@@ -482368,7 +482361,7 @@
       "point_diff": 23.0,
       "projected_wins": 9.0,
       "projected_losses": 8.0,
-      "projected_point_diff": 22.7,
+      "projected_point_diff": 21.4,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -482400,7 +482393,7 @@
       "point_diff": -26.0,
       "projected_wins": 6.7,
       "projected_losses": 10.3,
-      "projected_point_diff": -54.4,
+      "projected_point_diff": -54.8,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -482432,7 +482425,7 @@
       "point_diff": 61.0,
       "projected_wins": 13.4,
       "projected_losses": 3.6,
-      "projected_point_diff": 147.5,
+      "projected_point_diff": 148.3,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -482448,7 +482441,7 @@
       "point_diff": 26.0,
       "projected_wins": 10.3,
       "projected_losses": 6.7,
-      "projected_point_diff": 88.3,
+      "projected_point_diff": 89.2,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -482464,7 +482457,7 @@
       "point_diff": -3.0,
       "projected_wins": 8.3,
       "projected_losses": 8.7,
-      "projected_point_diff": 24.2,
+      "projected_point_diff": 24.6,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -482478,9 +482471,9 @@
       "losses": 4,
       "ties": 0,
       "point_diff": -52.0,
-      "projected_wins": 5.6,
-      "projected_losses": 11.4,
-      "projected_point_diff": -119.0,
+      "projected_wins": 5.7,
+      "projected_losses": 11.3,
+      "projected_point_diff": -118.3,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
