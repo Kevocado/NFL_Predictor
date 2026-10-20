@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-20T14:25:41.872436+00:00",
+  "generated_at": "2026-10-20T19:28:10.860195+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -132859,7 +132859,7 @@
           "stadium": "Soldier Field",
           "conditions": {
             "kind": "clear",
-            "temp_f": 62,
+            "temp_f": 61,
             "wind_mph": 5,
             "precip_pct": 0,
             "source": "open-meteo"
@@ -132901,7 +132901,7 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": -3.5,
+          "spread_line": -3.0,
           "total_line": 50.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
@@ -132928,7 +132928,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 3.0,
           "total_line": 51.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
@@ -133177,8 +133177,8 @@
         "2026_07_SF_ATL": {
           "home_win_prob": 0.33406642648101403,
           "away_win_prob": 0.665933573518986,
-          "home_cover_prob": 0.43563879543889694,
-          "away_cover_prob": 0.5643612045611031,
+          "home_cover_prob": 0.42068848891668587,
+          "away_cover_prob": 0.5793115110833141,
           "over_prob": 0.39495766251884556,
           "under_prob": 0.6050423374811544,
           "predicted_margin": -5.626646042684715,
@@ -133190,8 +133190,8 @@
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.56200489880857,
           "away_win_prob": 0.43799510119143004,
-          "home_cover_prob": 0.486267693942388,
-          "away_cover_prob": 0.513732306057612,
+          "home_cover_prob": 0.4710919881670447,
+          "away_cover_prob": 0.5289080118329553,
           "over_prob": 0.3521494180620117,
           "under_prob": 0.6478505819379883,
           "predicted_margin": 2.048140735789552,
@@ -162648,14 +162648,14 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 3.0,
+          "total_line": 45.5,
           "stadium": "Lambeau Field",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 34,
-            "wind_mph": 7,
-            "precip_pct": 10,
+            "kind": "clear",
+            "temp_f": 35,
+            "wind_mph": 12,
+            "precip_pct": 7,
             "source": "open-meteo"
           }
         },
@@ -162675,14 +162675,14 @@
           "surface": "a_turf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 2.5,
+          "total_line": 53.5,
           "stadium": "Highmark Stadium",
           "conditions": {
-            "kind": "rain",
-            "temp_f": 46,
-            "wind_mph": 14,
-            "precip_pct": 10,
+            "kind": "cloudy",
+            "temp_f": 51,
+            "wind_mph": 15,
+            "precip_pct": 23,
             "source": "open-meteo"
           }
         },
@@ -162702,14 +162702,14 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 10.5,
+          "total_line": 45.5,
           "stadium": "Paycor Stadium",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 58,
-            "wind_mph": 7,
-            "precip_pct": 19,
+            "kind": "cloudy",
+            "temp_f": 60,
+            "wind_mph": 10,
+            "precip_pct": 23,
             "source": "open-meteo"
           }
         },
@@ -162729,8 +162729,8 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 6.5,
+          "total_line": 51.5,
           "stadium": "AT&T Stadium",
           "conditions": {
             "kind": "dome",
@@ -162756,8 +162756,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 3.0,
+          "total_line": 48.5,
           "stadium": "Ford Field",
           "conditions": {
             "kind": "dome",
@@ -162783,8 +162783,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 7.5,
+          "total_line": 47.5,
           "stadium": "EverBank Stadium"
         },
         {
@@ -162803,8 +162803,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 1.5,
+          "total_line": 43.5,
           "stadium": "MetLife Stadium"
         },
         {
@@ -162823,8 +162823,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 4.5,
+          "total_line": 39.5,
           "stadium": "Acrisure Stadium"
         },
         {
@@ -162843,8 +162843,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 1.5,
+          "total_line": 44.5,
           "stadium": "Raymond James Stadium"
         },
         {
@@ -162863,8 +162863,8 @@
           "surface": "matrixturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 7.5,
+          "total_line": 45.5,
           "stadium": "SoFi Stadium"
         },
         {
@@ -162883,8 +162883,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": -1.5,
+          "total_line": 42.5,
           "stadium": "Empower Field at Mile High"
         },
         {
@@ -162903,8 +162903,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": -8.5,
+          "total_line": 43.5,
           "stadium": "Hard Rock Stadium"
         },
         {
@@ -162923,8 +162923,8 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 3.5,
+          "total_line": 40.5,
           "stadium": "Northwest Stadium"
         },
         {
@@ -162943,8 +162943,8 @@
           "surface": "fieldturf",
           "temp": null,
           "wind": null,
-          "spread_line": null,
-          "total_line": null,
+          "spread_line": 3.0,
+          "total_line": 46.5,
           "stadium": "Lumen Field"
         }
       ],
@@ -162952,8 +162952,10 @@
         "2026_08_CAR_GB": {
           "home_win_prob": 0.6158902996500493,
           "away_win_prob": 0.38410970034995073,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5263609667324711,
+          "away_cover_prob": 0.4736390332675289,
+          "over_prob": 0.5174767265841087,
+          "under_prob": 0.4825232734158913,
           "predicted_margin": 3.8678639795383702,
           "predicted_total": 46.038543701171875,
           "sigma": 13.12453702446608,
@@ -162963,8 +162965,10 @@
         "2026_08_BAL_BUF": {
           "home_win_prob": 0.6595837821909609,
           "away_win_prob": 0.3404162178090391,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5873932637761948,
+          "away_cover_prob": 0.41260673622380517,
+          "over_prob": 0.344326774859244,
+          "under_prob": 0.655673225140756,
           "predicted_margin": 5.39848249918238,
           "predicted_total": 48.57583236694336,
           "sigma": 13.12453702446608,
@@ -162974,8 +162978,10 @@
         "2026_08_TEN_CIN": {
           "home_win_prob": 0.8168337653838669,
           "away_win_prob": 0.18316623461613313,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5411519625495352,
+          "away_cover_prob": 0.45884803745046476,
+          "over_prob": 0.4600244523740292,
+          "under_prob": 0.5399755476259708,
           "predicted_margin": 11.856240957796274,
           "predicted_total": 44.266483306884766,
           "sigma": 13.12453702446608,
@@ -162985,8 +162991,10 @@
         "2026_08_ARI_DAL": {
           "home_win_prob": 0.6671047517644819,
           "away_win_prob": 0.3328952482355181,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.4747546117783612,
+          "away_cover_prob": 0.5252453882216388,
+          "over_prob": 0.3033458102999379,
+          "under_prob": 0.6966541897000621,
           "predicted_margin": 5.668913662885916,
           "predicted_total": 45.173377990722656,
           "sigma": 13.12453702446608,
@@ -162996,8 +163004,10 @@
         "2026_08_MIN_DET": {
           "home_win_prob": 0.5145301902887338,
           "away_win_prob": 0.4854698097112662,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.423812492391513,
+          "away_cover_prob": 0.576187507608487,
+          "over_prob": 0.3386338385836647,
+          "under_prob": 0.6613661614163353,
           "predicted_margin": 0.47812481125769324,
           "predicted_total": 43.38520431518555,
           "sigma": 13.12453702446608,
@@ -163007,8 +163017,10 @@
         "2026_08_IND_JAX": {
           "home_win_prob": 0.7190030143333054,
           "away_win_prob": 0.2809969856666946,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.503364480822637,
+          "away_cover_prob": 0.49663551917736304,
+          "over_prob": 0.4690257497455277,
+          "under_prob": 0.5309742502544723,
           "predicted_margin": 7.610687131314465,
           "predicted_total": 46.54487609863281,
           "sigma": 13.12453702446608,
@@ -163018,8 +163030,10 @@
         "2026_08_LV_NYJ": {
           "home_win_prob": 0.5096363075833827,
           "away_win_prob": 0.49036369241661726,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.46409086003984057,
+          "away_cover_prob": 0.5359091399601594,
+          "over_prob": 0.34852259505959937,
+          "under_prob": 0.6514774049404006,
           "predicted_margin": 0.31704931432068584,
           "predicted_total": 38.715572357177734,
           "sigma": 13.12453702446608,
@@ -163029,8 +163043,10 @@
         "2026_08_CLE_PIT": {
           "home_win_prob": 0.6582468067813112,
           "away_win_prob": 0.3417531932186888,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5258388763623971,
+          "away_cover_prob": 0.4741611236376029,
+          "over_prob": 0.6176626063791273,
+          "under_prob": 0.3823373936208727,
           "predicted_margin": 5.3506512244121875,
           "predicted_total": 43.17881393432617,
           "sigma": 13.12453702446608,
@@ -163040,8 +163056,10 @@
         "2026_08_ATL_TB": {
           "home_win_prob": 0.5316992075527208,
           "away_win_prob": 0.4683007924472792,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.4861404147371604,
+          "away_cover_prob": 0.5138595852628396,
+          "over_prob": 0.4329444313719252,
+          "under_prob": 0.5670555686280748,
           "predicted_margin": 1.0439509563047622,
           "predicted_total": 42.42452621459961,
           "sigma": 13.12453702446608,
@@ -163051,8 +163069,10 @@
         "2026_08_LAC_LA": {
           "home_win_prob": 0.7387556342676991,
           "away_win_prob": 0.2612443657323009,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5271330871390809,
+          "away_cover_prob": 0.4728669128609191,
+          "over_prob": 0.5198057148993196,
+          "under_prob": 0.4801942851006804,
           "predicted_margin": 8.393322699902768,
           "predicted_total": 46.11036682128906,
           "sigma": 13.12453702446608,
@@ -163062,8 +163082,10 @@
         "2026_08_KC_DEN": {
           "home_win_prob": 0.5307160956796815,
           "away_win_prob": 0.4692839043203185,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5758781468368931,
+          "away_cover_prob": 0.4241218531631069,
+          "over_prob": 0.5576647500752209,
+          "under_prob": 0.44233524992477913,
           "predicted_margin": 1.0115088915186696,
           "predicted_total": 44.282596588134766,
           "sigma": 13.12453702446608,
@@ -163073,8 +163095,10 @@
         "2026_08_NE_MIA": {
           "home_win_prob": 0.2594119045831321,
           "away_win_prob": 0.7405880954168679,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5009903183506343,
+          "away_cover_prob": 0.49900968164936566,
+          "over_prob": 0.5358283754058233,
+          "under_prob": 0.4641716245941767,
           "predicted_margin": -8.467420141092838,
           "predicted_total": 44.60518264770508,
           "sigma": 13.12453702446608,
@@ -163084,8 +163108,10 @@
         "2026_08_PHI_WAS": {
           "home_win_prob": 0.4487929854292675,
           "away_win_prob": 0.5512070145707325,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.3462784557554417,
+          "away_cover_prob": 0.6537215442445583,
+          "over_prob": 0.5570360597208988,
+          "under_prob": 0.44296394027910124,
           "predicted_margin": -1.6892782594797175,
           "predicted_total": 42.26302719116211,
           "sigma": 13.12453702446608,
@@ -163095,8 +163121,10 @@
         "2026_08_CHI_SEA": {
           "home_win_prob": 0.6815504106447559,
           "away_win_prob": 0.31844958935524414,
-          "home_cover_prob": null,
-          "away_cover_prob": null,
+          "home_cover_prob": 0.5961751521591392,
+          "away_cover_prob": 0.4038248478408608,
+          "over_prob": 0.43631147159320227,
+          "under_prob": 0.5636885284067977,
           "predicted_margin": 6.195289154698431,
           "predicted_total": 44.5296630859375,
           "sigma": 13.12453702446608,
