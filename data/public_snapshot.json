@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-20T08:44:20.112625+00:00",
+  "generated_at": "2026-10-20T14:25:41.872436+00:00",
   "season": 2026,
   "current_week": 6,
   "weeks": {
@@ -132859,8 +132859,8 @@
           "stadium": "Soldier Field",
           "conditions": {
             "kind": "clear",
-            "temp_f": 63,
-            "wind_mph": 4,
+            "temp_f": 62,
+            "wind_mph": 5,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -132902,7 +132902,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -3.5,
-          "total_line": 49.5,
+          "total_line": 50.5,
           "stadium": "Mercedes-Benz Stadium",
           "conditions": {
             "kind": "dome",
@@ -132928,7 +132928,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 3.0,
+          "spread_line": 2.5,
           "total_line": 51.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
@@ -132960,7 +132960,7 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 66,
+            "temp_f": 65,
             "wind_mph": 7,
             "precip_pct": 0,
             "source": "open-meteo"
@@ -133179,8 +133179,8 @@
           "away_win_prob": 0.665933573518986,
           "home_cover_prob": 0.43563879543889694,
           "away_cover_prob": 0.5643612045611031,
-          "over_prob": 0.42659496054298973,
-          "under_prob": 0.5734050394570103,
+          "over_prob": 0.39495766251884556,
+          "under_prob": 0.6050423374811544,
           "predicted_margin": -5.626646042684715,
           "predicted_total": 47.2258415222168,
           "sigma": 13.12453702446608,
@@ -133190,8 +133190,8 @@
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.56200489880857,
           "away_win_prob": 0.43799510119143004,
-          "home_cover_prob": 0.4710919881670447,
-          "away_cover_prob": 0.5289080118329553,
+          "home_cover_prob": 0.486267693942388,
+          "away_cover_prob": 0.513732306057612,
           "over_prob": 0.3521494180620117,
           "under_prob": 0.6478505819379883,
           "predicted_margin": 2.048140735789552,
@@ -162652,10 +162652,10 @@
           "total_line": null,
           "stadium": "Lambeau Field",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 39,
-            "wind_mph": 8,
-            "precip_pct": 7,
+            "kind": "partly",
+            "temp_f": 34,
+            "wind_mph": 7,
+            "precip_pct": 10,
             "source": "open-meteo"
           }
         },
@@ -162677,7 +162677,14 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "Highmark Stadium"
+          "stadium": "Highmark Stadium",
+          "conditions": {
+            "kind": "rain",
+            "temp_f": 46,
+            "wind_mph": 14,
+            "precip_pct": 10,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_08_TEN_CIN",
@@ -162701,8 +162708,8 @@
           "conditions": {
             "kind": "clear",
             "temp_f": 58,
-            "wind_mph": 4,
-            "precip_pct": 23,
+            "wind_mph": 7,
+            "precip_pct": 19,
             "source": "open-meteo"
           }
         },
