@@ -19,7 +19,7 @@ jobs:
     # actually serves traffic. It was 3.13, which nothing deploys.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
@@ -60,7 +60,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           # 20.19, not "20". jsdom 29 declares
@@ -122,7 +122,7 @@ jobs:
         shard: [0, 1, 2, 3]
         shards: [4]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v5
         with:
