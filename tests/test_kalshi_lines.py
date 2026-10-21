@@ -122,4 +122,7 @@ def test_market_lines_route_returns_the_cached_ladders(monkeypatch):
 
     payload = {"fetched_at": "2026-10-15T00:00:00+00:00", "lines": [{"team": "PHI", "initial": "J", "last": "HURTS", "stat": "passing_yards", "rungs": []}]}
     monkeypatch.setattr(kl, "current_ladders", lambda *a, **k: payload)
+    # The route also tries to attach prop probabilities, which runs the live props pipeline (nfl_data_py -> github.com,
+    # habitatring.com). This test is about the cached ladders, so that pipeline is stubbed, not the socket.
+    monkeypatch.setattr(routes, "_get_player_props_live", lambda *a, **k: [])
     assert routes.get_market_lines(2026, 6) == payload
