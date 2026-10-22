@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T17:17:53.561416+00:00",
+  "generated_at": "2026-10-22T21:42:23.206134+00:00",
   "season": 2026,
   "current_week": 7,
   "weeks": {
@@ -132928,13 +132928,13 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
+          "spread_line": 1.5,
           "total_line": 48.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 63,
-            "wind_mph": 4,
+            "temp_f": 64,
+            "wind_mph": 2,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -132961,7 +132961,7 @@
           "conditions": {
             "kind": "clear",
             "temp_f": 65,
-            "wind_mph": 8,
+            "wind_mph": 9,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -133190,8 +133190,8 @@
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.5620048988085699,
           "away_win_prob": 0.43799510119143015,
-          "home_cover_prob": 0.6065522173358259,
-          "away_cover_prob": 0.39344778266417413,
+          "home_cover_prob": 0.5166568130490692,
+          "away_cover_prob": 0.4833431869509308,
           "over_prob": 0.44614313584282206,
           "under_prob": 0.5538568641571779,
           "predicted_margin": 2.0481407357895502,
@@ -162615,7 +162615,14 @@
           "wind": null,
           "spread_line": 3.0,
           "total_line": 47.5,
-          "stadium": "Lambeau Field"
+          "stadium": "Lambeau Field",
+          "conditions": {
+            "kind": "cloudy",
+            "temp_f": 47,
+            "wind_mph": 4,
+            "precip_pct": 6,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_08_BAL_BUF",
@@ -162634,13 +162641,13 @@
           "temp": null,
           "wind": null,
           "spread_line": 3.0,
-          "total_line": 51.5,
+          "total_line": 52.5,
           "stadium": "Highmark Stadium",
           "conditions": {
-            "kind": "rain",
-            "temp_f": 53,
-            "wind_mph": 10,
-            "precip_pct": 28,
+            "kind": "cloudy",
+            "temp_f": 56,
+            "wind_mph": 5,
+            "precip_pct": 24,
             "source": "open-meteo"
           }
         },
@@ -162665,8 +162672,8 @@
           "stadium": "Paycor Stadium",
           "conditions": {
             "kind": "rain",
-            "temp_f": 61,
-            "wind_mph": 9,
+            "temp_f": 57,
+            "wind_mph": 5,
             "precip_pct": 39,
             "source": "open-meteo"
           }
@@ -162715,7 +162722,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 47.5,
+          "total_line": 46.5,
           "stadium": "Ford Field",
           "conditions": {
             "kind": "dome",
@@ -162925,8 +162932,8 @@
           "away_win_prob": 0.3404162178090391,
           "home_cover_prob": 0.5725021125781028,
           "away_cover_prob": 0.4274978874218972,
-          "over_prob": 0.40596320668581887,
-          "under_prob": 0.5940367933141811,
+          "over_prob": 0.3747448644543534,
+          "under_prob": 0.6252551355456466,
           "predicted_margin": 5.39848249918238,
           "predicted_total": 48.57583236694336,
           "sigma": 13.12453702446608,
@@ -162964,8 +162971,8 @@
           "away_win_prob": 0.48546980971126596,
           "home_cover_prob": 0.4387839465519642,
           "away_cover_prob": 0.5612160534480358,
-          "over_prob": 0.36887899974067695,
-          "under_prob": 0.631121000259323,
+          "over_prob": 0.3999590464573409,
+          "under_prob": 0.6000409535426591,
           "predicted_margin": 0.4781248112576968,
           "predicted_total": 43.38520431518555,
           "sigma": 13.12453702446608,
@@ -192411,10 +192418,10 @@
           "total_line": null,
           "stadium": "M&T Bank Stadium",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 44,
-            "wind_mph": 12,
-            "precip_pct": 14,
+            "kind": "partly",
+            "temp_f": 53,
+            "wind_mph": 4,
+            "precip_pct": 7,
             "source": "open-meteo"
           }
         },
