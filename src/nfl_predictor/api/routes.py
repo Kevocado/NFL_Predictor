@@ -1100,7 +1100,9 @@ def get_track_record():
     # Without them the store falls back to the newest week it happens to hold, so a
     # week with no tracked picks at the tail of the record would silently drop off.
     season, week = current_season_and_week()
-    return store.get_track_record(current_week=week, season=season)
+    result = store.get_track_record(current_week=week, season=season)
+    result["calibration"] = store.get_calibration()
+    return result
 
 
 @router.get("/kalshi-feed")
