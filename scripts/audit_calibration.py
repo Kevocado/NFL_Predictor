@@ -170,7 +170,7 @@ def main():
     lines.append(f"| Moneyline (home win) | Max calibration gap (pts) | {rgap:.3f} | — | <0.03 honest |")
     lines.append(f"| Moneyline (home win) | Mean predicted prob − actual rate | {bias:+.3f} | [{pb_lo:+.3f}, {pb_hi:+.3f}] | {'problem' if prob_problem else 'no problem'} |")
     # Bin detail for transparency
-    bin_detail = " | ".join(f"[{p:.2f},{a:.2f},n={n}]" for p,a,n in zip(pm, ar, ns))
+    bin_detail = " | ".join(f"{p:.2f}→{a:.2f} (n={int(n)})" for p,a,n in zip(pm, ar, ns))
     lines.append(f"| Moneyline (home win) | Decile bins (min_n=5) | {bin_detail} | — | only 3 bins populated |")
 
     # bias by situation: early season (week<=4) vs rest
@@ -293,22 +293,22 @@ def main():
         "Ideals: reliability slope 1.00 / intercept 0.00; bias 0; sigma coverage 0.683 (1σ) / 0.954 (2σ);\n"
         "regression-to-the-mean slope 1.00. Max calibration gap <0.03 reads as honest.\n\n"
         "## Diagnostics\n"
-        f"- Per-fold honest sigma (used for within-fold probs): margin {sigma_margin:.0f} pts, total {sigma_total:.0f} pts — both ~4-5× the actual error SD ({margin_err_sd:.0f}/{total_err_sd:.0f}).\n"
-        f"- Production (OOF) sigma (what the live model serves): margin {margin_oof_sigma:.1f} pts, total {total_oof_sigma:.1f} pts — both match actual error SD ({margin_err_sd:.0f}/{total_err_sd:.0f}).\n"
+        f"- Per-fold honest sigma (used for within-fold probs): margin {sigma_margin:.1f} pts, total {sigma_total:.1f} pts — both ~4-5× the actual error SD ({margin_err_sd:.2f}/{total_err_sd:.2f}).\n"
+        f"- Production (OOF) sigma (what the live model serves): margin {margin_oof_sigma:.2f} pts, total {total_oof_sigma:.2f} pts — both match actual error SD ({margin_err_sd:.2f}/{total_err_sd:.2f}).\n"
         "- The per-fold honest sigma is only used for within-fold probability computation; the live model serves OOF sigma.\n\n"
         "## Results\n\n" + report + "\n\n"
         "## Interpretation\n"
         "- A market reads as **no problem** when its bias/slope/coverage interval straddles the ideal value.\n"
         "- **Moneyline overall:** no problem — mean predicted prob minus actual rate -0.012, CI [-0.067, +0.045] straddles zero; probabilities are compressed to ~0.3-0.7 (the model never issues extreme probabilities), and within that band calibration is fair. Max decile-bin gap 0.282 is driven by the single small top bin (n=20), so treat that reading as indicative, not conclusive.\n"
         "- **Moneyline, home favoured by 7+ pts:** **real problem** — model UNDER-predicts home win by 0.215 (predicted - actual = -0.215), CI [-0.315, -0.109] excludes zero. A fix (e.g. increase big-favourite home win probability) is warranted only if re-tested with a paired-bootstrap CI excluding zero.\n"
-        "- **Moneyline reliability slope:** 3.65 CI [2.12, 5.31] excludes 1.0 — under-confidence, but slope is unstable: only 3 decile bins populated (n=100,164,20), so treat as indicative.\n"
+        "- **Moneyline reliability slope:** 3.65 CI [2.309, 4.204] excludes 1.0 — under-confidence, but slope is unstable: only 3 decile bins populated (n=100, 164, 20), so treat as indicative.\n"
         "- **Reviewer 50-75% home-prob bucket:** model UNDER-predicts by 0.079, CI [-0.144, -0.008] excludes zero (mean prob 0.55, hit 0.63, n=184). This is the OPPOSITE direction to the reviewer's live spot-check (model 0.60, hit 0.48, n=23). The full walk-forward shows under-confidence in this bucket.\n"
-        "- **25-50% bucket:** model OVER-predicts by 0.111, CI [-0.188, -0.023] excludes zero (mean prob 0.47, hit 0.36, n=101). Model is over-confident in the 25-50% bucket.\n"
+        "- **25-50% bucket:** model OVER-predicts by 0.110, CI [+0.017, +0.201] excludes zero (mean prob 0.47, hit 0.36, n=101). Model is over-confident in the 25-50% bucket.\n"
         "- **Margin:** no problem — bias +0.763 pts CI straddles zero; regression-to-mean slope 0.852 CI [0.632, 1.080] straddles 1.\n"
-        "- **Margin sigma coverage:** per-fold honest sigma is overstated (~4× error SD), so coverage reads ~100%. Production OOF sigma (13.0) matches error SD (12.9) → coverage 0.68/0.95 OK. The overstatement only affects within-fold probabilities, not the live model.\n"
+        "- **Margin sigma coverage:** per-fold honest sigma is overstated (~4× error SD), so coverage reads ~100%. Production OOF sigma (12.96) matches error SD (12.93) → coverage 0.68/0.95 OK. The overstatement only affects within-fold probabilities, not the live model.\n"
         "- **Total:** no problem — bias -0.523 pts CI straddles zero.\n"
         "- **Model vs market total line:** model predicts +0.556 pts ABOVE market line, CI [+0.075, +1.028] excludes zero. But this gap is only 5% of the model's own total MAE (11.08 pts) — it is noise relative to model error. NBA model runs BELOW books by ~8 pts; NFL here runs slightly ABOVE but not meaningfully so. Not a meaningful flaw.\n"
-        "- **Total sigma coverage:** same as margin — per-fold sigma overstated, production OOF sigma (14.6) matches error SD (13.9) → coverage OK.\n"
+        "- **Total sigma coverage:** same as margin — per-fold sigma overstated, production OOF sigma (14.58) matches error SD (13.89) → coverage OK.\n"
         "- **Spread cover:** no problem — cover-prob bias CI straddles zero, including for |spread| >= 7 pts.\n"
         "- No fix is shipped here: this is research only, and no serving change is proposed without a paired-bootstrap CI excluding zero on re-tested candidates.\n"
     )
