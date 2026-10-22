@@ -14,10 +14,31 @@ The ship gate:
   3. |bias| delta CI entirely < 0 for the >=7pt favourite bucket
   4. no OTHER bucket's |bias| significantly worse (its |bias| delta CI not entirely > 0)
 
-Run:
-    python scripts/moneyline_calibration.py --output calibration_results.json
+Reconciliation note (why earlier headlines differed):
+  The first version of this report (before the current repo-faithful implementation) measured a
+  different model than the one served, with four artifacts that collectively produced favourable CIs:
 
-Exits 0 when the gate passes and 1 when it fails.
+  1. FEATURES: included the CLOSING spread_line (the repo excludes it as a train/serve skew —
+     nflverse's weekly spread_line are CLOSING lines unavailable at kickoff).
+  2. PROBABILITY CONVERSION: used a logistic sigmoid 1/(1+exp(-m/sigma)) instead of the repo's
+     margin_to_probabilities = Phi(m/sigma) (Normal CDF, the served path). The logistic has heavier
+     tails for the same sigma, yielding more extreme probabilities.
+  3. SIGMA: used an IN-SAMPLE sigma from training residuals instead of the POOLED OOF sigma
+     (manifest.fit_sigmas) that the serving path reads. The in-sample sigma is smaller, yielding
+     more extreme probabilities.
+  4. BOOTSTRAP: resampled 8 SEASONS with replacement instead of 1,786 PAIRED GAMES. The coarse
+     season bootstrap produced a lucky interval that did not reflect the protocol'sresampling.
+
+  The current implementation uses the repo's 10-feature model (no spread_line), the Normal CDF
+  conversion, the pooled OOF sigma, and the games-level paired bootstrap — the protocol's
+  specified method. The ship gate now correctly FAILS: the pooled Brier delta CI is [-0.00003,
+  +0.0012] and the pooled log-loss delta CI is [+0.0004, +0.0037], both including zero/positive.
+  The |bias| delta CI for >=7pt favourites passes at [-0.0167, -0.0140].
+
+  Run:
+      python scripts/moneyline_calibration.py --output calibration_results.json
+
+  Exits 0 when the gate passes and 1 when it fails.
 """
 
 from __future__ import annotations
