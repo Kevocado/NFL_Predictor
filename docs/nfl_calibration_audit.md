@@ -25,6 +25,9 @@ regression-to-the-mean slope 1.00. Max calibration gap <0.03 reads as honest.
 | Margin | Within 2 sigma | 1.000 | [1.000, 1.000] | expected 0.954; overstated |
 | Margin | Regression-to-mean slope (actual on predicted) | 0.852 | [0.632, 1.080] | no problem |
 | Total | Mean predicted − actual (pts) | -0.523 | [-2.214, +1.023] | no problem |
+| Total | Model total − market total line (pts) | +0.556 | [+0.075, +1.028] | problem |
+| Total | Model−mkt total early (wk<=4) | +0.246 | [-0.575, +1.059] | |
+| Total | Model−mkt total rest | +0.645 | [+0.066, +1.226] | |
 | Total | Within 1 sigma | 1.000 | [1.000, 1.000] | expected 0.683; stated sigma 69 vs error SD 14 — overstated |
 | Total | Within 2 sigma | 1.000 | [1.000, 1.000] | expected 0.954; overstated |
 | Spread cover | Mean cover prob − actual cover rate | +0.005 | [-0.053, +0.065] | no problem |
@@ -36,6 +39,7 @@ regression-to-the-mean slope 1.00. Max calibration gap <0.03 reads as honest.
 - **Moneyline, home favoured by 7+ pts:** **real problem** — model over-predicts home win by 0.215, CI [-0.315, -0.109] excludes zero. A fix (e.g. shrink big favourite win probability) is warranted only if re-tested with a paired-bootstrap CI excluding zero.
 - **Margin:** no problem — bias +0.763 pts CI straddles zero; regression-to-mean slope 0.852 CI [0.632, 1.080] straddles 1.
 - **Total:** no problem — bias -0.523 pts CI straddles zero.
+- **Model vs market total line:** **problem** — model predicted total is +0.556 pts higher than market total line on average, CI [+0.075, +1.028] excludes zero. This is opposite to reviewer's recent spot-check (8 upcoming: model 222.5 vs book 230.7; 11 finished: model 225.9 vs actual 231.4 — both showing model LOWER). The walk-forward (2023-2025 held-out) and spot-check (recent games) cover different populations; both CIs excluding zero in opposite directions warrants monitoring but not an immediate fix.
 - **Spread cover:** no problem — cover-prob bias CI straddles zero, including for |spread| >= 7 pts.
 - **Sigma coverage:** not a calibration problem in the under-confidence direction; the honest-sigma method is simply over-conservative (stated sigma ~4x the observed error SD).
 - No fix is shipped here: this is research only, and no serving change is proposed without a paired-bootstrap CI excluding zero on re-tested candidates.

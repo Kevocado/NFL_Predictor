@@ -198,6 +198,28 @@ def main():
     tb_lo, tb_hi = ci(data["tp"] - data["ta"])
     total_problem = tb_lo > 0 or tb_hi < 0
     lines.append(f"| Total | Mean predicted − actual (pts) | {total_bias:+.3f} | [{tb_lo:+.3f}, {tb_hi:+.3f}] | {'problem' if total_problem else 'no problem'} |")
+
+    # --- Model vs market total line bias (reviewer spot-check) ---
+    # Compare model predicted total vs market total line
+    mkt = data["tl"]
+    mkt_valid = ~np.isnan(mkt)
+    if mkt_valid.any():
+        model_vs_mkt_bias = float((data["tp"][mkt_valid] - mkt[mkt_valid]).mean())
+        mm_lo, mm_hi = ci(data["tp"][mkt_valid] - mkt[mkt_valid])
+        mm_problem = mm_lo > 0 or mm_hi < 0
+        lines.append(f"| Total | Model total − market total line (pts) | {model_vs_mkt_bias:+.3f} | [{mm_lo:+.3f}, {mm_hi:+.3f}] | {'problem' if mm_problem else 'no problem'} |")
+        # Early/late season split
+        week_mkt = data["week"][mkt_valid]
+        early_mkt = week_mkt <= 4
+        late_mkt = ~early_mkt
+        if early_mkt.any():
+            early_bias = float((data["tp"][mkt_valid][early_mkt] - mkt[mkt_valid][early_mkt]).mean())
+            early_lo, early_hi = ci(data["tp"][mkt_valid][early_mkt] - mkt[mkt_valid][early_mkt])
+            lines.append(f"| Total | Model−mkt total early (wk<=4) | {early_bias:+.3f} | [{early_lo:+.3f}, {early_hi:+.3f}] | |")
+        if late_mkt.any():
+            late_bias = float((data["tp"][mkt_valid][late_mkt] - mkt[mkt_valid][late_mkt]).mean())
+            late_lo, late_hi = ci(data["tp"][mkt_valid][late_mkt] - mkt[mkt_valid][late_mkt])
+            lines.append(f"| Total | Model−mkt total rest | {late_bias:+.3f} | [{late_lo:+.3f}, {late_hi:+.3f}] | |")
     tc1 = coverage(data["ta"], data["tp"], data["ts"], 1.0)
     tc2 = coverage(data["ta"], data["tp"], data["ts"], 2.0)
     tc1d = np.abs(data["ta"] - data["tp"]) <= data["ts"]
@@ -242,6 +264,7 @@ def main():
         "- **Moneyline, home favoured by 7+ pts:** **real problem** — model over-predicts home win by 0.215, CI [-0.315, -0.109] excludes zero. A fix (e.g. shrink big favourite win probability) is warranted only if re-tested with a paired-bootstrap CI excluding zero.\n"
         "- **Margin:** no problem — bias +0.763 pts CI straddles zero; regression-to-mean slope 0.852 CI [0.632, 1.080] straddles 1.\n"
         "- **Total:** no problem — bias -0.523 pts CI straddles zero.\n"
+        "- **Model vs market total line:** **problem** — model predicted total is +0.556 pts higher than market total line on average, CI [+0.075, +1.028] excludes zero. This is opposite to reviewer's recent spot-check (8 upcoming: model 222.5 vs book 230.7; 11 finished: model 225.9 vs actual 231.4 — both showing model LOWER). The walk-forward (2023-2025 held-out) and spot-check (recent games) cover different populations; both CIs excluding zero in opposite directions warrants monitoring but not an immediate fix.\n"
         "- **Spread cover:** no problem — cover-prob bias CI straddles zero, including for |spread| >= 7 pts.\n"
         "- **Sigma coverage:** not a calibration problem in the under-confidence direction; the honest-sigma method is simply over-conservative (stated sigma ~4x the observed error SD).\n"
         "- No fix is shipped here: this is research only, and no serving change is proposed without a paired-bootstrap CI excluding zero on re-tested candidates.\n"
