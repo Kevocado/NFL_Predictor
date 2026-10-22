@@ -34,11 +34,13 @@ def test_a_slope_above_one_stretches_a_probability_up():
 
 
 def test_a_slope_below_one_compresses_a_probability_down():
+    """`a < 1` pulls a probability back toward 0.5."""
     compressed = platt_transform(np.array([0.7]), 0.5, 0.0)[0]
     assert compressed < 0.7
 
 
 def test_a_slope_of_one_is_the_identity():
+    """`a = 1, b = 0` changes nothing, which is what "no correction" has to mean."""
     assert platt_transform(np.array([0.3, 0.7]), 1.0, 0.0) == pytest.approx([0.3, 0.7])
 
 
@@ -75,6 +77,7 @@ def test_a_bias_moving_toward_zero_is_an_improvement_even_though_the_signed_numb
 
 
 def test_a_bias_moving_away_from_zero_is_a_regression():
+    """A correction that makes the bias BIGGER is a regression, whatever its sign."""
     raw = np.array([0.5, 0.5, 0.5, 0.5])
     cal = np.array([0.3, 0.3, 0.3, 0.3])
     outcomes = np.array([1, 1, 1, 1])
@@ -82,6 +85,7 @@ def test_a_bias_moving_away_from_zero_is_a_regression():
 
 
 def test_the_paired_bootstrap_is_centred_on_the_point_estimate():
+    """The interval must bracket the point estimate it is an interval for."""
     rng = np.random.default_rng(3)
     raw = np.clip(rng.normal(0.5, 0.1, 400), 0.01, 0.99)
     cal = np.clip(raw + 0.08, 0.01, 0.99)
@@ -124,7 +128,22 @@ def test_fit_platt_recovers_a_known_stretch():
     assert a > 1.0, f"expected a stretch, got a={a}"
 
 
+def test_fit_platt_does_not_change_the_probabilities_when_there_is_nothing_to_fix():
+    """A model that is already calibrated must come out with a slope of about 1.
+
+    A slope far from 1 here would mean the fit was manufacturing a correction out of noise, and
+    that correction would then be applied to probabilities that did not need it.
+    """
+    rng = np.random.default_rng(23)
+    p = np.clip(rng.beta(2, 2, 5000), 0.02, 0.98)
+    y = (rng.random(5000) < p).astype(int)
+
+    a, b = fit_platt(p, y)
+    assert a == pytest.approx(1.0, abs=0.1)
+
+
 def test_fit_platt_on_nothing_leaves_the_probabilities_alone():
+    """No data means no correction: the fit returns the identity."""
     a, b = fit_platt(np.array([]), np.array([]))
     assert (a, b) == (1.0, 0.0)
 

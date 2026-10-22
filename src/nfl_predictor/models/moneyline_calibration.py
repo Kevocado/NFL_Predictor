@@ -51,6 +51,11 @@ PROB_EPS = 1e-6
 
 
 def _clip(p):
+    """Clip probabilities into the open band the logit needs.
+
+    A probability of exactly 0 or 1 has an infinite logit, so one of them would send the whole
+    fit to infinity. The band is narrow (1e-6) so the clip never visibly moves a real probability.
+    """
     return np.clip(np.asarray(p, dtype=float), PROB_EPS, 1.0 - PROB_EPS)
 
 
@@ -75,6 +80,7 @@ def fit_platt(p_raw, y) -> tuple[float, float]:
     logit_p = np.log(p / (1.0 - p))
 
     def nll(params):
+        """The negative log-likelihood of the outcome under the stretched probabilities."""
         a, b = params
         p_cal = 1.0 / (1.0 + np.exp(-(a * logit_p + b)))
         p_cal = np.clip(p_cal, 1e-15, 1.0 - 1e-15)

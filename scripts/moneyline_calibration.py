@@ -77,6 +77,12 @@ def _logloss_delta_ci(p_raw, p_cal, y, n_boot: int = N_BOOT, seed: int = SEED):
 
 
 def _load_games(seasons) -> pd.DataFrame:
+    """The completed games for the given seasons, from nflverse.
+
+    Only finished games (both scores present) are usable: a game with no score has no outcome to
+    calibrate against, and including it would put an unresolved row in the denominator of every
+    metric in this report.
+    """
     import nfl_data_py as nfl
 
     games = nfl.import_schedules(list(seasons))
@@ -90,9 +96,14 @@ def _diagnostic(p, y, s) -> dict:
     says the probabilities are far too compressed and need stretching. This computes that number
     from the same walk-forward out-of-sample probabilities the gate is scored on, so the premise
     is checked against the data rather than assumed.
+
+    The slope is fitted WITHOUT regularisation. `LogisticRegression` penalises by default, and an
+    L2 penalty shrinks a slope toward zero, so a penalised fit would understate the compression
+    and make the model look BETTER calibrated than it is -- which is the opposite of what this
+    diagnostic is for. `C=1e6` is the unpenalised limit on every scikit-learn version.
     """
     p = np.clip(p, 1e-6, 1 - 1e-6)
-    lr = LogisticRegression().fit(np.log(p / (1 - p)).reshape(-1, 1), y)
+    lr = LogisticRegression(C=1e6, max_iter=1000).fit(np.log(p / (1 - p)).reshape(-1, 1), y)
     slope = float(lr.coef_[0][0])
     bins = np.clip((p * 3).astype(int), 0, 2)
     reliability = []
@@ -123,6 +134,11 @@ def _diagnostic(p, y, s) -> dict:
 
 
 def run(min_train_seasons: int = 2) -> dict:
+    """Run the walk-forward calibration and the ship gate, and return both.
+
+    `min_train_seasons` is how many seasons a fold must have behind it before it can be tested,
+    so a season with no earlier seasons is never scored against a model that saw them.
+    """
     games = _load_games(range(2018, 2027))
     print(f"Completed games: {len(games)}  seasons: {sorted(games['season'].unique())}")
 
@@ -360,6 +376,10 @@ def run(min_train_seasons: int = 2) -> dict:
 
 
 def main() -> int:
+    """Entry point: run the report, write the JSON if asked, and exit non-zero when the gate fails.
+
+    The exit code IS the verdict, so a CI step can gate on it without parsing the output.
+    """
     parser = argparse.ArgumentParser(description="Walk-forward moneyline calibration")
     parser.add_argument("--output", help="Write the results as JSON")
     args = parser.parse_args()
