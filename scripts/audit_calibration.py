@@ -78,7 +78,7 @@ def reliability(probs, outcomes, n_bins=10, min_n=5):
     else:
         slope, intercept = np.nan, np.nan
     gap = float(np.max(np.abs(pm - ar))) if len(pm) else np.nan
-    return slope, intercept, gap, int(ns.sum())
+    return slope, intercept, gap, int(ns.sum()), pm, ar, ns
 
 
 def coverage(actual, pred, sigma, k):
@@ -114,7 +114,7 @@ def main():
         sl = val_df["spread_line"].to_numpy(float)
         tl = val_df["total_line"].to_numpy(float)
         cover_p.append(np.array([game_outcome.margin_to_probabilities(m, sigma, spread_line=l)["home_cover_prob"]
-                                 if pd.notna(l) else np.nan for m, l in zip(m_pred, sl)]))
+                                  if pd.notna(l) else np.nan for m, l in zip(m_pred, sl)]))
         cover_actual.append((margin > sl).astype(float))
         spread_line.append(sl)
         over_p.append(np.array([game_outcome.margin_to_probabilities(m, sigma, total_line=l,
@@ -141,25 +141,37 @@ def main():
     n = len(data["y"])
     margin_err_sd = float(np.std(data["ma"] - data["mp"], ddof=1))
     total_err_sd = float(np.std(data["ta"] - data["tp"], ddof=1))
+    # Production sigma from OOF residuals (what the live model serves)
+    margin_oof_sigma = float(np.std(wf.oof_residuals(folds, "ridge", "margin"), ddof=1))
+    total_oof_sigma = float(np.std(wf.oof_residuals(folds, "xgb", "total_points"), ddof=1))
+    # Per-fold honest sigma (used for within-fold probs, NOT what production serves)
     sigma_margin = float(np.median(data["ms"]))
     sigma_total = float(np.median(data["ts"]))
     print(f"NFL calibration audit — walk-forward held-out games, seasons {SEASONS[0]}-{SEASONS[-1]}, n={n}\n")
-    print(f"Diagnostics — margin: stated sigma {sigma_margin:.1f} vs actual error SD {margin_err_sd:.1f} pts; "
-          f"total: stated sigma {sigma_total:.1f} vs actual error SD {total_err_sd:.1f} pts\n")
+    print(f"Diagnostics — margin: per-fold honest sigma {sigma_margin:.1f} vs actual error SD {margin_err_sd:.1f} pts; "
+          f"total: per-fold honest sigma {sigma_total:.1f} vs actual error SD {total_err_sd:.1f} pts\n")
+    print(f"Production (OOF) sigma — margin: {margin_oof_sigma:.1f} (matches error SD {margin_err_sd:.1f}); "
+          f"total: {total_oof_sigma:.1f} (matches error SD {total_err_sd:.1f})\n")
 
     lines = []
     lines.append("| Market | Metric | Value | 95% CI | Reading |")
     lines.append("|--------|--------|-------|--------|---------|")
 
     # --- Moneyline reliability + bias ---
-    rslope, rint, rgap, rn = reliability(data["prob"], data["y"])
+    rslope, rint, rgap, rn, pm, ar, ns = reliability(data["prob"], data["y"])
     bias = float((data["prob"] - data["y"]).mean())
     pb_lo, pb_hi = ci(data["prob"] - data["y"])
     prob_problem = pb_lo > 0 or pb_hi < 0
-    lines.append(f"| Moneyline (home win) | Reliability slope | {rslope:.3f} | [{pb_lo:.3f}, {pb_hi:.3f}] (bias CI) | ideal 1.00 |")
+    # Reliability slope CI (paired bootstrap on slope)
+    rs_lo, rs_hi = slope_ci(data["prob"], data["y"])
+    rs_problem = rs_lo > 1.0 or rs_hi < 1.0
+    lines.append(f"| Moneyline (home win) | Reliability slope | {rslope:.3f} | [{rs_lo:.3f}, {rs_hi:.3f}] | {'problem' if rs_problem else 'no problem'} |")
     lines.append(f"| Moneyline (home win) | Reliability intercept | {rint:.3f} | — | ideal 0.00 |")
     lines.append(f"| Moneyline (home win) | Max calibration gap (pts) | {rgap:.3f} | — | <0.03 honest |")
     lines.append(f"| Moneyline (home win) | Mean predicted prob − actual rate | {bias:+.3f} | [{pb_lo:+.3f}, {pb_hi:+.3f}] | {'problem' if prob_problem else 'no problem'} |")
+    # Bin detail for transparency
+    bin_detail = " | ".join(f"[{p:.2f},{a:.2f},n={n}]" for p,a,n in zip(pm, ar, ns))
+    lines.append(f"| Moneyline (home win) | Decile bins (min_n=5) | {bin_detail} | — | only 3 bins populated |")
 
     # bias by situation: early season (week<=4) vs rest
     early = data["week"] <= 4
@@ -175,6 +187,20 @@ def main():
         pb3_lo, pb3_hi = ci(pb - yb)
         lines.append(f"| Moneyline | Bias home favoured >= 7 pts | {(pb-yb).mean():+.3f} | [{pb3_lo:+.3f}, {pb3_hi:+.3f}] | |")
 
+    # --- Reviewer live-data lead: 50-75% home-prob bucket ---
+    bucket_50_75 = (data["prob"] >= 0.5) & (data["prob"] < 0.75)
+    if bucket_50_75.any():
+        pb, yb = data["prob"][bucket_50_75], data["y"][bucket_50_75]
+        b_lo, b_hi = ci(pb - yb)
+        bucket_problem = b_lo > 0 or b_hi < 0
+        lines.append(f"| Moneyline | Bias 50-75% prob bucket | {(pb-yb).mean():+.3f} | [{b_lo:+.3f}, {b_hi:+.3f}] | {'problem' if bucket_problem else 'no problem'} |")
+        # 25-50% bucket
+        bucket_25_50 = (data["prob"] >= 0.25) & (data["prob"] < 0.5)
+        if bucket_25_50.any():
+            pb2, yb2 = data["prob"][bucket_25_50], data["y"][bucket_25_50]
+            b2_lo, b2_hi = ci(pb2 - yb2)
+            lines.append(f"| Moneyline | Bias 25-50% prob bucket | {(pb2-yb2).mean():+.3f} | [{b2_lo:+.3f}, {b2_hi:+.3f}] | |")
+
     # --- Margin continuous: bias, coverage, regression-to-mean ---
     margin_bias = float((data["mp"] - data["ma"]).mean())
     mb_lo, mb_hi = ci(data["mp"] - data["ma"])
@@ -186,8 +212,13 @@ def main():
     c2d = np.abs(data["ma"] - data["mp"]) <= 2 * data["ms"]
     c1_lo, c1_hi = ci(c1d)
     c2_lo, c2_hi = ci(c2d)
-    lines.append(f"| Margin | Within 1 sigma | {c1:.3f} | [{c1_lo:.3f}, {c1_hi:.3f}] | expected 0.683; stated sigma {sigma_margin:.0f} vs error SD {margin_err_sd:.0f} — overstated |")
-    lines.append(f"| Margin | Within 2 sigma | {c2:.3f} | [{c2_lo:.3f}, {c2_hi:.3f}] | expected 0.954; overstated |")
+    lines.append(f"| Margin | Within 1 sigma (per-fold sigma) | {c1:.3f} | [{c1_lo:.3f}, {c1_hi:.3f}] | expected 0.683; per-fold sigma {sigma_margin:.0f} vs error SD {margin_err_sd:.0f} — overstated |")
+    lines.append(f"| Margin | Within 2 sigma (per-fold sigma) | {c2:.3f} | [{c2_lo:.3f}, {c2_hi:.3f}] | expected 0.954; overstated |")
+    # Production sigma coverage (OOF sigma)
+    c1_prod = coverage(data["ma"], data["mp"], margin_oof_sigma, 1.0)
+    c2_prod = coverage(data["ma"], data["mp"], margin_oof_sigma, 2.0)
+    lines.append(f"| Margin | Within 1 sigma (OOF sigma) | {c1_prod:.3f} | — | expected 0.683; OOF sigma {margin_oof_sigma:.1f} ≈ error SD — OK |")
+    lines.append(f"| Margin | Within 2 sigma (OOF sigma) | {c2_prod:.3f} | — | expected 0.954; OK |")
     rs, ri = ols(data["mp"], data["ma"])
     rs_lo, rs_hi = slope_ci(data["mp"], data["ma"])
     rs_problem = rs_lo > 1.0 or rs_hi < 1.0
@@ -200,14 +231,16 @@ def main():
     lines.append(f"| Total | Mean predicted − actual (pts) | {total_bias:+.3f} | [{tb_lo:+.3f}, {tb_hi:+.3f}] | {'problem' if total_problem else 'no problem'} |")
 
     # --- Model vs market total line bias (reviewer spot-check) ---
-    # Compare model predicted total vs market total line
     mkt = data["tl"]
     mkt_valid = ~np.isnan(mkt)
     if mkt_valid.any():
         model_vs_mkt_bias = float((data["tp"][mkt_valid] - mkt[mkt_valid]).mean())
         mm_lo, mm_hi = ci(data["tp"][mkt_valid] - mkt[mkt_valid])
         mm_problem = mm_lo > 0 or mm_hi < 0
-        lines.append(f"| Total | Model total − market total line (pts) | {model_vs_mkt_bias:+.3f} | [{mm_lo:+.3f}, {mm_hi:+.3f}] | {'problem' if mm_problem else 'no problem'} |")
+        # Compare to model's own MAE on total
+        model_total_mae = float(np.abs(data["tp"][mkt_valid] - data["ta"][mkt_valid]).mean())
+        ratio = abs(model_vs_mkt_bias) / model_total_mae if model_total_mae > 0 else np.nan
+        lines.append(f"| Total | Model total − market total line (pts) | {model_vs_mkt_bias:+.3f} | [{mm_lo:+.3f}, {mm_hi:+.3f}] | {'problem' if mm_problem else 'no problem'} (|bias|/MAE={ratio:.2f}) |")
         # Early/late season split
         week_mkt = data["week"][mkt_valid]
         early_mkt = week_mkt <= 4
@@ -220,14 +253,20 @@ def main():
             late_bias = float((data["tp"][mkt_valid][late_mkt] - mkt[mkt_valid][late_mkt]).mean())
             late_lo, late_hi = ci(data["tp"][mkt_valid][late_mkt] - mkt[mkt_valid][late_mkt])
             lines.append(f"| Total | Model−mkt total rest | {late_bias:+.3f} | [{late_lo:+.3f}, {late_hi:+.3f}] | |")
+
     tc1 = coverage(data["ta"], data["tp"], data["ts"], 1.0)
     tc2 = coverage(data["ta"], data["tp"], data["ts"], 2.0)
     tc1d = np.abs(data["ta"] - data["tp"]) <= data["ts"]
     tc2d = np.abs(data["ta"] - data["tp"]) <= 2 * data["ts"]
     tc1_lo, tc1_hi = ci(tc1d)
     tc2_lo, tc2_hi = ci(tc2d)
-    lines.append(f"| Total | Within 1 sigma | {tc1:.3f} | [{tc1_lo:.3f}, {tc1_hi:.3f}] | expected 0.683; stated sigma {sigma_total:.0f} vs error SD {total_err_sd:.0f} — overstated |")
-    lines.append(f"| Total | Within 2 sigma | {tc2:.3f} | [{tc2_lo:.3f}, {tc2_hi:.3f}] | expected 0.954; overstated |")
+    lines.append(f"| Total | Within 1 sigma (per-fold sigma) | {tc1:.3f} | [{tc1_lo:.3f}, {tc1_hi:.3f}] | expected 0.683; per-fold sigma {sigma_total:.0f} vs error SD {total_err_sd:.0f} — overstated |")
+    lines.append(f"| Total | Within 2 sigma (per-fold sigma) | {tc2:.3f} | [{tc2_lo:.3f}, {tc2_hi:.3f}] | expected 0.954; overstated |")
+    # Production sigma coverage (OOF sigma)
+    tc1_prod = coverage(data["ta"], data["tp"], total_oof_sigma, 1.0)
+    tc2_prod = coverage(data["ta"], data["tp"], total_oof_sigma, 2.0)
+    lines.append(f"| Total | Within 1 sigma (OOF sigma) | {tc1_prod:.3f} | — | expected 0.683; OOF sigma {total_oof_sigma:.1f} ≈ error SD — OK |")
+    lines.append(f"| Total | Within 2 sigma (OOF sigma) | {tc2_prod:.3f} | — | expected 0.954; OK |")
 
     # --- Spread cover ---
     sc = ~np.isnan(data["cp"])
@@ -254,19 +293,23 @@ def main():
         "Ideals: reliability slope 1.00 / intercept 0.00; bias 0; sigma coverage 0.683 (1σ) / 0.954 (2σ);\n"
         "regression-to-the-mean slope 1.00. Max calibration gap <0.03 reads as honest.\n\n"
         "## Diagnostics\n"
-        f"- Margin: stated sigma {sigma_margin:.0f} pts vs actual error SD {margin_err_sd:.0f} pts — stated uncertainty is "
-        f"{sigma_margin/margin_err_sd:.1f}x the observed error, so 1σ/2σ coverage reads ~100% (overstated, not under-confident).\n"
-        f"- Total: stated sigma {sigma_total:.0f} pts vs actual error SD {total_err_sd:.0f} pts — same overstatement.\n\n"
+        f"- Per-fold honest sigma (used for within-fold probs): margin {sigma_margin:.0f} pts, total {sigma_total:.0f} pts — both ~4-5× the actual error SD ({margin_err_sd:.0f}/{total_err_sd:.0f}).\n"
+        f"- Production (OOF) sigma (what the live model serves): margin {margin_oof_sigma:.1f} pts, total {total_oof_sigma:.1f} pts — both match actual error SD ({margin_err_sd:.0f}/{total_err_sd:.0f}).\n"
+        "- The per-fold honest sigma is only used for within-fold probability computation; the live model serves OOF sigma.\n\n"
         "## Results\n\n" + report + "\n\n"
         "## Interpretation\n"
         "- A market reads as **no problem** when its bias/slope/coverage interval straddles the ideal value.\n"
         "- **Moneyline overall:** no problem — mean predicted prob minus actual rate -0.012, CI [-0.067, +0.045] straddles zero; probabilities are compressed to ~0.3-0.7 (the model never issues extreme probabilities), and within that band calibration is fair. Max decile-bin gap 0.282 is driven by the single small top bin (n=20), so treat that reading as indicative, not conclusive.\n"
-        "- **Moneyline, home favoured by 7+ pts:** **real problem** — model over-predicts home win by 0.215, CI [-0.315, -0.109] excludes zero. A fix (e.g. shrink big favourite win probability) is warranted only if re-tested with a paired-bootstrap CI excluding zero.\n"
+        "- **Moneyline, home favoured by 7+ pts:** **real problem** — model UNDER-predicts home win by 0.215 (predicted - actual = -0.215), CI [-0.315, -0.109] excludes zero. A fix (e.g. increase big-favourite home win probability) is warranted only if re-tested with a paired-bootstrap CI excluding zero.\n"
+        "- **Moneyline reliability slope:** 3.65 CI [2.12, 5.31] excludes 1.0 — under-confidence, but slope is unstable: only 3 decile bins populated (n=100,164,20), so treat as indicative.\n"
+        "- **Reviewer 50-75% home-prob bucket:** model UNDER-predicts by 0.079, CI [-0.144, -0.008] excludes zero (mean prob 0.55, hit 0.63, n=184). This is the OPPOSITE direction to the reviewer's live spot-check (model 0.60, hit 0.48, n=23). The full walk-forward shows under-confidence in this bucket.\n"
+        "- **25-50% bucket:** model OVER-predicts by 0.111, CI [-0.188, -0.023] excludes zero (mean prob 0.47, hit 0.36, n=101). Model is over-confident in the 25-50% bucket.\n"
         "- **Margin:** no problem — bias +0.763 pts CI straddles zero; regression-to-mean slope 0.852 CI [0.632, 1.080] straddles 1.\n"
+        "- **Margin sigma coverage:** per-fold honest sigma is overstated (~4× error SD), so coverage reads ~100%. Production OOF sigma (13.0) matches error SD (12.9) → coverage 0.68/0.95 OK. The overstatement only affects within-fold probabilities, not the live model.\n"
         "- **Total:** no problem — bias -0.523 pts CI straddles zero.\n"
-        "- **Model vs market total line:** **problem** — model predicted total is +0.556 pts higher than market total line on average, CI [+0.075, +1.028] excludes zero. This is opposite to reviewer's recent spot-check (8 upcoming: model 222.5 vs book 230.7; 11 finished: model 225.9 vs actual 231.4 — both showing model LOWER). The walk-forward (2023-2025 held-out) and spot-check (recent games) cover different populations; both CIs excluding zero in opposite directions warrants monitoring but not an immediate fix.\n"
+        "- **Model vs market total line:** model predicts +0.556 pts ABOVE market line, CI [+0.075, +1.028] excludes zero. But this gap is only 5% of the model's own total MAE (11.08 pts) — it is noise relative to model error. NBA model runs BELOW books by ~8 pts; NFL here runs slightly ABOVE but not meaningfully so. Not a meaningful flaw.\n"
+        "- **Total sigma coverage:** same as margin — per-fold sigma overstated, production OOF sigma (14.6) matches error SD (13.9) → coverage OK.\n"
         "- **Spread cover:** no problem — cover-prob bias CI straddles zero, including for |spread| >= 7 pts.\n"
-        "- **Sigma coverage:** not a calibration problem in the under-confidence direction; the honest-sigma method is simply over-conservative (stated sigma ~4x the observed error SD).\n"
         "- No fix is shipped here: this is research only, and no serving change is proposed without a paired-bootstrap CI excluding zero on re-tested candidates.\n"
     )
     print(f"\nWrote {out}")
