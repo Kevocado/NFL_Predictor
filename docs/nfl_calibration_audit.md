@@ -43,3 +43,10 @@ regression-to-the-mean slope 1.00. Max calibration gap <0.03 reads as honest.
 - **Spread cover:** no problem — cover-prob bias CI straddles zero, including for |spread| >= 7 pts.
 - **Sigma coverage:** not a calibration problem in the under-confidence direction; the honest-sigma method is simply over-conservative (stated sigma ~4x the observed error SD).
 - No fix is shipped here: this is research only, and no serving change is proposed without a paired-bootstrap CI excluding zero on re-tested candidates.
+
+## Reviewer live-data leads (to test against full walk-forward)
+*Small-n spot-checks; test at full sample size with paired-bootstrap. Propose fix only if CI excludes zero.*
+
+- **Moneyline home-prob 50-75% bucket (mean 0.60)**: hit 0.48 on n=23 → possible overconfidence in mid-range home picks.
+- **Moneyline home-prob 25-50% bucket (mean 0.38)**: hit 0.39 on small n → fine, no lead.
+- **Test**: walk-forward already has moneyline probs per game. Bucket predicted home_win_prob into 50-75% (and 25-50%), compute actual home win rate per bucket, paired-bootstrap CI on calibration gap. If 50-75% bucket gap CI excludes zero → fix warranted (e.g., shrinkage on mid-range home favourites). Note: overall moneyline bias -0.012 (CI straddles zero) and big-favourite bias -0.215 (CI excludes zero) already documented; this lead refines the region of overconfidence.
