@@ -85,6 +85,12 @@ def normalize_depth_chart(df: pd.DataFrame) -> pd.DataFrame:
         # Aug-Mar snapshots belong to the season that began in August.
         season = season.fillna(ts.dt.year - (ts.dt.month < 6))
     df["season"] = season
+    # The 2017-2024 charts carry game_type and fill_positions keeps only REG rows when the column exists. Concatenated
+    # with an older season, new-schema rows would arrive with NaN there and be silently filtered out - which left
+    # every 2025/2026 weekly row without a position even after the schema fix.
+    # pull_rosters concatenates seasons BEFORE normalising, so the column usually exists (from the old-schema
+    # seasons) and is NaN on exactly the new-schema rows.
+    df["game_type"] = df["game_type"].fillna("REG") if "game_type" in df.columns else "REG"
     return df
 
 

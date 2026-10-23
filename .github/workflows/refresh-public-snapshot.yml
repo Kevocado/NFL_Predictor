@@ -18,13 +18,18 @@ on:
 permissions:
   contents: write
 
+# One data-committing job at a time per repo (shared with collect-kalshi-lines.yml), so they queue instead of racing.
+concurrency:
+  group: data-commits
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: "pip"
@@ -86,4 +91,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/public_snapshot.json
           git commit -m "Refresh public snapshot [automated]"
-          git push
+          # The build takes minutes; anything else that lands on main meanwhile (the Kalshi collector, a merge) makes a
+          # plain `git push` fail as non-fast-forward and throws the whole build away (seen 2026-10-15, twice). Rebase onto
+          # it - -X theirs keeps THIS run's snapshot if two runs ever touched the file - and retry.
+          for attempt in 1 2 3 4; do
+            git pull --rebase -q -X theirs && git push && exit 0
+            echo "push attempt $attempt failed; retrying"; sleep $((attempt * 5))
+          done
+          echo "could not push after retries"; exit 1

@@ -2,6 +2,7 @@
 __pycache__/
 *.egg-info/
 data/cache/
+data/cache
 data/tracking.db
 data/tracking.db.*
 data/tracking.db-shm

@@ -55,6 +55,8 @@ who also starts somewhere else.
 from __future__ import annotations
 
 import logging
+import time
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -77,6 +79,50 @@ def _cache_path(cache_dir: Path, season: int) -> Path:
     return Path(cache_dir) / f"depth_charts_{season}.parquet"
 
 
+#: How long a cached chart for the CURRENT season is trusted. The feed publishes a new snapshot several times a
+#: week; a cache that never expires served the 28 Sept chart on 14 Oct.
+CACHE_TTL_SECONDS = 6 * 3600
+
+
+def _is_live_season(season: int) -> bool:
+    today = date.today()
+    return season >= today.year - (1 if today.month < 3 else 0)
+
+
+def _nfl_week(snapshot: "pd.Timestamp", season: int) -> int:
+    """NFL week a snapshot belongs to: weeks run Tuesday to Monday, week 1 containing the Thursday after Labor Day.
+    Offseason/preseason snapshots are week 0."""
+    sept1 = date(season, 9, 1)
+    labor_day = sept1 + timedelta(days=(0 - sept1.weekday()) % 7)
+    window_start = labor_day + timedelta(days=1)  # Tuesday before the Thursday kickoff
+    return max(0, (snapshot.date() - window_start).days // 7 + 1)
+
+
+def normalize_depth_chart(frame: pd.DataFrame, season: int) -> pd.DataFrame:
+    """Give the 2025+ nflverse depth-chart schema the columns the rest of this module reads.
+
+    The new feed has no `season`/`week`/`depth_team`/`full_name`/`depth_position`: it has `dt` (snapshot
+    timestamp, many per week), `team`, `player_name`, `pos_abb` and `pos_rank`. Without this every 2026 row failed the
+    `season` filter, `starter_flags` returned {} and every prop row shipped `is_starter=None`.
+    Only the LATEST snapshot of each week is kept, so a player demoted mid-week is not still a starter from an
+    earlier snapshot. Legacy-schema frames pass through untouched.
+    """
+    if frame is None or frame.empty or "pos_abb" not in frame.columns or "depth_team" in frame.columns:
+        return frame
+    out = frame.copy()
+    stamp = pd.to_datetime(out["dt"], errors="coerce", utc=True)
+    out = out.assign(_stamp=stamp).dropna(subset=["_stamp"])
+    out["week"] = out["_stamp"].map(lambda t: _nfl_week(t, season)).astype(float)
+    out = out[out["_stamp"] == out.groupby("week")["_stamp"].transform("max")]
+    out["season"] = season
+    out["game_type"] = "REG"
+    out["club_code"] = out["team"]
+    out["full_name"] = out["player_name"]
+    out["depth_position"] = out["pos_abb"]
+    out["depth_team"] = out["pos_rank"].astype(int).astype(str)
+    return out.drop(columns=["_stamp"]).reset_index(drop=True)
+
+
 def load_depth_charts(season: int, cache_dir: Path, *, timeout: int = 60) -> pd.DataFrame | None:
     """Cache-or-fetch one season of depth charts. Never raises.
 
@@ -85,16 +131,23 @@ def load_depth_charts(season: int, cache_dir: Path, *, timeout: int = 60) -> pd.
     order" rather than losing the feature that called this.
     """
     path = _cache_path(cache_dir, season)
+    stale_ok = None
     if path.exists():
+        fresh = not _is_live_season(season) or (time.time() - path.stat().st_mtime) < CACHE_TTL_SECONDS
         try:
-            return pd.read_parquet(path)
+            cached = pd.read_parquet(path)
+            if fresh:
+                return normalize_depth_chart(cached, season)
+            stale_ok = cached  # expired: try the network, fall back to this if it fails
         except Exception as exc:  # noqa: BLE001 - a corrupt cache is not fatal
             logger.warning("depth charts: unreadable cache %s (%s); refetching", path, exc)
-
     try:
         local = _fetch_to(DEPTH_CHARTS_URL.format(season=season), path, timeout)
-        return pd.read_parquet(local)
+        return normalize_depth_chart(pd.read_parquet(local), season)
     except Exception as exc:  # noqa: BLE001 - enhancement, never fatal
+        if stale_ok is not None:
+            logger.warning("depth charts: refresh failed for %s (%s); using the stale cache", season, exc)
+            return normalize_depth_chart(stale_ok, season)
         logger.warning("depth charts: fetch failed for %s (%s); continuing without starters", season, exc)
         return None
 
@@ -185,7 +238,7 @@ def starter_flags(chart: pd.DataFrame) -> dict[str, dict[str, Any]]:
                 positions[name] = position or positions.get(name, "")
                 starter_position_taken[name] = True
 
-    return {
+    flags = {
         name: {
             "is_starter": bool(starters[name]),
             "position": positions.get(name, ""),
@@ -193,6 +246,13 @@ def starter_flags(chart: pd.DataFrame) -> dict[str, dict[str, Any]]:
         }
         for name in order
     }
+    # The props carry abbreviated names ("S.Darnold") but the feed carries full ones ("Sam Darnold"), so a name join
+    # silently misses. A gsis id ("00-0034869") is what both sides share; id keys cannot collide with names.
+    if "gsis_id" in chart.columns:
+        for name, gsis in chart.drop_duplicates("full_name")[["full_name", "gsis_id"]].itertuples(index=False):
+            if isinstance(name, str) and name in flags and isinstance(gsis, str) and gsis:
+                flags.setdefault(gsis, flags[name])
+    return flags
 
 
 def flags_for_season_week(season: int, week: int, cache_dir: Path, *, game_type: str = "REG") -> dict[str, dict[str, Any]]:

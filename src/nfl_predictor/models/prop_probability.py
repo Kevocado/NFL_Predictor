@@ -54,3 +54,16 @@ def american_to_breakeven(odds: float) -> float:
 def edge_vs_line(p_over: float, odds: float) -> float:
     """Model probability minus breakeven. The forward test's 5% gate reads this."""
     return p_over - american_to_breakeven(odds)
+
+def compact_quantiles(quantile_preds: dict[float, float]) -> list[float]:
+    """The fitted quantile values in level order, crossings repaired, one decimal: what the line checker ships.
+
+    Levels are NOT sent: they are `player_props.QUANTILES` for every row, so the client holds them once. Crossing
+    quantiles are repaired the same way `p_over_from_quantiles` repairs them, so the client interpolates exactly
+    what this module would.
+    """
+    values: list[float] = []
+    for level in sorted(quantile_preds):
+        v = float(quantile_preds[level])
+        values.append(round(max(v, values[-1]) if values else v, 1))
+    return values

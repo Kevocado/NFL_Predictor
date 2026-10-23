@@ -474,7 +474,7 @@ def test_the_gate_and_the_artifacts_share_one_feature_list():
     create a third copy to drift. The manifest is what a fresh clone actually
     loads, so it is the better thing to check.
     """
-    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS
+    from nfl_predictor.models.training import FORWARD_FEATURE_COLUMNS, QUANTILE_FEATURE_COLUMNS
 
     manifest_path = Path(__file__).resolve().parents[2] / "models" / "manifest.json"
     if not manifest_path.exists():
@@ -484,7 +484,10 @@ def test_the_gate_and_the_artifacts_share_one_feature_list():
     if not entry:
         pytest.skip("quantile artifacts not registered yet")
 
-    assert set(entry["feature_cols"]) <= set(FORWARD_FEATURE_COLUMNS), (
+    # The artifacts are fitted on QUANTILE_FEATURE_COLUMNS, the subset of the forward list that the props route actually
+    # serves (a model fitted on more was served zeros for the rest). It must stay inside the forward list.
+    assert set(QUANTILE_FEATURE_COLUMNS) <= set(FORWARD_FEATURE_COLUMNS)
+    assert set(entry["feature_cols"]) <= set(QUANTILE_FEATURE_COLUMNS), (
         "the registered artifact carries features outside the shared list")
 
     # The market is the model's own LABEL, not a feature, so it is absent from
@@ -495,9 +498,9 @@ def test_the_gate_and_the_artifacts_share_one_feature_list():
     for market, meta in entry["markets"].items():
         assert market not in FORWARD_FEATURE_COLUMNS, (
             f"{market} is the label, so it cannot also be a feature")
-        assert meta["n_features"] == len(FORWARD_FEATURE_COLUMNS), (
+        assert meta["n_features"] == len(QUANTILE_FEATURE_COLUMNS), (
             f"{market} was fitted on {meta['n_features']} features; the gate "
-            f"validates {len(FORWARD_FEATURE_COLUMNS)}")
+            f"validates {len(QUANTILE_FEATURE_COLUMNS)}")
 
 
 def test_closing_line_features_are_excluded():

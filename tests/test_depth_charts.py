@@ -266,3 +266,57 @@ class TestTheRealLoadPath:
         flags = flags_for_season_week(2024, 19, fetching_cache_dir)
         assert flags["Tua Tagovailoa"]["is_starter"] is True
         assert flags["Skylar Thompson"]["is_starter"] is False
+
+
+class TestNewNflverseSchema:
+    """2025+ charts: dt/team/player_name/pos_abb/pos_rank, many snapshots per week, no season/week/depth_team."""
+
+    @staticmethod
+    def _feed():
+        import pandas as pd
+        rows = []
+        # week 5 of 2026 is 2026-10-06..10-12 (Labor Day 2026-09-07); two snapshots, Lock is demoted in the later one
+        for dt, nix_rank, lock_rank in (("2026-10-07T06:00:00Z", 2, 1), ("2026-10-09T15:00:00Z", 1, 2)):
+            rows += [
+                {"dt": dt, "team": "SEA", "player_name": "Drew Lock", "gsis_id": "00-0035704", "pos_abb": "QB", "pos_rank": lock_rank},
+                {"dt": dt, "team": "SEA", "player_name": "Sam Darnold", "gsis_id": "00-0034869", "pos_abb": "QB", "pos_rank": nix_rank},
+            ]
+        # week 6, later: must not be visible when asking for week 5
+        rows.append({"dt": "2026-10-14T06:00:00Z", "team": "SEA", "player_name": "Drew Lock", "gsis_id": "00-0035704", "pos_abb": "QB", "pos_rank": 1})
+        return pd.DataFrame(rows).astype({"pos_rank": "int32"})
+
+    def test_weeks_are_assigned_from_the_snapshot_date(self):
+        from nfl_predictor.data.depth_charts import normalize_depth_chart
+        out = normalize_depth_chart(self._feed(), 2026)
+        assert sorted(out["week"].unique()) == [5.0, 6.0]
+        assert (out["season"] == 2026).all() and (out["depth_team"].isin(["1", "2"])).all()
+
+    def test_only_the_latest_snapshot_of_a_week_counts(self):
+        from nfl_predictor.data.depth_charts import normalize_depth_chart, resolve_chart, starter_flags
+        chart = resolve_chart(normalize_depth_chart(self._feed(), 2026), 2026, 5)
+        flags = starter_flags(chart)
+        assert flags["Sam Darnold"]["is_starter"] is True      # latest week-5 snapshot
+        assert flags["Drew Lock"]["is_starter"] is False       # the week-6 chart is in the future and ignored
+
+    def test_flags_are_also_keyed_by_gsis_id_because_prop_names_are_abbreviated(self):
+        from nfl_predictor.data.depth_charts import normalize_depth_chart, resolve_chart, starter_flags
+        flags = starter_flags(resolve_chart(normalize_depth_chart(self._feed(), 2026), 2026, 5))
+        assert flags["00-0034869"]["is_starter"] is True and flags["00-0035704"]["is_starter"] is False
+
+    def test_legacy_schema_passes_through_untouched(self):
+        import pandas as pd
+        from nfl_predictor.data.depth_charts import normalize_depth_chart
+        legacy = pd.DataFrame([{"season": 2024, "week": 1.0, "depth_team": "1", "full_name": "A", "club_code": "X", "depth_position": "QB"}])
+        assert normalize_depth_chart(legacy, 2024) is legacy
+
+    def test_an_expired_current_season_cache_is_refetched_and_the_stale_copy_survives_a_failed_refetch(self, tmp_path, monkeypatch):
+        import os, time
+        from nfl_predictor.data import depth_charts as dc
+        feed = self._feed()
+        feed.to_parquet(dc._cache_path(tmp_path, 2026))
+        old = time.time() - 2 * dc.CACHE_TTL_SECONDS
+        os.utime(dc._cache_path(tmp_path, 2026), (old, old))
+        calls = []
+        monkeypatch.setattr(dc, "_fetch_to", lambda *a, **k: (calls.append(1), (_ for _ in ()).throw(RuntimeError("offline")))[1])
+        out = dc.load_depth_charts(2026, tmp_path)
+        assert calls and out is not None and not out.empty   # tried the network, kept the stale cache

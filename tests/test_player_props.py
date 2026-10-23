@@ -163,3 +163,48 @@ def test_predict_props_only_returns_relevant_yardage_market_for_te():
     assert "receiving_yards" in result
     assert "passing_yards" not in result
     assert "rushing_yards" not in result
+
+
+def test_compact_quantiles_repairs_crossings_and_rounds():
+    from nfl_predictor.models.prop_probability import compact_quantiles
+    assert compact_quantiles({0.1: 10.04, 0.5: 50.0, 0.9: 40.0, 0.3: 30.26}) == [10.0, 30.3, 50.0, 50.0]
+
+
+def test_every_prop_row_carries_a_line_check_even_when_it_has_nothing_to_offer():
+    import numpy as np
+    import pandas as pd
+    from nfl_predictor.models import player_props
+
+    class _Td:
+        def predict_proba(self, X):
+            return np.array([[0.9, 0.1]])
+
+    class _Q:
+        def __init__(self, v):
+            self.v = v
+
+        def predict(self, X):
+            return np.array([self.v])
+
+    models = {"feature_cols": ["a"], "anytime_td": _Td(),
+              "passing_yards_quantiles": {q: _Q(100 + 300 * q) for q in player_props.QUANTILES},
+              "passing_yards_quantile_cols": ["a"]}
+    row = pd.Series({"a": 1.0})
+    qb = player_props.predict_props(models, row, position="QB")
+    assert len(qb["line_check"]["yardage"]["passing_yards"]) == len(player_props.QUANTILES)
+    assert "passing_yards_quantiles" in qb          # the raw dict is still stripped later, by the route
+    assert player_props.predict_props(models, row, position="K")["line_check"] == {}
+
+
+def test_quantile_models_use_only_features_the_props_route_serves():
+    """The 2026-10-15 defect: trained on 38 features, served 14 (24 zero-filled), so a star's median collapsed.
+    Neither the training list nor any COMMITTED quantile artifact may name a column the served row lacks."""
+    from nfl_predictor.features.player_usage import SERVING_FEATURE_COLUMNS
+    from nfl_predictor.models import manifest
+    from nfl_predictor.models.training import QUANTILE_FEATURE_COLUMNS
+
+    assert set(QUANTILE_FEATURE_COLUMNS) <= set(SERVING_FEATURE_COLUMNS)
+    models = manifest.load_models()["player_models"]
+    for key, cols in models.items():
+        if key.endswith("_quantile_cols"):
+            assert set(cols) <= set(SERVING_FEATURE_COLUMNS), (key, sorted(set(cols) - set(SERVING_FEATURE_COLUMNS)))
