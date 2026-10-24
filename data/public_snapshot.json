@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T21:00:49.712434+00:00",
+  "generated_at": "2026-10-24T23:26:40.037999+00:00",
   "season": 2026,
   "current_week": 7,
   "weeks": {
@@ -159916,7 +159916,14 @@
           "wind": null,
           "spread_line": 3.0,
           "total_line": 52.5,
-          "stadium": "Highmark Stadium"
+          "stadium": "Highmark Stadium",
+          "conditions": {
+            "kind": "rain",
+            "temp_f": 62,
+            "wind_mph": 12,
+            "precip_pct": 27,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_08_TEN_CIN",
@@ -189683,14 +189690,7 @@
           "wind": null,
           "spread_line": null,
           "total_line": null,
-          "stadium": "M&T Bank Stadium",
-          "conditions": {
-            "kind": "cloudy",
-            "temp_f": 54,
-            "wind_mph": 4,
-            "precip_pct": 19,
-            "source": "open-meteo"
-          }
+          "stadium": "M&T Bank Stadium"
         },
         {
           "game_id": "2026_09_CIN_ATL",
