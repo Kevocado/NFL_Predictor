@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T16:04:51.325367+00:00",
+  "generated_at": "2026-10-24T21:00:49.712434+00:00",
   "season": 2026,
   "current_week": 7,
   "weeks": {
@@ -132921,12 +132921,12 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": -1.5,
-          "total_line": 47.5,
+          "spread_line": -2.5,
+          "total_line": 46.5,
           "stadium": "M&T Bank Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 63,
+            "temp_f": 64,
             "wind_mph": 3,
             "precip_pct": 0,
             "source": "open-meteo"
@@ -132953,8 +132953,8 @@
           "stadium": "Bank of America Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 65,
-            "wind_mph": 12,
+            "temp_f": 64,
+            "wind_mph": 11,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -133190,10 +133190,10 @@
         "2026_07_CIN_BAL": {
           "home_win_prob": 0.5629163833467246,
           "away_win_prob": 0.43708361665327544,
-          "home_cover_prob": 0.6077974014330445,
-          "away_cover_prob": 0.3922025985669555,
-          "over_prob": 0.4784511980702544,
-          "under_prob": 0.5215488019297456,
+          "home_cover_prob": 0.6369781599802791,
+          "away_cover_prob": 0.36302184001972093,
+          "over_prob": 0.5109015647324101,
+          "under_prob": 0.4890984352675899,
           "predicted_margin": 2.0618012266768435,
           "predicted_total": 46.83586502075195,
           "sigma": 13.019094300495805,
@@ -159891,10 +159891,10 @@
           "total_line": 47.5,
           "stadium": "Lambeau Field",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 53,
-            "wind_mph": 5,
-            "precip_pct": 8,
+            "kind": "clear",
+            "temp_f": 55,
+            "wind_mph": 6,
+            "precip_pct": 7,
             "source": "open-meteo"
           }
         },
@@ -159916,14 +159916,7 @@
           "wind": null,
           "spread_line": 3.0,
           "total_line": 52.5,
-          "stadium": "Highmark Stadium",
-          "conditions": {
-            "kind": "cloudy",
-            "temp_f": 56,
-            "wind_mph": 12,
-            "precip_pct": 27,
-            "source": "open-meteo"
-          }
+          "stadium": "Highmark Stadium"
         },
         {
           "game_id": "2026_08_TEN_CIN",
@@ -159946,9 +159939,9 @@
           "stadium": "Paycor Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 76,
-            "wind_mph": 10,
-            "precip_pct": 43,
+            "temp_f": 74,
+            "wind_mph": 12,
+            "precip_pct": 45,
             "source": "open-meteo"
           }
         },
@@ -189692,10 +189685,10 @@
           "total_line": null,
           "stadium": "M&T Bank Stadium",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 49,
-            "wind_mph": 2,
-            "precip_pct": 13,
+            "kind": "cloudy",
+            "temp_f": 54,
+            "wind_mph": 4,
+            "precip_pct": 19,
             "source": "open-meteo"
           }
         },
@@ -189739,10 +189732,10 @@
           "total_line": null,
           "stadium": "Bank of America Stadium",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 70,
-            "wind_mph": 9,
-            "precip_pct": 19,
+            "kind": "clear",
+            "temp_f": 64,
+            "wind_mph": 8,
+            "precip_pct": 6,
             "source": "open-meteo"
           }
         },
@@ -189794,9 +189787,9 @@
           "stadium": "GEHA Field at Arrowhead Stadium",
           "conditions": {
             "kind": "clear",
-            "temp_f": 67,
-            "wind_mph": 11,
-            "precip_pct": 13,
+            "temp_f": 69,
+            "wind_mph": 14,
+            "precip_pct": 16,
             "source": "open-meteo"
           }
         },
