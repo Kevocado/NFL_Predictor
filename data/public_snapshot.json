@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T13:06:01.181783+00:00",
+  "generated_at": "2026-10-28T20:23:41.284762+00:00",
   "season": 2026,
   "current_week": 7,
   "weeks": {
@@ -161034,7 +161034,7 @@
           "stadium": "Lambeau Field",
           "conditions": {
             "kind": "clear",
-            "temp_f": 51,
+            "temp_f": 47,
             "wind_mph": 6,
             "precip_pct": 0,
             "source": "open-meteo"
@@ -161061,9 +161061,9 @@
           "stadium": "Highmark Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 66,
-            "wind_mph": 3,
-            "precip_pct": 3,
+            "temp_f": 61,
+            "wind_mph": 4,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -161088,9 +161088,9 @@
           "stadium": "Paycor Stadium",
           "conditions": {
             "kind": "rain",
-            "temp_f": 56,
-            "wind_mph": 6,
-            "precip_pct": 36,
+            "temp_f": 58,
+            "wind_mph": 8,
+            "precip_pct": 27,
             "source": "open-meteo"
           }
         },
@@ -161164,7 +161164,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 9.5,
+          "spread_line": 10.0,
           "total_line": 46.5,
           "stadium": "EverBank Stadium"
         },
@@ -161225,7 +161225,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 45.5,
+          "total_line": 44.5,
           "stadium": "Raymond James Stadium"
         },
         {
@@ -161265,7 +161265,7 @@
           "temp": null,
           "wind": null,
           "spread_line": -1.5,
-          "total_line": 41.5,
+          "total_line": 40.5,
           "stadium": "Empower Field at Mile High"
         },
         {
@@ -161398,8 +161398,8 @@
         "2026_08_IND_JAX": {
           "home_win_prob": 0.7403977961938046,
           "away_win_prob": 0.25960220380619536,
-          "home_cover_prob": 0.4660809347814301,
-          "away_cover_prob": 0.5339190652185699,
+          "home_cover_prob": 0.45084358604798924,
+          "away_cover_prob": 0.5491564139520108,
           "over_prob": 0.5500607133256893,
           "under_prob": 0.4499392866743107,
           "predicted_margin": 8.391747210821375,
@@ -161439,8 +161439,8 @@
           "away_win_prob": 0.4426297988502239,
           "home_cover_prob": 0.48096945606062436,
           "away_cover_prob": 0.5190305439393756,
-          "over_prob": 0.5989710195666407,
-          "under_prob": 0.40102898043335933,
+          "over_prob": 0.6300762526417254,
+          "under_prob": 0.3699237473582746,
           "predicted_margin": 1.8787209389749306,
           "predicted_total": 48.580772399902344,
           "sigma": 13.019094300495805,
@@ -161465,8 +161465,8 @@
           "away_win_prob": 0.40350004215546864,
           "home_cover_prob": 0.6403944427613635,
           "away_cover_prob": 0.3596055572386365,
-          "over_prob": 0.6570255473872574,
-          "under_prob": 0.3429744526127426,
+          "over_prob": 0.6864205115131181,
+          "under_prob": 0.3135794884868819,
           "predicted_margin": 3.180537825528641,
           "predicted_total": 46.46934127807617,
           "sigma": 13.019094300495805,
@@ -163848,7 +163848,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 611,
+          "depth_slot": 612,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -165945,8 +165945,8 @@
           "player_name": "J.Dobbins",
           "recent_team": "DEN",
           "position": "RB",
-          "is_starter": false,
-          "depth_slot": 624,
+          "is_starter": true,
+          "depth_slot": 610,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -166974,7 +166974,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 617,
+          "depth_slot": 618,
           "recent_avg": {
             "games": 3,
             "passing_yards": 0.0,
@@ -172793,7 +172793,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 623,
+          "depth_slot": 624,
           "recent_avg": {
             "games": 4,
             "passing_yards": 0.0,
@@ -175740,7 +175740,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 618,
+          "depth_slot": 619,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -191364,7 +191364,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 2.5,
+          "spread_line": 3.0,
           "total_line": 48.5,
           "stadium": "M&T Bank Stadium"
         },
@@ -191406,7 +191406,14 @@
           "wind": null,
           "spread_line": -2.5,
           "total_line": 44.5,
-          "stadium": "Bank of America Stadium"
+          "stadium": "Bank of America Stadium",
+          "conditions": {
+            "kind": "clear",
+            "temp_f": 67,
+            "wind_mph": 2,
+            "precip_pct": 1,
+            "source": "open-meteo"
+          }
         },
         {
           "game_id": "2026_09_DAL_IND",
@@ -191455,9 +191462,9 @@
           "total_line": 43.5,
           "stadium": "GEHA Field at Arrowhead Stadium",
           "conditions": {
-            "kind": "partly",
-            "temp_f": 60,
-            "wind_mph": 13,
+            "kind": "rain",
+            "temp_f": 55,
+            "wind_mph": 12,
             "precip_pct": 10,
             "source": "open-meteo"
           }
@@ -191506,7 +191513,7 @@
           "temp": null,
           "wind": null,
           "spread_line": 2.5,
-          "total_line": 43.5,
+          "total_line": 42.5,
           "stadium": "Caesars Superdome"
         },
         {
@@ -191674,8 +191681,8 @@
         "2026_09_JAX_BAL": {
           "home_win_prob": 0.4534461194471978,
           "away_win_prob": 0.5465538805528022,
-          "home_cover_prob": 0.3786664567449681,
-          "away_cover_prob": 0.6213335432550319,
+          "home_cover_prob": 0.3641491122293392,
+          "away_cover_prob": 0.6358508877706608,
           "over_prob": 0.37252435895326985,
           "under_prob": 0.6274756410467301,
           "predicted_margin": -1.5227052577027431,
@@ -191754,8 +191761,8 @@
           "away_win_prob": 0.5170200420465916,
           "home_cover_prob": 0.4072202057497001,
           "away_cover_prob": 0.5927797942502999,
-          "over_prob": 0.48907999097489063,
-          "under_prob": 0.5109200090251094,
+          "over_prob": 0.5215303776361755,
+          "under_prob": 0.4784696223638245,
           "predicted_margin": -0.5556011609391567,
           "predicted_total": 43.16356658935547,
           "sigma": 13.019094300495805,
@@ -194428,7 +194435,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 611,
+          "depth_slot": 612,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -196945,8 +196952,8 @@
           "player_name": "J.Dobbins",
           "recent_team": "DEN",
           "position": "RB",
-          "is_starter": false,
-          "depth_slot": 624,
+          "is_starter": true,
+          "depth_slot": 610,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -197974,7 +197981,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 617,
+          "depth_slot": 618,
           "recent_avg": {
             "games": 3,
             "passing_yards": 0.0,
@@ -204122,7 +204129,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 623,
+          "depth_slot": 624,
           "recent_avg": {
             "games": 4,
             "passing_yards": 0.0,
@@ -207489,7 +207496,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 618,
+          "depth_slot": 619,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -256573,7 +256580,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 611,
+          "depth_slot": 612,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -258962,8 +258969,8 @@
           "player_name": "J.Dobbins",
           "recent_team": "DEN",
           "position": "RB",
-          "is_starter": false,
-          "depth_slot": 624,
+          "is_starter": true,
+          "depth_slot": 610,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
@@ -259847,7 +259854,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 617,
+          "depth_slot": 618,
           "recent_avg": {
             "games": 3,
             "passing_yards": 0.0,
@@ -265029,7 +265036,7 @@
           "recent_team": "DEN",
           "position": "TE",
           "is_starter": false,
-          "depth_slot": 623,
+          "depth_slot": 624,
           "recent_avg": {
             "games": 4,
             "passing_yards": 0.0,
@@ -267767,7 +267774,7 @@
           "recent_team": "DEN",
           "position": "WR",
           "is_starter": false,
-          "depth_slot": 618,
+          "depth_slot": 619,
           "recent_avg": {
             "games": 5,
             "passing_yards": 0.0,
