@@ -61,7 +61,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 20.19, not "20". jsdom 29 declares
           # `node: ^20.19.0 || ^22.13.0 || >=24.0.0`; a bare "20" resolves to
@@ -130,7 +130,7 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 20.19, the floor jsdom 29 declares -- same reason, and the same
           # version, as the `frontend` job above.
