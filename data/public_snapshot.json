@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T22:32:09.269602+00:00",
+  "generated_at": "2026-10-31T05:51:18.889608+00:00",
   "season": 2026,
   "current_week": 8,
   "weeks": {
@@ -161054,8 +161054,8 @@
           "stadium": "Highmark Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 64,
-            "wind_mph": 5,
+            "temp_f": 65,
+            "wind_mph": 9,
             "precip_pct": 0,
             "source": "open-meteo"
           }
@@ -161081,9 +161081,9 @@
           "stadium": "Paycor Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 65,
-            "wind_mph": 6,
-            "precip_pct": 8,
+            "temp_f": 72,
+            "wind_mph": 3,
+            "precip_pct": 1,
             "source": "open-meteo"
           }
         },
@@ -161304,7 +161304,7 @@
           "surface": "grass",
           "temp": null,
           "wind": null,
-          "spread_line": 6.0,
+          "spread_line": 5.5,
           "total_line": 40.5,
           "stadium": "Northwest Stadium"
         },
@@ -161489,8 +161489,8 @@
         "2026_08_PHI_WAS": {
           "home_win_prob": 0.5044750972619181,
           "away_win_prob": 0.4955249027380819,
-          "home_cover_prob": 0.3264836102454933,
-          "away_cover_prob": 0.6735163897545067,
+          "home_cover_prob": 0.3404487268318833,
+          "away_cover_prob": 0.6595512731681167,
           "over_prob": 0.5632762597064976,
           "under_prob": 0.43672374029350236,
           "predicted_margin": 0.14604352062907267,
@@ -188963,9 +188963,9 @@
           "stadium": "M&T Bank Stadium",
           "conditions": {
             "kind": "cloudy",
-            "temp_f": 63,
+            "temp_f": 67,
             "wind_mph": 2,
-            "precip_pct": 40,
+            "precip_pct": 30,
             "source": "open-meteo"
           }
         },
@@ -189009,9 +189009,9 @@
           "total_line": 44.5,
           "stadium": "Bank of America Stadium",
           "conditions": {
-            "kind": "clear",
-            "temp_f": 77,
-            "wind_mph": 9,
+            "kind": "cloudy",
+            "temp_f": 73,
+            "wind_mph": 1,
             "precip_pct": 4,
             "source": "open-meteo"
           }
@@ -189064,9 +189064,9 @@
           "stadium": "GEHA Field at Arrowhead Stadium",
           "conditions": {
             "kind": "rain",
-            "temp_f": 67,
-            "wind_mph": 11,
-            "precip_pct": 13,
+            "temp_f": 63,
+            "wind_mph": 16,
+            "precip_pct": 23,
             "source": "open-meteo"
           }
         },
@@ -507366,7 +507366,7 @@
       "point_diff": 26.0,
       "projected_wins": 12.6,
       "projected_losses": 4.4,
-      "projected_point_diff": 101.7,
+      "projected_point_diff": 100.0,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -507382,7 +507382,7 @@
       "point_diff": 17.0,
       "projected_wins": 9.7,
       "projected_losses": 7.3,
-      "projected_point_diff": 41.6,
+      "projected_point_diff": 40.8,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -507414,7 +507414,7 @@
       "point_diff": -59.0,
       "projected_wins": 4.5,
       "projected_losses": 12.5,
-      "projected_point_diff": -130.0,
+      "projected_point_diff": -131.6,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -507430,7 +507430,7 @@
       "point_diff": 41.0,
       "projected_wins": 11.0,
       "projected_losses": 6.0,
-      "projected_point_diff": 92.3,
+      "projected_point_diff": 94.8,
       "current_division_rank": 3,
       "projected_division_rank": 1,
       "division_rank_delta": 2
@@ -507444,9 +507444,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 15.0,
-      "projected_wins": 10.7,
-      "projected_losses": 6.3,
-      "projected_point_diff": 40.1,
+      "projected_wins": 10.8,
+      "projected_losses": 6.2,
+      "projected_point_diff": 41.4,
       "current_division_rank": 1,
       "projected_division_rank": 2,
       "division_rank_delta": -1
@@ -507476,9 +507476,9 @@
       "losses": 3,
       "ties": 0,
       "point_diff": 2.0,
-      "projected_wins": 8.8,
-      "projected_losses": 8.2,
-      "projected_point_diff": -4.7,
+      "projected_wins": 8.9,
+      "projected_losses": 8.1,
+      "projected_point_diff": -2.2,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -507508,9 +507508,9 @@
       "losses": 5,
       "ties": 0,
       "point_diff": -5.0,
-      "projected_wins": 7.9,
-      "projected_losses": 9.1,
-      "projected_point_diff": 24.8,
+      "projected_wins": 7.8,
+      "projected_losses": 9.2,
+      "projected_point_diff": 23.1,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -507542,7 +507542,7 @@
       "point_diff": -48.0,
       "projected_wins": 3.6,
       "projected_losses": 13.4,
-      "projected_point_diff": -137.0,
+      "projected_point_diff": -136.9,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -507556,9 +507556,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 3.0,
-      "projected_wins": 11.5,
-      "projected_losses": 5.5,
-      "projected_point_diff": 55.1,
+      "projected_wins": 11.6,
+      "projected_losses": 5.4,
+      "projected_point_diff": 57.7,
       "current_division_rank": 2,
       "projected_division_rank": 1,
       "division_rank_delta": 1
@@ -507590,7 +507590,7 @@
       "point_diff": -14.0,
       "projected_wins": 6.7,
       "projected_losses": 10.3,
-      "projected_point_diff": -61.2,
+      "projected_point_diff": -61.1,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
@@ -507684,9 +507684,9 @@
       "losses": 0,
       "ties": 0,
       "point_diff": 51.0,
-      "projected_wins": 12.5,
-      "projected_losses": 4.5,
-      "projected_point_diff": 84.4,
+      "projected_wins": 12.4,
+      "projected_losses": 4.6,
+      "projected_point_diff": 84.0,
       "current_division_rank": 1,
       "projected_division_rank": 1,
       "division_rank_delta": 0
@@ -507700,9 +507700,9 @@
       "losses": 2,
       "ties": 0,
       "point_diff": 19.0,
-      "projected_wins": 10.6,
-      "projected_losses": 6.4,
-      "projected_point_diff": 56.3,
+      "projected_wins": 10.5,
+      "projected_losses": 6.5,
+      "projected_point_diff": 54.7,
       "current_division_rank": 4,
       "projected_division_rank": 2,
       "division_rank_delta": 2
@@ -507718,7 +507718,7 @@
       "point_diff": 37.0,
       "projected_wins": 10.2,
       "projected_losses": 6.8,
-      "projected_point_diff": 44.7,
+      "projected_point_diff": 44.0,
       "current_division_rank": 2,
       "projected_division_rank": 3,
       "division_rank_delta": -1
@@ -507732,9 +507732,9 @@
       "losses": 3,
       "ties": 0,
       "point_diff": 7.0,
-      "projected_wins": 9.4,
-      "projected_losses": 7.6,
-      "projected_point_diff": 3.8,
+      "projected_wins": 9.7,
+      "projected_losses": 7.3,
+      "projected_point_diff": 15.2,
       "current_division_rank": 3,
       "projected_division_rank": 4,
       "division_rank_delta": -1
@@ -507748,27 +507748,11 @@
       "losses": 4,
       "ties": 0,
       "point_diff": -2.0,
-      "projected_wins": 8.2,
-      "projected_losses": 8.8,
-      "projected_point_diff": 6.1,
+      "projected_wins": 8.3,
+      "projected_losses": 8.7,
+      "projected_point_diff": 8.7,
       "current_division_rank": 1,
       "projected_division_rank": 1,
-      "division_rank_delta": 0
-    },
-    {
-      "team": "CAR",
-      "conference": "NFC",
-      "division": "NFC South",
-      "played": 7,
-      "wins": 3,
-      "losses": 4,
-      "ties": 0,
-      "point_diff": -15.0,
-      "projected_wins": 7.3,
-      "projected_losses": 9.7,
-      "projected_point_diff": -38.1,
-      "current_division_rank": 2,
-      "projected_division_rank": 2,
       "division_rank_delta": 0
     },
     {
@@ -507782,10 +507766,26 @@
       "point_diff": 11.0,
       "projected_wins": 7.1,
       "projected_losses": 9.9,
-      "projected_point_diff": 12.9,
+      "projected_point_diff": 14.2,
       "current_division_rank": 3,
+      "projected_division_rank": 2,
+      "division_rank_delta": 1
+    },
+    {
+      "team": "CAR",
+      "conference": "NFC",
+      "division": "NFC South",
+      "played": 7,
+      "wins": 3,
+      "losses": 4,
+      "ties": 0,
+      "point_diff": -15.0,
+      "projected_wins": 6.7,
+      "projected_losses": 10.3,
+      "projected_point_diff": -58.7,
+      "current_division_rank": 2,
       "projected_division_rank": 3,
-      "division_rank_delta": 0
+      "division_rank_delta": -1
     },
     {
       "team": "NO",
@@ -507798,7 +507798,7 @@
       "point_diff": -32.0,
       "projected_wins": 5.8,
       "projected_losses": 11.2,
-      "projected_point_diff": -75.1,
+      "projected_point_diff": -72.0,
       "current_division_rank": 4,
       "projected_division_rank": 4,
       "division_rank_delta": 0
@@ -507830,7 +507830,7 @@
       "point_diff": 43.0,
       "projected_wins": 10.8,
       "projected_losses": 6.2,
-      "projected_point_diff": 104.9,
+      "projected_point_diff": 107.4,
       "current_division_rank": 2,
       "projected_division_rank": 2,
       "division_rank_delta": 0
@@ -507844,9 +507844,9 @@
       "losses": 4,
       "ties": 0,
       "point_diff": 11.0,
-      "projected_wins": 8.8,
-      "projected_losses": 8.2,
-      "projected_point_diff": 36.9,
+      "projected_wins": 8.7,
+      "projected_losses": 8.3,
+      "projected_point_diff": 36.1,
       "current_division_rank": 3,
       "projected_division_rank": 3,
       "division_rank_delta": 0
