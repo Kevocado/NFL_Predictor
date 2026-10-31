@@ -1,0 +1,107 @@
+{
+ "bootstrap_B": 2000,
+ "k_selected": 3,
+ "pairs": [
+  {
+   "candidate": "c__named__opp_rush_over_pass",
+   "ci_high": 0.0,
+   "ci_level": 0.9833333333333333,
+   "ci_low": 0.0,
+   "mae_gain": 0.0,
+   "market": "passing_tds",
+   "n_rows": 844,
+   "other_markets": {
+    "passing_yards": {
+     "mae_gain": -0.021869717757283795,
+     "n_rows": 844
+    },
+    "receiving_yards": {
+     "mae_gain": -0.0010315253053392683,
+     "n_rows": 4200
+    },
+    "receptions": {
+     "mae_gain": 0.0,
+     "n_rows": 4200
+    },
+    "rushing_yards": {
+     "mae_gain": -0.02199257767387492,
+     "n_rows": 1721
+    }
+   },
+   "other_markets_not_worse": false,
+   "passes": false,
+   "season_gains": {
+    "2025": 0.0,
+    "2026": 0.0
+   }
+  },
+  {
+   "candidate": "c__pair__team_air_yards__over__team_rush_att",
+   "ci_high": 0.0,
+   "ci_level": 0.9833333333333333,
+   "ci_low": 0.0,
+   "mae_gain": 0.0,
+   "market": "passing_tds",
+   "n_rows": 844,
+   "other_markets": {
+    "passing_yards": {
+     "mae_gain": 0.5758709907531738,
+     "n_rows": 844
+    },
+    "receiving_yards": {
+     "mae_gain": 0.0022874853724525086,
+     "n_rows": 4200
+    },
+    "receptions": {
+     "mae_gain": -0.0009575339584123521,
+     "n_rows": 4200
+    },
+    "rushing_yards": {
+     "mae_gain": -0.011759263980118497,
+     "n_rows": 1721
+    }
+   },
+   "other_markets_not_worse": false,
+   "passes": false,
+   "season_gains": {
+    "2025": 0.0,
+    "2026": 0.0
+   }
+  },
+  {
+   "candidate": "c__pair__team_air_yards__over__team_plays",
+   "ci_high": 0.0,
+   "ci_level": 0.9833333333333333,
+   "ci_low": 0.0,
+   "mae_gain": 0.0,
+   "market": "passing_tds",
+   "n_rows": 844,
+   "other_markets": {
+    "passing_yards": {
+     "mae_gain": 0.14246791855418853,
+     "n_rows": 844
+    },
+    "receiving_yards": {
+     "mae_gain": -0.020627938508987427,
+     "n_rows": 4200
+    },
+    "receptions": {
+     "mae_gain": -0.000513009216104235,
+     "n_rows": 4200
+    },
+    "rushing_yards": {
+     "mae_gain": 0.0022835087665356154,
+     "n_rows": 1721
+    }
+   },
+   "other_markets_not_worse": false,
+   "passes": false,
+   "season_gains": {
+    "2025": 0.0,
+    "2026": 0.0
+   }
+  }
+ ],
+ "seed": 20261030,
+ "verdict": "NEGATIVE"
+}
